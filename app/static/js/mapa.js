@@ -179,6 +179,7 @@
           <div class="fw-bold mb-1">${escapeHtml(point.nome)}</div>
           <div class="small text-muted mb-2">${escapeHtml(point.municipio)} • ${escapeHtml(point.territorio)}</div>
           ${localizadorHtml}
+          <div class="mb-2"><strong>Status dos dados:</strong> ${escapeHtml(point.status_migracao || "Operacional")}</div>
           <div class="mb-2"><strong>Alocado no ponto:</strong> ${pointAllocated}</div>
           <div class="mb-2"><strong>Em uso estimado:</strong> ${pointInUse}</div>
           <div class="mb-2"><strong>Danificado:</strong> ${pointDamaged}</div>
