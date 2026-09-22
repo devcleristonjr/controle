@@ -96,14 +96,14 @@
             </a>
           </li>
 
-          <!-- Pontos de estoque -->
+          <!-- Pontos monitorados -->
           <li class="nav-item">
             <a
               class="nav-link {% if request.endpoint and request.endpoint.startswith('estoques.') %}active{% endif %}"
               href="{{ url_for('estoques.index') }}"
             >
               <i class="bi bi-box-seam me-2"></i>
-              Pontos de estoque
+              Pontos monitorados
             </a>
           </li>
 
