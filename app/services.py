@@ -420,6 +420,80 @@ def get_legacy_migration_candidates(point_id: int | None = None) -> list[dict]:
     return candidates
 
 
+
+
+def get_legacy_transition_audit() -> dict:
+    """Summarize legacy-only, hybrid and operational-only point/material pairs."""
+    legacy_rows = (
+        db.session.query(EstoqueMaterial)
+        .join(EstoqueMaterial.material)
+        .filter(
+            EstoqueMaterial.quantidade > 0,
+            Material.ativo.is_(True),
+        )
+        .all()
+    )
+    active_allocations = (
+        AlocacaoPontoMaterial.query.filter_by(ativo=True)
+        .join(AlocacaoPontoMaterial.material)
+        .filter(Material.ativo.is_(True))
+        .all()
+    )
+
+    active_pairs = {
+        (allocation.ponto_estoque_id, allocation.material_id)
+        for allocation in active_allocations
+    }
+    legacy_pairs = {
+        (row.ponto_estoque_id, row.material_id)
+        for row in legacy_rows
+    }
+
+    legacy_only_rows = [
+        row for row in legacy_rows
+        if (row.ponto_estoque_id, row.material_id) not in active_pairs
+    ]
+    hybrid_rows = [
+        row for row in legacy_rows
+        if (row.ponto_estoque_id, row.material_id) in active_pairs
+    ]
+    operational_only_allocations = [
+        allocation for allocation in active_allocations
+        if (allocation.ponto_estoque_id, allocation.material_id) not in legacy_pairs
+    ]
+
+    def quantity(rows, field_name):
+        return sum(
+            (Decimal(getattr(row, field_name) or 0) for row in rows),
+            Decimal("0"),
+        )
+
+    legacy_only_pairs = {
+        (row.ponto_estoque_id, row.material_id) for row in legacy_only_rows
+    }
+    hybrid_pairs = {
+        (row.ponto_estoque_id, row.material_id) for row in hybrid_rows
+    }
+    operational_only_pairs = {
+        (allocation.ponto_estoque_id, allocation.material_id)
+        for allocation in operational_only_allocations
+    }
+
+    return {
+        "legacy_positive_rows": len(legacy_rows),
+        "active_operational_rows": len(active_allocations),
+        "legacy_only_rows": len(legacy_only_rows),
+        "hybrid_rows": len(hybrid_rows),
+        "operational_only_rows": len(operational_only_allocations),
+        "legacy_only_pairs": len(legacy_only_pairs),
+        "hybrid_pairs": len(hybrid_pairs),
+        "operational_only_pairs": len(operational_only_pairs),
+        "legacy_only_quantity": quantity(legacy_only_rows, "quantidade"),
+        "hybrid_legacy_quantity": quantity(hybrid_rows, "quantidade"),
+        "operational_quantity": quantity(active_allocations, "quantidade_alocada"),
+        "operational_only_quantity": quantity(operational_only_allocations, "quantidade_alocada"),
+        "legacy_only_candidates": get_legacy_migration_candidates(),
+    }
 def migrate_legacy_stock_to_allocation(
     *,
     point: PontoEstoque,
