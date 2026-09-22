@@ -862,3 +862,73 @@ a:focus-visible {
     font-size: 0.92rem;
   }
 }
+
+
+/* Refinamento final da navegação e dashboard */
+.page-header {
+  position: relative;
+}
+
+.page-header::after {
+  content: "";
+  display: block;
+  width: 42px;
+  height: 3px;
+  margin-top: 0.65rem;
+  border-radius: 999px;
+  background: var(--primary);
+  opacity: 0.72;
+}
+
+.dashboard-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.dashboard-stat {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--primary);
+  opacity: 0.8;
+}
+
+.dashboard-stat-warning::before {
+  background: var(--warning);
+}
+
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary::after {
+  content: "＋";
+  float: right;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+details[open] > summary::after {
+  content: "−";
+}
+
+.map-container {
+  box-shadow: var(--shadow-card);
+}
+
+@media (max-width: 767.98px) {
+  .page-header::after {
+    margin-top: 0.55rem;
+  }
+}
