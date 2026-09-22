@@ -5,31 +5,38 @@
   <div class="col-lg-8">
     <div class="card card-soft">
       <div class="card-body p-4 p-lg-5">
-        <h1 class="h4 fw-bold mb-1">Registrar ocorrência</h1>
+        <h1 class="h4 fw-bold mb-1">O que aconteceu com este material?</h1>
         <p class="text-muted mb-4">{{ ponto.nome }} • {{ alocacao.material.nome }}</p>
 
-        <div class="alert alert-light border small">
-          <div>Quantidade alocada: <strong>{{ '%.0f'|format(alocacao.quantidade_alocada) }}</strong></div>
-          <div>Em uso atualmente: <strong>{{ '%.0f'|format(alocacao.quantidade_em_uso) }}</strong></div>
-          <div>Reposição pendente: <strong>{{ '%.0f'|format(alocacao.quantidade_reposicao_pendente) }}</strong></div>
+        <div class="alert alert-dark border small">
+          <div>Registrado no ponto: <strong>{{ '%.0f'|format(alocacao.quantidade_alocada) }}</strong></div>
+          <div>Em condições de uso: <strong>{{ '%.0f'|format(alocacao.quantidade_em_uso) }}</strong></div>
+          <div>Reposição necessária atualmente: <strong>{{ '%.0f'|format(alocacao.quantidade_reposicao_pendente) }}</strong></div>
         </div>
 
-        <form method="post" novalidate>
+        <form method="post" novalidate id="occurrence-form">
           {{ form.hidden_tag() }}
           <div class="row g-3">
             <div class="col-md-6">
               {{ form.tipo.label(class_='form-label') }}
-              {{ form.tipo(class_='form-select') }}
+              {{ form.tipo(class_='form-select', id='occurrence-type') }}
             </div>
             <div class="col-md-6">
               {{ form.quantidade_afetada.label(class_='form-label') }}
-              {{ form.quantidade_afetada(class_='form-control') }}
+              {{ form.quantidade_afetada(class_='form-control', id='occurrence-quantity', min='0.01', step='0.01') }}
+              <div class="form-text">Informe quantas unidades foram afetadas.</div>
             </div>
             <div class="col-12">
               {{ form.descricao.label(class_='form-label') }}
-              {{ form.descricao(class_='form-control', rows=4) }}
+              {{ form.descricao(class_='form-control', rows=4, placeholder='Conte brevemente o que aconteceu, se necessário.') }}
             </div>
           </div>
+
+          <div id="replenishment-preview" class="alert alert-warning border mt-4 d-none" role="alert">
+            <strong>Reposição necessária:</strong>
+            <span id="replenishment-preview-text"></span>
+          </div>
+
           <div class="d-flex gap-2 mt-4">
             <button class="btn btn-primary" type="submit">Registrar ocorrência</button>
             <a class="btn btn-outline-secondary" href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}">Cancelar</a>
@@ -39,4 +46,37 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  const typeField = document.getElementById('occurrence-type');
+  const quantityField = document.getElementById('occurrence-quantity');
+  const preview = document.getElementById('replenishment-preview');
+  const previewText = document.getElementById('replenishment-preview-text');
+
+  if (!typeField || !quantityField || !preview || !previewText) return;
+
+  function updatePreview() {
+    const type = typeField.value;
+    const quantity = Number(quantityField.value || 0);
+    const createsReplenishment = type === 'DANIFICADO' || type === 'PERDIDO' || type === 'REPOSICAO_NECESSARIA';
+
+    if (!createsReplenishment || quantity <= 0) {
+      preview.classList.add('d-none');
+      previewText.textContent = '';
+      return;
+    }
+
+    const unit = quantity === 1 ? 'unidade' : 'unidades';
+    previewText.textContent = type === 'REPOSICAO_NECESSARIA'
+      ? 'este registro sinalizará ' + quantity + ' ' + unit + ' para reposição.'
+      : quantity + ' ' + unit + ' passarão a constar como indisponíveis e precisarão ser repostas.';
+    preview.classList.remove('d-none');
+  }
+
+  typeField.addEventListener('change', updatePreview);
+  quantityField.addEventListener('input', updatePreview);
+  updatePreview();
+})();
+</script>
 {% endblock %}
