@@ -74,6 +74,19 @@
             </a>
           </li>
 
+          <!-- Mapa -->
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint == 'dashboard.mapa' %}active{% endif %}" href="{{ url_for('dashboard.mapa') }}">
+              <i class="bi bi-geo-alt me-2"></i>Mapa
+            </a>
+          </li>
+
+          <!-- Mapa -->
+          <a class="nav-link {% if request.endpoint == 'dashboard.mapa' %}active{% endif %}" href="{{ url_for('dashboard.mapa') }}">
+            <i class="bi bi-geo-alt me-2"></i>Mapa
+          </a>
+
+
           <!-- Coleta -->
           <li class="nav-item">
             <a
