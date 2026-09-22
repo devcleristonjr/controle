@@ -389,6 +389,78 @@ def register_allocation_replenishment(
     return replenishment
 
 
+def get_legacy_migration_candidates(point_id: int | None = None) -> list[dict]:
+    """List legacy stock rows that do not yet have an active operational allocation."""
+    query = (
+        db.session.query(EstoqueMaterial)
+        .join(EstoqueMaterial.material)
+        .join(EstoqueMaterial.ponto_estoque)
+        .filter(EstoqueMaterial.quantidade > 0, Material.ativo.is_(True))
+    )
+    if point_id is not None:
+        query = query.filter(EstoqueMaterial.ponto_estoque_id == point_id)
+
+    candidates = []
+    for row in query.order_by(PontoEstoque.nome.asc(), Material.nome.asc()).all():
+        active_allocation = AlocacaoPontoMaterial.query.filter_by(
+            ponto_estoque_id=row.ponto_estoque_id,
+            material_id=row.material_id,
+            ativo=True,
+        ).first()
+        if active_allocation is not None:
+            continue
+        candidates.append(
+            {
+                "point": row.ponto_estoque,
+                "material": row.material,
+                "legacy_quantity": Decimal(row.quantidade or 0),
+                "legacy_row_id": row.id,
+            }
+        )
+    return candidates
+
+
+def migrate_legacy_stock_to_allocation(
+    *,
+    point: PontoEstoque,
+    material: Material,
+    usuario=None,
+) -> AlocacaoPontoMaterial:
+    """Create the operational representation without changing the effective stock total."""
+    legacy_row = EstoqueMaterial.query.filter_by(
+        ponto_estoque_id=point.id,
+        material_id=material.id,
+    ).first()
+    if legacy_row is None or Decimal(legacy_row.quantidade or 0) <= 0:
+        raise ValueError("Não existe estoque legado positivo para migrar neste ponto.")
+
+    existing = AlocacaoPontoMaterial.query.filter_by(
+        ponto_estoque_id=point.id,
+        material_id=material.id,
+        ativo=True,
+    ).first()
+    if existing is not None:
+        raise ValueError("Este material já possui uma alocação operacional ativa neste ponto.")
+
+    quantidade = Decimal(legacy_row.quantidade or 0)
+    allocation = AlocacaoPontoMaterial(
+        ponto_estoque=point,
+        material=material,
+        quantidade_alocada=quantidade,
+        quantidade_em_uso=quantidade,
+        quantidade_danificada_total=Decimal("0"),
+        quantidade_perdida_total=Decimal("0"),
+        quantidade_retirada_total=Decimal("0"),
+        quantidade_reposicao_pendente=Decimal("0"),
+        responsavel_alocacao=point.responsavel_nome,
+        observacoes="Migrado automaticamente do estoque legado; registro legado preservado para compatibilidade.",
+        ativo=True,
+    )
+    db.session.add(allocation)
+    db.session.flush()
+    return allocation
+
+
 def get_operational_history_entries(point: PontoEstoque) -> list[dict]:
     allocations = (
         AlocacaoPontoMaterial.query.filter_by(ponto_estoque_id=point.id)
