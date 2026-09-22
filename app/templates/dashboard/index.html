@@ -1,214 +1,126 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard | Estoque Bahia{% endblock %}
 {% block content %}
-<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
-    <h1 class="page-title h3 fw-bold mb-1">Dashboard</h1>
-    <p class="text-muted mb-0">Visão geral dos pontos de estoque da Bahia.</p>
+    <h1 class="h3 fw-bold mb-1">Visão geral</h1>
+    <p class="text-muted mb-0">Controle rápido dos pontos, materiais e reposições.</p>
   </div>
-  <a href="{{ url_for('dashboard.mapa') }}" class="btn btn-outline-primary"><i class="bi bi-geo-alt me-2"></i>Abrir mapa</a>
-</div>
-
-<form method="get" class="card card-soft mb-4">
-  <div class="card-body">
-    <div class="row g-3 align-items-end">
-      <div class="col-md-3">
-        <label class="form-label" for="territorio_id_filter">Território</label>
-        <select id="territorio_id_filter" name="territorio_id" class="form-select">
-          <option value="">Todos</option>
-          {% for territorio in territorios %}
-            <option value="{{ territorio.id }}" {% if filters.get('territorio_id') == territorio.id %}selected{% endif %}>{{ territorio.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label" for="municipio_id_filter">Município</label>
-        <select id="municipio_id_filter" name="municipio_id" class="form-select">
-          <option value="">Todos</option>
-          {% for municipio in municipios %}
-            <option value="{{ municipio.id }}" {% if filters.get('municipio_id') == municipio.id %}selected{% endif %}>{{ municipio.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label" for="material_id_filter">Material</label>
-        <select id="material_id_filter" name="material_id" class="form-select">
-          <option value="">Todos</option>
-          {% for material in materiais %}
-            <option value="{{ material.id }}" {% if filters.get('material_id') == material.id %}selected{% endif %}>{{ material.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="status_filter">Status</label>
-        <select id="status_filter" name="status" class="form-select">
-          <option value="">Todos</option>
-          <option value="ativo" {% if filters.get('status') == 'ativo' %}selected{% endif %}>Ativo</option>
-          <option value="inativo" {% if filters.get('status') == 'inativo' %}selected{% endif %}>Inativo</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="replenishment_filter">Reposição</label>
-        <select id="replenishment_filter" name="replenishment" class="form-select">
-          <option value="" {% if not filters.get('replenishment') %}selected{% endif %}>Todos</option>
-          <option value="with" {% if filters.get('replenishment') == 'with' %}selected{% endif %}>Com necessidade</option>
-          <option value="without" {% if filters.get('replenishment') == 'without' %}selected{% endif %}>Sem necessidade</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label" for="responsavel_filter">Responsável</label>
-        <input id="responsavel_filter" name="responsavel" class="form-control" value="{{ filters.get('responsavel') or '' }}" placeholder="Nome do responsável">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label" for="localizador_filter">Rua/Localizador</label>
-        <input id="localizador_filter" name="localizador" class="form-control" value="{{ filters.get('localizador') or '' }}" placeholder="Ex.: WHATS-001">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="occurrence_type_filter">Ocorrência</label>
-        <select id="occurrence_type_filter" name="occurrence_type" class="form-select">
-          <option value="" {% if not filters.get('occurrence_type') %}selected{% endif %}>Todas</option>
-          <option value="DANIFICADO" {% if filters.get('occurrence_type') == 'DANIFICADO' %}selected{% endif %}>Danificado</option>
-          <option value="PERDIDO" {% if filters.get('occurrence_type') == 'PERDIDO' %}selected{% endif %}>Perdido</option>
-          <option value="RETIRADO" {% if filters.get('occurrence_type') == 'RETIRADO' %}selected{% endif %}>Retirado</option>
-          <option value="REPOSICAO_NECESSARIA" {% if filters.get('occurrence_type') == 'REPOSICAO_NECESSARIA' %}selected{% endif %}>Precisa de reposição</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="with_occurrences_filter">Situação de ocorrência</label>
-        <select id="with_occurrences_filter" name="with_occurrences" class="form-select">
-          <option value="" {% if not filters.get('with_occurrences') %}selected{% endif %}>Todos</option>
-          <option value="with" {% if filters.get('with_occurrences') == 'with' %}selected{% endif %}>Com ocorrências</option>
-          <option value="without" {% if filters.get('with_occurrences') == 'without' %}selected{% endif %}>Sem ocorrências</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="period_start_filter">Período (início)</label>
-        <input id="period_start_filter" name="period_start" class="form-control" type="date" value="{{ filters.get('period_start') or '' }}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="period_end_filter">Período (fim)</label>
-        <input id="period_end_filter" name="period_end" class="form-control" type="date" value="{{ filters.get('period_end') or '' }}">
-      </div>
-      <div class="col-md-1 d-grid">
-        <button class="btn btn-primary" type="submit">Filtrar</button>
-      </div>
-    </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('estoques.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo ponto</a>
+    <a href="{{ url_for('estoques.index') }}" class="btn btn-outline-primary"><i class="bi bi-box-seam me-1"></i>Ver pontos</a>
+    <a href="{{ url_for('dashboard.mapa') }}" class="btn btn-outline-secondary"><i class="bi bi-geo-alt me-1"></i>Mapa</a>
   </div>
-</form>
-
-<div class="row g-3 mb-4">
-  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total de pontos</div><div class="display-6 fw-bold">{{ metrics.total_points }}</div></div></div></div>
-  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total de municípios</div><div class="display-6 fw-bold">{{ metrics.total_municipios }}</div></div></div></div>
-  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total de territórios</div><div class="display-6 fw-bold">{{ metrics.total_territorios }}</div></div></div></div>
-  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total alocado</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.total_stock_allocated) }}</div></div></div></div>
-  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total de materiais</div><div class="display-6 fw-bold">{{ metrics.total_materiais }}</div></div></div></div>
-  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Em uso nos pontos</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.total_in_use) }}</div></div></div></div>
-  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Danificado</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.total_damaged) }}</div></div></div></div>
-  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Reposição necessária</div><div class="display-6 fw-bold {% if metrics.total_replenishment_needed > 0 %}text-danger{% endif %}">{{ '%.0f'|format(metrics.total_replenishment_needed) }}</div></div></div></div>
 </div>
 
 <div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">{{ metrics.stock_summary.label }} · Total</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.stock_summary.total) }}</div></div></div></div>
-  <div class="col-md-4"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">{{ metrics.stock_summary.label }} · Alocado</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.stock_summary.allocated) }}</div></div></div></div>
-  <div class="col-md-4"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">{{ metrics.stock_summary.label }} · Disponível</div><div class="display-6 fw-bold {% if metrics.stock_summary.is_inconsistent %}text-danger{% endif %}">{{ '%.0f'|format(metrics.stock_summary.available) }}</div></div></div></div>
-</div>
-
-<div class="card card-soft mb-4">
-  <div class="card-header bg-white border-0 fw-semibold">Estoque alocado nos pontos</div>
-  <div class="card-body">
-    <p class="text-muted small mb-3">Materiais ativos e saldo para novas alocações.</p>
-    <div class="row g-3">
-      {% for item in metrics.material_cards %}
-        <div class="col-12 col-md-6 col-xl-4">
-          <div class="material-metric-card">
-            <div class="fw-bold mb-2">{{ item.nome }}</div>
-            <div class="small d-flex justify-content-between"><span class="text-muted">Quantidade total</span><span>{{ '%.0f'|format(item.total) }}</span></div>
-            <div class="small d-flex justify-content-between"><span class="text-muted">Quantidade alocada</span><span>{{ '%.0f'|format(item.allocated) }}</span></div>
-            <div class="small d-flex justify-content-between align-items-center mt-2"><span class="text-muted">Disponível</span><span class="material-metric-value {% if item.is_inconsistent %}text-danger{% endif %}">{{ '%.0f'|format(item.available) }}</span></div>
-            <div class="small mt-2 text-muted">Unidade: {{ item.unidade }}</div>
-          </div>
-        </div>
-      {% else %}
-        <div class="col-12">
-          <p class="text-muted mb-0">Nenhum material ativo cadastrado.</p>
-        </div>
-      {% endfor %}
-    </div>
+  <div class="col-6 col-xl-3">
+    <div class="card card-soft h-100"><div class="card-body">
+      <div class="metric-kicker">Pontos</div><div class="display-6 fw-bold">{{ metrics.total_points }}</div>
+      <a class="small text-decoration-none" href="{{ url_for('estoques.index') }}">Gerenciar pontos →</a>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card card-soft h-100"><div class="card-body">
+      <div class="metric-kicker">Materiais</div><div class="display-6 fw-bold">{{ metrics.total_materiais }}</div>
+      <a class="small text-decoration-none" href="{{ url_for('materiais.index') }}">Gerenciar materiais →</a>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card card-soft h-100"><div class="card-body">
+      <div class="metric-kicker">Em uso nos pontos</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.total_in_use) }}</div>
+      <span class="small text-muted">Quantidade atual em uso</span>
+    </div></div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card card-soft h-100 {% if metrics.total_replenishment_needed > 0 %}border-warning{% endif %}"><div class="card-body">
+      <div class="metric-kicker">Reposição necessária</div>
+      <div class="display-6 fw-bold {% if metrics.total_replenishment_needed > 0 %}text-danger{% endif %}">{{ '%.0f'|format(metrics.total_replenishment_needed) }}</div>
+      <a class="small text-decoration-none" href="{{ url_for('dashboard.monitoramento', replenishment='with') }}">Ver necessidades →</a>
+    </div></div>
   </div>
 </div>
+
+{% if metrics.total_replenishment_needed > 0 %}
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+  <div><strong>Há materiais precisando de reposição.</strong> Consulte a lista para identificar ponto e material.</div>
+  <a class="btn btn-sm btn-warning" href="{{ url_for('dashboard.monitoramento', replenishment='with') }}">Ver reposições</a>
+</div>
+{% endif %}
+
+<details class="card card-soft mb-4">
+  <summary class="card-body fw-semibold" style="cursor:pointer;">Filtros avançados</summary>
+  <div class="card-body pt-0">
+    <form method="get">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3"><label class="form-label">Território</label><select name="territorio_id" class="form-select"><option value="">Todos</option>{% for item in territorios %}<option value="{{ item.id }}" {% if filters.get('territorio_id') == item.id %}selected{% endif %}>{{ item.nome }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Município</label><select name="municipio_id" class="form-select"><option value="">Todos</option>{% for item in municipios %}<option value="{{ item.id }}" {% if filters.get('municipio_id') == item.id %}selected{% endif %}>{{ item.nome }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Material</label><select name="material_id" class="form-select"><option value="">Todos</option>{% for item in materiais %}<option value="{{ item.id }}" {% if filters.get('material_id') == item.id %}selected{% endif %}>{{ item.nome }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Reposição</label><select name="replenishment" class="form-select"><option value="">Todos</option><option value="with" {% if filters.get('replenishment') == 'with' %}selected{% endif %}>Com necessidade</option><option value="without" {% if filters.get('replenishment') == 'without' %}selected{% endif %}>Sem necessidade</option></select></div>
+        <div class="col-md-3"><label class="form-label">Status do ponto</label><select name="status" class="form-select"><option value="">Todos</option><option value="ativo" {% if filters.get('status') == 'ativo' %}selected{% endif %}>Ativo</option><option value="inativo" {% if filters.get('status') == 'inativo' %}selected{% endif %}>Inativo</option></select></div>
+        <div class="col-md-3"><label class="form-label">Responsável</label><input name="responsavel" class="form-control" value="{{ filters.get('responsavel') or '' }}"></div>
+        <div class="col-md-3"><label class="form-label">Localizador</label><input name="localizador" class="form-control" value="{{ filters.get('localizador') or '' }}"></div>
+        <div class="col-md-3"><label class="form-label">Ocorrência</label><select name="occurrence_type" class="form-select"><option value="">Todas</option><option value="DANIFICADO" {% if filters.get('occurrence_type') == 'DANIFICADO' %}selected{% endif %}>Danificado</option><option value="PERDIDO" {% if filters.get('occurrence_type') == 'PERDIDO' %}selected{% endif %}>Perdido</option><option value="RETIRADO" {% if filters.get('occurrence_type') == 'RETIRADO' %}selected{% endif %}>Retirado</option><option value="REPOSICAO_NECESSARIA" {% if filters.get('occurrence_type') == 'REPOSICAO_NECESSARIA' %}selected{% endif %}>Reposição necessária</option></select></div>
+        <div class="col-md-3"><label class="form-label">Período inicial</label><input name="period_start" type="date" class="form-control" value="{{ filters.get('period_start') or '' }}"></div>
+        <div class="col-md-3"><label class="form-label">Período final</label><input name="period_end" type="date" class="form-control" value="{{ filters.get('period_end') or '' }}"></div>
+        <div class="col-md-2 d-grid"><button class="btn btn-primary">Aplicar filtros</button></div>
+        <div class="col-md-2 d-grid"><a class="btn btn-outline-secondary" href="{{ url_for('dashboard.index') }}">Limpar</a></div>
+      </div>
+    </form>
+  </div>
+</details>
 
 <div class="row g-4">
   <div class="col-lg-6">
     <div class="card card-soft h-100">
-      <div class="card-header bg-white border-0 fw-semibold">Pontos atualizados recentemente</div>
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <strong>Pontos atualizados recentemente</strong>
+        <a class="small text-decoration-none" href="{{ url_for('estoques.index') }}">Ver todos</a>
+      </div>
       <div class="card-body">
         {% if metrics.recent_points %}
           <div class="list-group list-group-flush">
             {% for ponto in metrics.recent_points %}
-              <a href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                <div>
-                  <div class="fw-semibold">{{ ponto.nome }}</div>
-                  <div class="text-muted small">{{ ponto.municipio.nome }} • {{ ponto.municipio.territorio.nome }}</div>
-                </div>
-                <span class="badge badge-soft">Atualizado</span>
+              <a href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}" class="list-group-item list-group-item-action px-0 d-flex justify-content-between align-items-center">
+                <div><div class="fw-semibold">{{ ponto.nome }}</div><div class="text-muted small">{{ ponto.municipio.nome }} • {{ ponto.municipio.territorio.nome }}</div></div>
+                <i class="bi bi-chevron-right text-muted"></i>
               </a>
             {% endfor %}
           </div>
-        {% else %}
-          <p class="text-muted mb-0">Nenhum ponto cadastrado com os filtros atuais.</p>
-        {% endif %}
+        {% else %}<p class="text-muted mb-0">Nenhum ponto encontrado.</p>{% endif %}
       </div>
     </div>
   </div>
+
   <div class="col-lg-6">
     <div class="card card-soft h-100">
-      <div class="card-header bg-white border-0 fw-semibold">Pontos com maior estoque em uso</div>
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <strong>Resumo de estoque</strong>
+        <a class="small text-decoration-none" href="{{ url_for('dashboard.monitoramento') }}">Monitorar →</a>
+      </div>
       <div class="card-body">
-        {% if metrics.top_stock_points %}
-          <div class="list-group list-group-flush">
-            {% for row in metrics.top_stock_points %}
-              <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <div class="fw-semibold">{{ row.point.nome }}</div>
-                  <div class="text-muted small">{{ row.point.municipio.nome }}</div>
-                </div>
-                <span class="badge text-bg-primary">{{ '%.0f'|format(row.stock_total) }}</span>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <p class="text-muted mb-0">Sem dados para exibir.</p>
-        {% endif %}
+        <div class="d-flex justify-content-between py-2 border-bottom"><span>Total</span><strong>{{ '%.0f'|format(metrics.stock_summary.total) }}</strong></div>
+        <div class="d-flex justify-content-between py-2 border-bottom"><span>Alocado</span><strong>{{ '%.0f'|format(metrics.stock_summary.allocated) }}</strong></div>
+        <div class="d-flex justify-content-between py-2"><span>Disponível</span><strong>{{ '%.0f'|format(metrics.stock_summary.available) }}</strong></div>
+        <div class="small text-muted mt-2">{{ metrics.stock_summary.label }}</div>
       </div>
     </div>
   </div>
-  <div class="col-12" id="ultimas-movimentacoes">
-    <div class="card card-soft">
-      <div class="card-header bg-white border-0 fw-semibold">Últimas movimentações</div>
-      <div class="card-body table-responsive">
+
+  <div class="col-12">
+    <details class="card card-soft">
+      <summary class="card-body fw-semibold" style="cursor:pointer;">Últimas movimentações</summary>
+      <div class="card-body pt-0 table-responsive">
         <table class="table table-modern align-middle mb-0">
-          <thead>
-            <tr><th>Data</th><th>Usuário</th><th>Local</th><th>Material</th><th>Tipo</th><th>Qtd.</th><th>Antes</th><th>Depois</th></tr>
-          </thead>
+          <thead><tr><th>Data</th><th>Usuário</th><th>Local</th><th>Material</th><th>Tipo</th><th>Qtd.</th><th>Antes</th><th>Depois</th></tr></thead>
           <tbody>
             {% for mov in metrics.recent_movements %}
-              <tr>
-                <td>{{ mov.created_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td>
-                <td>{{ mov.usuario.nome }}</td>
-                <td>{{ mov.ponto_estoque.nome }}</td>
-                <td>{{ mov.material.nome }}</td>
-                <td>{{ mov.tipo }}</td>
-                <td>{{ '%.0f'|format(mov.quantidade) }}</td>
-                <td>{{ '%.0f'|format(mov.quantidade_anterior) }}</td>
-                <td>{{ '%.0f'|format(mov.quantidade_posterior) }}</td>
-              </tr>
-            {% else %}
-              <tr><td colspan="8" class="text-muted">Nenhuma movimentação registrada.</td></tr>
-            {% endfor %}
+              <tr><td>{{ mov.created_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td><td>{{ mov.usuario.nome }}</td><td>{{ mov.ponto_estoque.nome }}</td><td>{{ mov.material.nome }}</td><td>{{ mov.tipo }}</td><td>{{ '%.0f'|format(mov.quantidade) }}</td><td>{{ '%.0f'|format(mov.quantidade_anterior) }}</td><td>{{ '%.0f'|format(mov.quantidade_posterior) }}</td></tr>
+            {% else %}<tr><td colspan="8" class="text-muted">Nenhuma movimentação registrada.</td></tr>{% endfor %}
           </tbody>
         </table>
       </div>
-    </div>
+    </details>
   </div>
 </div>
 {% endblock %}
