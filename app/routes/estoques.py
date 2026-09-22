@@ -29,6 +29,8 @@ from app.services import (
     get_operational_history_entries,
     get_material_allocation_snapshot,
     get_material_stock_snapshots,
+    get_legacy_migration_candidates,
+    migrate_legacy_stock_to_allocation,
     get_point_operational_snapshot,
     register_allocation_occurrence,
     register_allocation_replenishment,
@@ -368,6 +370,38 @@ def update_stock_view(ponto_id: int):
         material_stats=material_stats,
         selected_material_id=selected_material_id,
     )
+
+
+@estoques_bp.get("/migracao-legado")
+@login_required
+@admin_required
+def legacy_migration():
+    candidates = get_legacy_migration_candidates()
+    return render_template(
+        "estoques/legacy_migration.html",
+        candidates=candidates,
+        total_candidates=len(candidates),
+    )
+
+
+@estoques_bp.post("/<int:ponto_id>/migrar-legado/<int:material_id>")
+@login_required
+@admin_required
+def migrate_legacy(ponto_id: int, material_id: int):
+    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    material = Material.query.get_or_404(material_id)
+    try:
+        migrate_legacy_stock_to_allocation(
+            point=ponto,
+            material=material,
+            usuario=current_user,
+        )
+        db.session.commit()
+        flash(f"{material.nome} migrado para a operação do ponto.", "success")
+    except ValueError as exc:
+        db.session.rollback()
+        flash(str(exc), "danger")
+    return redirect(url_for("estoques.legacy_migration"))
 
 
 @estoques_bp.get("/<int:ponto_id>/historico")
