@@ -16,7 +16,7 @@
           <div class="mb-3">
             {{ form.quantidade_total.label(class_='form-label') }}
             {{ form.quantidade_total(class_='form-control') }}
-            <div class="form-text">Este valor representa o estoque geral máximo do material.</div>
+            <div class="form-text">Este valor representa o estoque geral disponível para distribuição. Não altera diretamente as quantidades já alocadas nos pontos.</div>
             {% for error in form.quantidade_total.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
           </div>
           <div class="mb-3">
