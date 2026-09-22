@@ -1506,3 +1506,78 @@ details > summary:hover {
     border-radius: 12px;
   }
 }
+
+
+/* Correções de contraste após aplicação do tema dark.
+   Neutraliza superfícies brancas herdadas de componentes antigos. */
+
+.material-row,
+.coleta-material-box,
+.step-chip {
+  background: var(--surface-soft) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.material-row strong,
+.material-row .fw-semibold,
+.coleta-material-box strong {
+  color: #E5F2FA;
+}
+
+.form-text {
+  color: var(--muted) !important;
+}
+
+.text-bg-light {
+  color: var(--text) !important;
+  background-color: var(--surface-elevated) !important;
+  border: 1px solid var(--border);
+}
+
+.bg-white,
+.bg-white.rounded-3,
+div.bg-white,
+section.bg-white {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+.bg-white .text-muted,
+.bg-white .small.text-muted,
+.bg-white .form-text {
+  color: var(--muted) !important;
+}
+
+/* Leaflet é carregado depois do style.css; estes overrides precisam vencer o CSS externo. */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--surface-elevated) !important;
+  color: var(--text) !important;
+}
+
+.leaflet-popup-content-wrapper a {
+  color: var(--primary) !important;
+}
+
+.leaflet-popup-content-wrapper .text-muted {
+  color: var(--muted) !important;
+}
+
+.leaflet-popup-content-wrapper strong,
+.leaflet-popup-content-wrapper .fw-bold,
+.leaflet-popup-content-wrapper .fw-semibold {
+  color: #E5F2FA;
+}
+
+/* Select nativo e opções de formulários */
+select,
+select option {
+  color: var(--text);
+  background-color: var(--surface);
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1;
+}
