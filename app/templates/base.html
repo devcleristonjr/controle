@@ -74,17 +74,6 @@
             </a>
           </li>
 
-          <!-- Mapa -->
-          <li class="nav-item">
-            <a
-              class="nav-link {% if request.endpoint == 'dashboard.mapa' %}active{% endif %}"
-              href="{{ url_for('dashboard.mapa') }}"
-            >
-              <i class="bi bi-geo-alt me-2"></i>
-              Mapa
-            </a>
-          </li>
-
           <!-- Coleta -->
           <li class="nav-item">
             <a
@@ -96,14 +85,10 @@
             </a>
           </li>
 
-          <!-- Pontos monitorados -->
+          <!-- Pontos -->
           <li class="nav-item">
-            <a
-              class="nav-link {% if request.endpoint and request.endpoint.startswith('estoques.') %}active{% endif %}"
-              href="{{ url_for('estoques.index') }}"
-            >
-              <i class="bi bi-box-seam me-2"></i>
-              Pontos monitorados
+            <a class="nav-link {% if request.endpoint and request.endpoint.startswith('estoques.') %}active{% endif %}" href="{{ url_for('estoques.index') }}">
+              <i class="bi bi-box-seam me-2"></i>Pontos
             </a>
           </li>
 
@@ -131,13 +116,7 @@
 
           <!-- Administração -->
           <li class="nav-item">
-            <a
-              class="nav-link {% if request.endpoint and request.endpoint.startswith('usuarios.') %}active{% endif %}"
-              href="{{ url_for('usuarios.index') }}"
-            >
-              <i class="bi bi-people me-2"></i>
-              Administração
-            </a>
+            <a class="nav-link {% if request.endpoint and request.endpoint.startswith('usuarios.') %}active{% endif %}" href="{{ url_for('usuarios.index') }}"><i class="bi bi-people me-2"></i>Administração</a>
           </li>
 
           <!-- Sair -->
@@ -191,16 +170,6 @@
           </a>
 
 
-          <!-- Mapa -->
-          <a
-            class="nav-link {% if request.endpoint == 'dashboard.mapa' %}active{% endif %}"
-            href="{{ url_for('dashboard.mapa') }}"
-          >
-            <i class="bi bi-geo-alt me-2"></i>
-            Mapa
-          </a>
-
-
           <!-- Coleta -->
           <a
             class="nav-link {% if request.endpoint and request.endpoint.startswith('coleta_public.') %}active{% endif %}"
@@ -211,14 +180,8 @@
           </a>
 
 
-          <!-- Pontos monitorados -->
-          <a
-            class="nav-link {% if request.endpoint and request.endpoint.startswith('estoques.') %}active{% endif %}"
-            href="{{ url_for('estoques.index') }}"
-          >
-            <i class="bi bi-box-seam me-2"></i>
-            Pontos monitorados
-          </a>
+          <!-- Pontos -->
+          <a class="nav-link {% if request.endpoint and request.endpoint.startswith('estoques.') %}active{% endif %}" href="{{ url_for('estoques.index') }}"><i class="bi bi-box-seam me-2"></i>Pontos</a>
 
 
           <!-- Monitoramento operacional -->
