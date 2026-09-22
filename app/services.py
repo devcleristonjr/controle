@@ -1299,7 +1299,7 @@ def get_point_operational_snapshot(point: PontoEstoque) -> dict:
         "allocations": allocations,
         "totals": totals,
     }
-\n
+
 def get_allocation_monitoring_rows(filters: dict | None = None) -> list[dict]:
     """Return monitoring rows from the operational model, with legacy-only fallback."""
     filters = filters or {}
