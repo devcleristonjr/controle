@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Monitoramento operacional | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="page-title h3 fw-bold mb-1">Monitoramento operacional</h1>
+    <p class="text-muted mb-0">Acompanhe cada alocação, ocorrência e necessidade de reposição sem alterar o histórico.</p>
+  </div>
+  <a href="{{ url_for('dashboard.mapa') }}" class="btn btn-outline-primary"><i class="bi bi-geo-alt me-2"></i>Ver no mapa</a>
+</div>
+
+<form method="get" class="card card-soft mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3"><label class="form-label">Território</label><select name="territorio_id" class="form-select"><option value="">Todos</option>{% for item in territorios %}<option value="{{ item.id }}" {% if filters.get('territorio_id') == item.id %}selected{% endif %}>{{ item.nome }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label">Município</label><select name="municipio_id" class="form-select"><option value="">Todos</option>{% for item in municipios %}<option value="{{ item.id }}" {% if filters.get('municipio_id') == item.id %}selected{% endif %}>{{ item.nome }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label">Material</label><select name="material_id" class="form-select"><option value="">Todos</option>{% for item in materiais %}<option value="{{ item.id }}" {% if filters.get('material_id') == item.id %}selected{% endif %}>{{ item.nome }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label class="form-label">Reposição</label><select name="replenishment" class="form-select"><option value="">Todos</option><option value="with" {% if filters.get('replenishment') == 'with' %}selected{% endif %}>Com necessidade</option><option value="without" {% if filters.get('replenishment') == 'without' %}selected{% endif %}>Sem necessidade</option></select></div>
+      <div class="col-md-3"><label class="form-label">Responsável</label><input name="responsavel" class="form-control" value="{{ filters.get('responsavel') or '' }}"></div>
+      <div class="col-md-3"><label class="form-label">Localizador</label><input name="localizador" class="form-control" value="{{ filters.get('localizador') or '' }}"></div>
+      <div class="col-md-2"><label class="form-label">Ocorrência</label><select name="occurrence_type" class="form-select"><option value="">Todas</option><option value="DANIFICADO" {% if filters.get('occurrence_type') == 'DANIFICADO' %}selected{% endif %}>Danificado</option><option value="PERDIDO" {% if filters.get('occurrence_type') == 'PERDIDO' %}selected{% endif %}>Perdido</option><option value="RETIRADO" {% if filters.get('occurrence_type') == 'RETIRADO' %}selected{% endif %}>Retirado</option><option value="REPOSICAO_NECESSARIA" {% if filters.get('occurrence_type') == 'REPOSICAO_NECESSARIA' %}selected{% endif %}>Reposição necessária</option></select></div>
+      <div class="col-md-2"><label class="form-label">Situação</label><select name="with_occurrences" class="form-select"><option value="">Todas</option><option value="with" {% if filters.get('with_occurrences') == 'with' %}selected{% endif %}>Com ocorrências</option><option value="without" {% if filters.get('with_occurrences') == 'without' %}selected{% endif %}>Sem ocorrências</option></select></div>
+      <div class="col-md-2"><label class="form-label">Início</label><input name="period_start" type="date" class="form-control" value="{{ filters.get('period_start') or '' }}"></div>
+      <div class="col-md-2"><label class="form-label">Fim</label><input name="period_end" type="date" class="form-control" value="{{ filters.get('period_end') or '' }}"></div>
+      <div class="col-md-1 d-grid"><button class="btn btn-primary">Filtrar</button></div>
+      <div class="col-md-1 d-grid"><a class="btn btn-outline-secondary" href="{{ url_for('dashboard.monitoramento') }}">Limpar</a></div>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Alocada</div><div class="display-6 fw-bold">{{ '%.0f'|format(totals.alocada) }}</div></div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Em uso</div><div class="display-6 fw-bold">{{ '%.0f'|format(totals.em_uso) }}</div></div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Danificada</div><div class="display-6 fw-bold">{{ '%.0f'|format(totals.danificada) }}</div></div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Reposição pendente</div><div class="display-6 fw-bold {% if totals.reposicao > 0 %}text-danger{% endif %}">{{ '%.0f'|format(totals.reposicao) }}</div></div></div></div>
+</div>
+
+<div class="card card-soft">
+  <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+    <strong>Alocações monitoradas</strong><span class="text-muted small">{{ rows|length }} registro(s)</span>
+  </div>
+  <div class="card-body table-responsive">
+    <table class="table table-modern align-middle mb-0">
+      <thead><tr><th>Local</th><th>Material</th><th>Localizador</th><th>Alocada</th><th>Em uso</th><th>Danificada</th><th>Perdida</th><th>Reposição</th><th>Ocorrências</th><th>Responsável</th><th></th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr class="{% if row.reposicao_pendente > 0 %}table-warning{% endif %}">
+          <td><div class="fw-semibold">{{ row.ponto }}</div><div class="small text-muted">{{ row.municipio }} • {{ row.territorio }}</div></td>
+          <td class="fw-semibold">{{ row.material }}</td><td>{{ row.localizador or '-' }}</td>
+          <td>{{ '%.0f'|format(row.alocada) }}</td><td>{{ '%.0f'|format(row.em_uso) }}</td><td>{{ '%.0f'|format(row.danificada) }}</td><td>{{ '%.0f'|format(row.perdida) }}</td>
+          <td class="{% if row.reposicao_pendente > 0 %}text-danger fw-bold{% endif %}">{{ '%.0f'|format(row.reposicao_pendente) }}</td>
+          <td>{{ row.ocorrencias }}</td><td>{{ row.responsavel or '-' }}</td>
+          <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('estoques.detail', ponto_id=row.ponto_id) }}">Detalhes</a></td>
+        </tr>
+      {% else %}<tr><td colspan="11" class="text-muted text-center py-4">Nenhuma alocação encontrada com os filtros atuais.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
