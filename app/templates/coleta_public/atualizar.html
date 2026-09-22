@@ -39,6 +39,7 @@
               <div class="fw-semibold">{{ row.material.nome }}</div>
               <div class="small text-muted">Total {{ '%.0f'|format(row.total_quantity) }} · Alocado {{ '%.0f'|format(row.allocated_quantity) }} · Disponível {{ '%.0f'|format(row.available_quantity) }}</div>
               <div class="fw-bold">{{ '%.0f'|format(row.current_quantity) }} → {{ '%.0f'|format(row.new_quantity) }}</div>
+              <div class="small text-muted">{% if row.new_quantity > row.current_quantity %}Aumento = nova alocação{% elif row.new_quantity < row.current_quantity %}Redução = retirada{% else %}Sem alteração{% endif %}</div>
             </div>
           {% endfor %}
           <div class="material-row"><span class="soft-label d-block">Foto</span><strong>{{ '✅ Adicionada' if has_photo else 'Não adicionada' }}</strong></div>
