@@ -987,6 +987,7 @@ def update_stock(
     usuario=None,
     observacao: str | None = None,
     origem: str = "PAINEL",
+    validate_total: bool = True,
 ) -> MovimentacaoEstoque:
     material = _load_material_for_update(material.id)
 
@@ -1012,14 +1013,15 @@ def update_stock(
         quantidade_posterior = quantidade
         movimento_quantidade = abs(quantidade_posterior - quantidade_anterior)
 
-    allocated_before = _sum_allocated_stock(material.id)
-    allocated_after = allocated_before - quantidade_anterior + quantidade_posterior
-    if allocated_after > Decimal(material.quantidade_total or 0):
-        available_for_point = Decimal(material.quantidade_total or 0) - (allocated_before - quantidade_anterior)
-        raise ValueError(
-            "Quantidade indisponível. Existem apenas "
-            f"{_format_quantity(max(available_for_point, Decimal('0')))} unidades disponíveis para alocação."
-        )
+    if validate_total:
+        allocated_before = _sum_allocated_stock(material.id)
+        allocated_after = allocated_before - quantidade_anterior + quantidade_posterior
+        if allocated_after > Decimal(material.quantidade_total or 0):
+            available_for_point = Decimal(material.quantidade_total or 0) - (allocated_before - quantidade_anterior)
+            raise ValueError(
+                "Quantidade indisponível. Existem apenas "
+                f"{_format_quantity(max(available_for_point, Decimal('0')))} unidades disponíveis para alocação."
+            )
 
     stock.quantidade = quantidade_posterior
     movimento = MovimentacaoEstoque(
