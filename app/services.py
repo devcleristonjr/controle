@@ -47,6 +47,37 @@ def _sum_allocated_stock_all() -> Decimal:
     return Decimal(query.scalar() or 0)
 
 
+def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
+    """Count operational allocations and legacy stock only where no allocation exists."""
+    allocation_rows = (
+        db.session.query(
+            AlocacaoPontoMaterial.ponto_estoque_id,
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_alocada), 0),
+        )
+        .filter(
+            AlocacaoPontoMaterial.material_id == material_id,
+            AlocacaoPontoMaterial.ativo.is_(True),
+        )
+        .group_by(AlocacaoPontoMaterial.ponto_estoque_id)
+        .all()
+    )
+    operational_point_ids = {point_id for point_id, _ in allocation_rows if point_id != exclude_point_id}
+    total = sum(
+        (Decimal(quantity or 0) for point_id, quantity in allocation_rows if point_id != exclude_point_id),
+        Decimal("0"),
+    )
+
+    legacy_query = db.session.query(func.coalesce(func.sum(EstoqueMaterial.quantidade), 0)).filter(
+        EstoqueMaterial.material_id == material_id
+    )
+    if exclude_point_id is not None:
+        legacy_query = legacy_query.filter(EstoqueMaterial.ponto_estoque_id != exclude_point_id)
+    if operational_point_ids:
+        legacy_query = legacy_query.filter(~EstoqueMaterial.ponto_estoque_id.in_(operational_point_ids))
+    total += Decimal(legacy_query.scalar() or 0)
+    return total
+
+
 def _sum_active_allocations_all() -> Decimal:
     query = db.session.query(func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_alocada), 0)).filter(
         AlocacaoPontoMaterial.ativo.is_(True)
@@ -87,7 +118,7 @@ def get_material_stock_snapshot(material_id: int, exclude_point_id: int | None =
         raise ValueError("Material não encontrado.")
 
     total = Decimal(material.quantidade_total or 0)
-    allocated = _sum_allocated_stock(material.id, exclude_point_id=exclude_point_id)
+    allocated = _sum_effective_allocated_stock(material.id, exclude_point_id=exclude_point_id)
     available = total - allocated
     return {
         "material_id": material.id,
@@ -110,21 +141,10 @@ def get_material_stock_snapshots(material_ids: list[int] | None = None) -> dict[
     if not materials:
         return {}
 
-    allocation_query = (
-        db.session.query(
-            EstoqueMaterial.material_id,
-            func.coalesce(func.sum(EstoqueMaterial.quantidade), 0),
-        )
-        .group_by(EstoqueMaterial.material_id)
-    )
-    if material_ids is not None:
-        allocation_query = allocation_query.filter(EstoqueMaterial.material_id.in_(material_ids))
-
-    allocated_map = {material_id: Decimal(total or 0) for material_id, total in allocation_query.all()}
     snapshots = {}
     for material in materials:
         total = Decimal(material.quantidade_total or 0)
-        allocated = allocated_map.get(material.id, Decimal("0"))
+        allocated = _sum_effective_allocated_stock(material.id)
         snapshots[material.id] = {
             "material_id": material.id,
             "nome": material.nome,
@@ -163,7 +183,7 @@ def validate_material_allocation(
 
 def set_material_total(material: Material, quantidade_total: Decimal) -> Material:
     locked_material = _load_material_for_update(material.id)
-    allocated = _sum_allocated_stock(locked_material.id)
+    allocated = _sum_effective_allocated_stock(locked_material.id)
     if quantidade_total < allocated:
         raise ValueError(
             "Não é possível reduzir o estoque total para "
@@ -180,7 +200,7 @@ def get_material_allocation_snapshot(material_id: int) -> dict:
         raise ValueError("Material nao encontrado.")
 
     total = Decimal(material.quantidade_total or 0)
-    allocated = _sum_active_allocations(material.id)
+    allocated = _sum_effective_allocated_stock(material.id)
     return {
         "material_id": material.id,
         "nome": material.nome,
