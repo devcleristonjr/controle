@@ -162,15 +162,15 @@
   </div>
   <div class="col-lg-6">
     <div class="card card-soft h-100">
-      <div class="card-header bg-white border-0 fw-semibold">Pontos com maior estoque alocado</div>
+      <div class="card-header bg-white border-0 fw-semibold">Pontos com maior estoque em uso</div>
       <div class="card-body">
         {% if metrics.top_stock_points %}
           <div class="list-group list-group-flush">
             {% for row in metrics.top_stock_points %}
               <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
-                  <div class="fw-semibold">{{ row[0].nome }}</div>
-                  <div class="text-muted small">{{ row[0].municipio.nome }}</div>
+                  <div class="fw-semibold">{{ row.point.nome }}</div>
+                  <div class="text-muted small">{{ row.point.municipio.nome }}</div>
                 </div>
                 <span class="badge text-bg-primary">{{ '%.0f'|format(row.stock_total) }}</span>
               </div>
