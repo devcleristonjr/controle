@@ -239,6 +239,7 @@ def _save_stock_changes(point: PontoEstoque, quantities: dict[int, Decimal], obs
                 usuario=None,
                 observacao=observacao,
                 origem="COLETA_WEB",
+                validate_total=False,
             )
         else:
             update_stock(
@@ -249,6 +250,7 @@ def _save_stock_changes(point: PontoEstoque, quantities: dict[int, Decimal], obs
                 usuario=None,
                 observacao=observacao,
                 origem="COLETA_WEB",
+                validate_total=False,
             )
 
 
