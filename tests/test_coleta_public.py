@@ -6,7 +6,9 @@ from decimal import Decimal
 
 from app import create_app
 from app.extensions import db
+from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.coleta_registro import ColetaRegistro
+from app.models.ocorrencia_alocacao import OcorrenciaAlocacao
 from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.movimentacao_estoque import MovimentacaoEstoque
@@ -670,3 +672,89 @@ def test_cadastro_sem_gps_usa_endereco_para_geocodificar(monkeypatch):
         assert ponto is not None
         assert Decimal(ponto.latitude) == Decimal("-12.260000")
         assert Decimal(ponto.longitude) == Decimal("-38.970000")
+
+def test_cadastro_publico_cria_alocacoes_operacionais():
+    app = _build_public_app()
+    with app.app_context():
+        municipio_id = Municipio.query.filter_by(nome="Feira de Santana Teste").first().id
+
+    client = app.test_client()
+    _, data = _create_new_point(client, municipio_id)
+    response = client.post("/coleta/novo", data={**data, "confirm": "1", "duplicate_ack": "1"})
+
+    assert response.status_code == 200
+
+    with app.app_context():
+        ponto = PontoEstoque.query.filter_by(nome="Comite Feira").order_by(PontoEstoque.id.desc()).first()
+        allocations = (
+            AlocacaoPontoMaterial.query
+            .filter_by(ponto_estoque_id=ponto.id, ativo=True)
+            .order_by(AlocacaoPontoMaterial.material_id.asc())
+            .all()
+        )
+
+        assert len(allocations) == 2
+        quantities = {allocation.material.nome: Decimal(allocation.quantidade_em_uso) for allocation in allocations}
+        assert quantities == {"Banners": Decimal("500"), "Faixas": Decimal("120")}
+        assert all(allocation.quantidade_alocada == allocation.quantidade_em_uso for allocation in allocations)
+        assert all(allocation.observacoes == "Cadastro inicial" for allocation in allocations)
+
+
+def test_atualizacao_publica_preserva_historico_operacional_da_alocacao():
+    app = _build_public_app()
+    with app.app_context():
+        ponto = PontoEstoque.query.filter_by(nome="Comite Wet Eventos").first()
+        ponto_id = ponto.id
+        municipio_id = ponto.municipio_id
+
+    client = app.test_client()
+    response = client.post(
+        f"/coleta/atualizar/{ponto_id}?municipio_id={municipio_id}",
+        data={
+            "coletor_nome": "Maria Santos",
+            "observacoes": "ajuste operacional",
+            "qtd_1": "450",
+            "qtd_2": "120",
+            "qtd_3": "50",
+        },
+    )
+    assert response.status_code == 200
+    assert "CONFIRME OS DADOS" in response.get_data(as_text=True)
+
+    response = client.post(
+        f"/coleta/atualizar/{ponto_id}?municipio_id={municipio_id}",
+        data={
+            "coletor_nome": "Maria Santos",
+            "observacoes": "ajuste operacional",
+            "qtd_1": "450",
+            "qtd_2": "120",
+            "qtd_3": "50",
+            "confirm": "1",
+        },
+    )
+    assert response.status_code == 200
+
+    with app.app_context():
+        allocations = (
+            AlocacaoPontoMaterial.query
+            .filter_by(ponto_estoque_id=ponto_id, material_id=1, ativo=True)
+            .all()
+        )
+        occurrences = (
+            OcorrenciaAlocacao.query
+            .join(AlocacaoPontoMaterial)
+            .filter(
+                AlocacaoPontoMaterial.ponto_estoque_id == ponto_id,
+                AlocacaoPontoMaterial.material_id == 1,
+                OcorrenciaAlocacao.origem == "COLETA_WEB",
+            )
+            .all()
+        )
+
+        assert len(allocations) == 1
+        assert Decimal(allocations[0].quantidade_alocada) == Decimal("500")
+        assert Decimal(allocations[0].quantidade_em_uso) == Decimal("450")
+        assert len(occurrences) == 1
+        assert occurrences[0].tipo == "RETIRADO"
+        assert Decimal(occurrences[0].quantidade_afetada) == Decimal("50")
+        assert occurrences[0].descricao == "ajuste operacional"

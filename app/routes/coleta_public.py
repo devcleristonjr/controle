@@ -8,12 +8,19 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from app.extensions import db
 from app.forms import ColetaPublicAtualizacaoForm, ColetaPublicCadastroForm
+from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.coleta_registro import ColetaRegistro
 from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
-from app.services import get_material_stock_snapshots, update_stock, validate_material_allocation
+from app.services import (
+    create_material_allocation,
+    get_material_stock_snapshots,
+    register_allocation_occurrence,
+    update_stock,
+    validate_material_allocation,
+)
 from app.timezone import agora_bahia
 from app.utils import (
     digits_only,
@@ -72,14 +79,56 @@ def _load_stock_map(point_id: int) -> dict[int, EstoqueMaterial]:
     }
 
 
+def _active_allocation_map(point: PontoEstoque) -> dict[int, list[AlocacaoPontoMaterial]]:
+    allocations = (
+        AlocacaoPontoMaterial.query
+        .filter_by(ponto_estoque_id=point.id, ativo=True)
+        .order_by(AlocacaoPontoMaterial.data_alocacao.asc(), AlocacaoPontoMaterial.id.asc())
+        .all()
+    )
+    allocation_map: dict[int, list[AlocacaoPontoMaterial]] = {}
+    for allocation in allocations:
+        allocation_map.setdefault(allocation.material_id, []).append(allocation)
+    return allocation_map
+
+
+def _ensure_allocation_baseline(point: PontoEstoque, materiais: list[Material]) -> dict[int, list[AlocacaoPontoMaterial]]:
+    """Migrate existing legacy point quantities into operational allocations once."""
+    allocation_map = _active_allocation_map(point)
+    stock_map = _load_stock_map(point.id)
+
+    for material in materiais:
+        if allocation_map.get(material.id):
+            continue
+        stock = stock_map.get(material.id)
+        quantity = Decimal(stock.quantidade if stock is not None else 0)
+        if quantity <= 0:
+            continue
+        allocation = create_material_allocation(
+            point=point,
+            material=material,
+            quantidade_alocada=quantity,
+            responsavel_alocacao=point.responsavel_nome,
+            observacoes="Baseline migrado automaticamente da coleta/estoque legado.",
+        )
+        allocation_map[material.id] = [allocation]
+    return allocation_map
+
+
 def _material_rows_for_point(point: PontoEstoque) -> list[dict]:
     stock_map = _load_stock_map(point.id)
     materiais = _active_materiais()
     snapshots = _material_snapshots(materiais)
+    allocation_map = _active_allocation_map(point)
     rows = []
     for material in materiais:
         stock = stock_map.get(material.id)
-        current_quantity = Decimal(stock.quantidade if stock is not None else 0)
+        legacy_quantity = Decimal(stock.quantidade if stock is not None else 0)
+        allocations = allocation_map.get(material.id, [])
+        current_quantity = sum(
+            (Decimal(item.quantidade_em_uso or 0) for item in allocations),
+            Decimal("0"),
+        ) if allocations else legacy_quantity
         snapshot = snapshots.get(material.id, {})
         rows.append(
             {
@@ -135,15 +184,53 @@ def _ensure_stock_rows(point: PontoEstoque, materiais: list[Material]) -> dict[i
 def _save_stock_changes(point: PontoEstoque, quantities: dict[int, Decimal], observacao: str | None) -> None:
     materiais = _active_materiais()
     stock_map = _ensure_stock_rows(point, materiais)
+    allocation_map = _ensure_allocation_baseline(point, materiais)
 
     for material in materiais:
         stock = stock_map[material.id]
-        current_quantity = Decimal(stock.quantidade or 0)
-        target_quantity = quantities.get(material.id, current_quantity)
-        if target_quantity == current_quantity:
+        legacy_current_quantity = Decimal(stock.quantidade or 0)
+        allocations = allocation_map.get(material.id, [])
+        allocation_current_quantity = sum(
+            (Decimal(item.quantidade_em_uso or 0) for item in allocations),
+            Decimal("0"),
+        ) if allocations else legacy_current_quantity
+        target_quantity = quantities.get(material.id, allocation_current_quantity)
+
+        if target_quantity > allocation_current_quantity:
+            allocation = create_material_allocation(
+                point=point,
+                material=material,
+                quantidade_alocada=target_quantity - allocation_current_quantity,
+                responsavel_alocacao=point.responsavel_nome,
+                observacoes=observacao or "Alocação registrada pela coleta web.",
+            )
+            allocation_map.setdefault(material.id, []).append(allocation)
+        elif target_quantity < allocation_current_quantity:
+            remaining = allocation_current_quantity - target_quantity
+            for allocation in reversed(allocation_map.get(material.id, [])):
+                em_uso = Decimal(allocation.quantidade_em_uso or 0)
+                if em_uso <= 0:
+                    continue
+                affected = min(remaining, em_uso)
+                register_allocation_occurrence(
+                    allocation=allocation,
+                    occurrence_type="RETIRADO",
+                    quantidade_afetada=affected,
+                    descricao=observacao or "Ajuste de quantidade registrado pela coleta web.",
+                    origem="COLETA_WEB",
+                )
+                remaining -= affected
+                if remaining <= 0:
+                    break
+            if remaining > 0:
+                raise ValueError(
+                    f"Não foi possível ajustar {material.nome}: a quantidade operacional disponível é insuficiente."
+                )
+
+        if target_quantity == legacy_current_quantity:
             continue
 
-        if target_quantity > current_quantity:
+        if target_quantity > legacy_current_quantity:
             update_stock(
                 point=point,
                 material=material,
