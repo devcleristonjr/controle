@@ -29,6 +29,7 @@ from app.services import (
     get_operational_history_entries,
     get_material_allocation_snapshot,
     get_material_stock_snapshots,
+    get_point_operational_snapshot,
     register_allocation_occurrence,
     register_allocation_replenishment,
     update_stock,
@@ -124,6 +125,7 @@ def detail(ponto_id: int):
         EstoqueMaterial.query.filter_by(ponto_estoque_id=ponto.id).join(EstoqueMaterial.material).order_by(Material.nome.asc()).all()
     )
     snapshots = get_material_stock_snapshots([item.material_id for item in estoque])
+    operational_snapshot = get_point_operational_snapshot(ponto)
     alocacoes = (
         AlocacaoPontoMaterial.query.filter_by(ponto_estoque_id=ponto.id, ativo=True)
         .join(AlocacaoPontoMaterial.material)
@@ -136,6 +138,7 @@ def detail(ponto_id: int):
         estoque=estoque,
         snapshots=snapshots,
         alocacoes=alocacoes,
+        operational_snapshot=operational_snapshot,
         whatsapp_url=build_whatsapp_url(ponto.responsavel_whatsapp or ponto.responsavel_telefone),
     )
 

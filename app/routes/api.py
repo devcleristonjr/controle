@@ -16,6 +16,7 @@ from app.services import (
     get_dashboard_metrics,
     get_material_stock_snapshot,
     get_material_stock_snapshots,
+    get_point_operational_snapshot,
     get_operational_history_entries,
 )
 
@@ -98,8 +99,10 @@ def list_estoques():
 @login_required
 def get_estoque(ponto_id: int):
     ponto = PontoEstoque.query.get_or_404(ponto_id)
-    estoque = EstoqueMaterial.query.filter_by(ponto_estoque_id=ponto.id).join(EstoqueMaterial.material).order_by(Material.nome.asc()).all()
-    snapshots = get_material_stock_snapshots([item.material_id for item in estoque])
+    snapshot = get_point_operational_snapshot(ponto)
+    material_ids = [item["material_id"] for item in snapshot["materials"]]
+    legacy_snapshots = get_material_stock_snapshots(material_ids)
+
     return jsonify(
         {
             "id": ponto.id,
@@ -113,15 +116,30 @@ def get_estoque(ponto_id: int):
             "responsavel_telefone": ponto.responsavel_telefone,
             "responsavel_whatsapp": ponto.responsavel_whatsapp,
             "foto": ponto.foto,
+            "fonte_operacional": snapshot["source"],
+            "resumo_operacional": {
+                "alocado": float(snapshot["totals"]["allocated"]),
+                "em_uso": float(snapshot["totals"]["in_use"]),
+                "danificado": float(snapshot["totals"]["damaged"]),
+                "perdido": float(snapshot["totals"]["lost"]),
+                "retirado": float(snapshot["totals"]["removed"]),
+                "reposicao_pendente": float(snapshot["totals"]["replenishment_pending"]),
+            },
             "estoque": [
                 {
-                    "material": item.material.nome,
-                    "quantidade": float(item.quantidade),
-                    "quantidade_total": float(snapshots.get(item.material_id, {}).get("total", 0)),
-                    "quantidade_alocada": float(snapshots.get(item.material_id, {}).get("allocated", 0)),
-                    "quantidade_disponivel": float(snapshots.get(item.material_id, {}).get("available", 0)),
+                    "material_id": item["material_id"],
+                    "material": item["material"],
+                    "quantidade": float(item["in_use"]),
+                    "quantidade_alocada": float(item["allocated"]),
+                    "quantidade_em_uso": float(item["in_use"]),
+                    "quantidade_danificada": float(item["damaged"]),
+                    "quantidade_perdida": float(item["lost"]),
+                    "quantidade_retirada": float(item["removed"]),
+                    "quantidade_reposicao_pendente": float(item["replenishment_pending"]),
+                    "quantidade_total": float(legacy_snapshots.get(item["material_id"], {}).get("total", 0)),
+                    "quantidade_disponivel": float(legacy_snapshots.get(item["material_id"], {}).get("available", 0)),
                 }
-                for item in estoque
+                for item in snapshot["materials"]
             ],
         }
     )
