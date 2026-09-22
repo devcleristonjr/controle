@@ -932,3 +932,577 @@ details[open] > summary::after {
     margin-top: 0.55rem;
   }
 }
+
+
+/* =========================================================
+   TEMA DARK AZUL-MARINHO — ESTOQUE BAHIA
+   Inspirado na linguagem visual do Steam Client.
+   Apenas identidade visual; sem alteração de regras de negócio.
+   ========================================================= */
+
+:root {
+  --primary: #66C0F4;
+  --primary-strong: #7BCBFA;
+  --success: #4C6B22;
+  --warning: #c99a32;
+  --danger: #a63d3d;
+  --background: #171A21;
+  --surface: #1B2838;
+  --surface-soft: #202F40;
+  --surface-elevated: #26394D;
+  --text: #C7D5E0;
+  --muted: #8B929A;
+  --border: #2A3B4D;
+  --shadow-soft: 0 12px 30px rgba(0, 0, 0, 0.28);
+  --shadow-card: 0 12px 30px rgba(0, 0, 0, 0.24);
+  --shadow-card-hover: 0 16px 36px rgba(0, 0, 0, 0.32);
+  --sidebar-start: #171A21;
+  --sidebar-end: #171A21;
+  --sidebar-accent: #66C0F4;
+  --focus-ring: rgba(102, 192, 244, 0.22);
+  --primary-soft: rgba(102, 192, 244, 0.10);
+}
+
+/* Base */
+body.app-body {
+  color: var(--text);
+  background: #171A21 !important;
+  background-image: none !important;
+}
+
+.app-main {
+  background: #171A21 !important;
+}
+
+.app-main > .container-fluid {
+  background: transparent;
+}
+
+/* Navegação */
+.sidebar {
+  background: #171A21 !important;
+  border-right: 1px solid var(--border);
+  box-shadow: 8px 0 28px rgba(0, 0, 0, 0.18);
+}
+
+.sidebar > div:first-child {
+  border-bottom-color: var(--border);
+}
+
+.sidebar .text-accent {
+  color: var(--muted) !important;
+}
+
+.sidebar .brand-link {
+  color: var(--text) !important;
+}
+
+.sidebar .nav-link {
+  color: var(--muted) !important;
+  border-color: transparent;
+}
+
+.sidebar .nav-link:hover {
+  color: var(--text) !important;
+  background: var(--surface-elevated);
+  border-color: var(--border);
+  transform: none;
+}
+
+.sidebar .nav-link.active {
+  color: var(--text) !important;
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.sidebar .nav-link.active i,
+.sidebar .nav-link:hover i {
+  color: var(--primary);
+}
+
+.sidebar > .mt-auto {
+  border-top-color: var(--border);
+  color: var(--muted) !important;
+}
+
+.topbar-mobile {
+  background: #171A21 !important;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+.topbar-mobile .navbar-toggler {
+  border-color: var(--border);
+}
+
+.topbar-mobile .nav-link {
+  color: var(--muted);
+}
+
+.topbar-mobile .nav-link.active {
+  color: var(--text);
+  background: var(--surface);
+}
+
+/* Tipografia */
+h1, h2, h3, h4, h5, h6,
+.page-header .page-title {
+  color: #E5F2FA;
+}
+
+.text-muted,
+.metric-kicker,
+.soft-label {
+  color: var(--muted) !important;
+}
+
+.text-accent,
+a {
+  color: var(--primary);
+}
+
+a:hover {
+  color: var(--primary-strong);
+}
+
+.page-header::after {
+  background: var(--primary);
+}
+
+/* Cards e superfícies */
+.card-soft,
+.stat-card,
+.stat-mini,
+.material-metric-card,
+.material-point-card,
+.point-card-summary,
+.public-card,
+.public-hero,
+.coleta-card,
+.option-card {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+
+.card-soft:hover,
+.stat-card:hover,
+.material-metric-card:hover,
+.option-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.card-soft .card-header,
+.card-soft .card-body,
+.card-soft .card-footer {
+  color: var(--text);
+}
+
+.material-point-card {
+  background: var(--surface-soft) !important;
+}
+
+.material-point-card:hover {
+  border-color: #344A60 !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+}
+
+.material-point-metric {
+  background: var(--surface-elevated) !important;
+  border-color: var(--border) !important;
+  color: var(--text);
+}
+
+.material-point-metric span {
+  color: var(--muted);
+}
+
+.point-card-summary {
+  background: var(--surface-soft) !important;
+}
+
+/* Cabeçalhos e elementos Bootstrap que trazem branco */
+.bg-white,
+.card-header.bg-white {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+.bg-light {
+  background-color: var(--surface-soft) !important;
+}
+
+.border,
+.border-top,
+.border-end,
+.border-bottom,
+.border-start {
+  border-color: var(--border) !important;
+}
+
+/* Tabelas */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text);
+  --bs-table-border-color: var(--border);
+  color: var(--text);
+}
+
+.table-modern tbody tr:hover,
+.card-soft .table tbody tr:hover {
+  background: rgba(102, 192, 244, 0.055);
+}
+
+.table thead th,
+.table-modern thead th,
+.card-soft .table thead th {
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.table td,
+.table th {
+  border-color: var(--border);
+}
+
+/* Formulários */
+.form-label {
+  color: var(--text);
+}
+
+.form-control,
+.form-select,
+.input-group-text {
+  color: var(--text);
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+.form-control::placeholder {
+  color: #5C6875;
+}
+
+.form-control:focus,
+.form-select:focus {
+  color: var(--text);
+  background-color: var(--surface-soft) !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 0.22rem var(--focus-ring) !important;
+}
+
+.form-select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.form-check-label {
+  color: var(--text);
+}
+
+.form-check-input {
+  background-color: var(--surface);
+  border-color: var(--border);
+}
+
+.form-check-input:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Botões */
+.btn {
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+.btn:hover {
+  transform: none;
+}
+
+.btn-primary,
+.btn-accent {
+  color: #171A21 !important;
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-accent:hover,
+.btn-accent:focus {
+  color: #171A21 !important;
+  background: var(--primary-strong) !important;
+  border-color: var(--primary-strong) !important;
+}
+
+.btn-outline-primary {
+  color: var(--primary) !important;
+  border-color: #3B637B !important;
+}
+
+.btn-outline-primary:hover {
+  color: #171A21 !important;
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+
+.btn-outline-secondary,
+.btn-outline-dark {
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-dark:hover {
+  color: var(--text) !important;
+  background: var(--surface-elevated) !important;
+  border-color: #344A60 !important;
+}
+
+.btn-success {
+  color: #E5F2FA !important;
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+}
+
+.btn-outline-success {
+  color: #91B85B !important;
+  border-color: #526B39 !important;
+}
+
+.btn-outline-success:hover {
+  color: #E5F2FA !important;
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+}
+
+.btn-danger {
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+.btn-outline-danger {
+  color: #D98A8A !important;
+  border-color: #6D3A3A !important;
+}
+
+.btn-outline-danger:hover {
+  color: #E5F2FA !important;
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+}
+
+.btn-warning {
+  color: #171A21 !important;
+  background: #C99A32 !important;
+  border-color: #C99A32 !important;
+}
+
+/* Badges e estados */
+.badge-soft {
+  color: var(--text);
+  background: var(--surface-soft);
+  border-color: var(--border);
+}
+
+.text-danger {
+  color: #D98A8A !important;
+}
+
+.text-success {
+  color: #91B85B !important;
+}
+
+.text-warning {
+  color: #D8B15A !important;
+}
+
+/* Alertas */
+.alert,
+.alert-soft {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.alert-success {
+  color: #B8D58A;
+  background: rgba(76, 107, 34, 0.18);
+  border-color: rgba(76, 107, 34, 0.45);
+}
+
+.alert-warning {
+  color: #E0C47A;
+  background: rgba(201, 154, 50, 0.14);
+  border-color: rgba(201, 154, 50, 0.40);
+}
+
+.alert-danger {
+  color: #E0A0A0;
+  background: rgba(166, 61, 61, 0.15);
+  border-color: rgba(166, 61, 61, 0.40);
+}
+
+.alert-info {
+  color: #A9D9F5;
+  background: rgba(102, 192, 244, 0.10);
+  border-color: rgba(102, 192, 244, 0.30);
+}
+
+/* Detalhes expansíveis */
+details > summary {
+  color: var(--text);
+}
+
+details > summary::after,
+.point-card-more summary::after,
+.card-soft > summary::after {
+  color: var(--muted);
+}
+
+details > summary:hover {
+  color: var(--primary);
+}
+
+/* Dashboard */
+.dashboard-stat::before {
+  background: var(--primary);
+}
+
+.dashboard-stat-warning::before {
+  background: #C99A32;
+}
+
+/* Mapa */
+.map-container {
+  background: #121922;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--surface-elevated);
+  color: var(--text);
+}
+
+.leaflet-popup-content-wrapper {
+  border-color: var(--border);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.38);
+}
+
+.leaflet-popup-content {
+  color: var(--text);
+}
+
+.leaflet-popup-content .text-muted {
+  color: var(--muted) !important;
+}
+
+/* Listas e divisores */
+.list-group-item {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2A3B4D #171A21;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #171A21;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #2A3B4D;
+  border-radius: 8px;
+  border: 2px solid #171A21;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #3A536B;
+}
+
+/* Fotos e elementos elevados */
+.detail-photo {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Área pública/coleta também acompanha a identidade */
+.public-body,
+.coleta-body {
+  background: #171A21 !important;
+  color: var(--text);
+}
+
+.public-shell,
+.coleta-shell {
+  color: var(--text);
+}
+
+/* Login */
+.login-body {
+  background: #171A21 !important;
+  color: var(--text);
+}
+
+.login-copy {
+  color: var(--text);
+}
+
+.login-copy h1 {
+  color: #E5F2FA;
+}
+
+.login-copy p {
+  color: var(--muted);
+}
+
+.login-copy .eyebrow {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.login-card {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text);
+}
+
+/* Evita elementos Bootstrap de texto claro/escuro quebrando a hierarquia */
+.text-dark {
+  color: var(--text) !important;
+}
+
+.text-secondary {
+  color: var(--muted) !important;
+}
+
+.text-body {
+  color: var(--text) !important;
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+  .app-main > .container-fluid {
+    padding: 1rem !important;
+  }
+
+  .card-soft,
+  .stat-card,
+  .material-metric-card,
+  .public-card,
+  .coleta-card {
+    border-radius: 12px;
+  }
+}
