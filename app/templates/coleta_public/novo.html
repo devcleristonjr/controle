@@ -170,7 +170,7 @@
       </section>
 
       <section class="mb-4">
-        <h2 class="h5 fw-bold mb-3">📦 Estoque inicial</h2>
+        <h2 class="h5 fw-bold mb-3">📦 Alocação inicial no ponto</h2>
         <div class="vstack gap-3">
           {% for material in materiais %}
             {% set snapshot = snapshots.get(material.id, {}) %}
@@ -179,9 +179,9 @@
                 <div class="fw-semibold">{{ material.nome }}</div>
               </div>
               <div class="small text-muted">Estoque total: {{ '%.0f'|format(snapshot.get('total', 0)) }}</div>
-              <div class="small text-muted">Já alocado: {{ '%.0f'|format(snapshot.get('allocated', 0)) }}</div>
-              <div class="small text-muted mb-2">Disponível: {{ '%.0f'|format(snapshot.get('available', 0)) }}</div>
-              <label class="form-label small mb-1" for="qtd_{{ material.id }}">Quantidade inicial</label>
+              <div class="small text-muted">Já alocado nos pontos: {{ '%.0f'|format(snapshot.get('allocated', 0)) }}</div>
+              <div class="small text-muted mb-2">Disponível para esta alocação: {{ '%.0f'|format(snapshot.get('available', 0)) }}</div>
+              <label class="form-label small mb-1" for="qtd_{{ material.id }}">Quantidade a alocar neste ponto</label>
               <input id="qtd_{{ material.id }}" class="form-control form-control-lg" type="number" min="0" step="1" name="qtd_{{ material.id }}" value="{{ request.form.get('qtd_' ~ material.id, '') }}">
             </div>
           {% else %}

@@ -2,7 +2,7 @@
 {% block coleta_title %}Ponto cadastrado{% endblock %}
 {% block coleta_content %}
 <div class="public-card p-4 p-md-5 mb-3">
-  <div class="soft-label mb-2">Fluxo concluído</div>
+  <div class="soft-label mb-2">Fluxo operacional concluído</div>
   <h1 class="h3 fw-bold mb-2">✅ PONTO {{ 'CADASTRADO' if operation == 'novo' else 'ATUALIZADO' }}</h1>
   <p class="text-muted mb-4">{{ ponto.nome }}{% if municipio %} · {{ municipio.nome }} — BA{% endif %}</p>
 
@@ -23,7 +23,7 @@
       <div class="material-row d-flex justify-content-between align-items-center gap-3">
         <div>
           <div class="fw-semibold">{{ row.material.nome }}</div>
-          <div class="small text-muted">Total {{ '%.0f'|format(row.total_quantity) }} · Alocado {{ '%.0f'|format(row.allocated_quantity) }} · Disponível {{ '%.0f'|format(row.available_quantity) }}</div>
+          <div class="small text-muted">Estoque geral {{ '%.0f'|format(row.total_quantity) }} · Alocado nos pontos {{ '%.0f'|format(row.allocated_quantity) }} · Disponível para alocação {{ '%.0f'|format(row.available_quantity) }}</div>
         </div>
         <div class="fw-bold">{{ '%.0f'|format(row.current_quantity) }}</div>
       </div>

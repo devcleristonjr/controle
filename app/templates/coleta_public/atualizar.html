@@ -1,10 +1,10 @@
 {% extends 'coleta_public/base.html' %}
-{% block coleta_title %}Atualização de estoque{% endblock %}
+{% block coleta_title %}Atualização operacional do ponto{% endblock %}
 {% block coleta_content %}
 <div class="public-card p-4 p-md-5 mb-3">
   <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
     <div>
-      <div class="soft-label mb-1">Atualização de estoque</div>
+      <div class="soft-label mb-1">Atualização operacional do ponto</div>
       <h1 class="h3 fw-bold mb-2">{{ ponto.nome }}</h1>
       <p class="text-muted mb-0">{{ municipio.nome }} — {{ municipio.territorio.nome }}</p>
     </div>
@@ -39,6 +39,7 @@
               <div class="fw-semibold">{{ row.material.nome }}</div>
               <div class="small text-muted">Total {{ '%.0f'|format(row.total_quantity) }} · Alocado {{ '%.0f'|format(row.allocated_quantity) }} · Disponível {{ '%.0f'|format(row.available_quantity) }}</div>
               <div class="fw-bold">{{ '%.0f'|format(row.current_quantity) }} → {{ '%.0f'|format(row.new_quantity) }}</div>
+              <div class="small text-muted">{% if row.new_quantity > row.current_quantity %}Aumento = nova alocação{% elif row.new_quantity < row.current_quantity %}Redução = retirada{% else %}Sem alteração{% endif %}</div>
             </div>
           {% endfor %}
           <div class="material-row"><span class="soft-label d-block">Foto</span><strong>{{ '✅ Adicionada' if has_photo else 'Não adicionada' }}</strong></div>
@@ -53,7 +54,7 @@
         {% endif %}
         <div class="d-grid gap-2 d-md-flex">
           <button class="btn btn-outline-secondary btn-lg flex-fill" type="button" onclick="history.back()">Voltar</button>
-          <button class="btn btn-primary btn-lg flex-fill" type="submit">Confirmar atualização</button>
+          <button class="btn btn-primary btn-lg flex-fill" type="submit">Confirmar atualização operacional</button>
         </div>
       </section>
     {% else %}
@@ -64,8 +65,8 @@
               <div class="fw-semibold mb-1">{{ row.material.nome }}</div>
               <div class="small text-muted">Estoque total: {{ '%.0f'|format(row.total_quantity) }}</div>
               <div class="small text-muted">Já alocado: {{ '%.0f'|format(row.allocated_quantity) }}</div>
-              <div class="small text-muted mb-2">Disponível: {{ '%.0f'|format(row.available_quantity) }} · Máximo final neste ponto: {{ '%.0f'|format(row.max_for_point) }}</div>
-              <label class="form-label small mb-1" for="qtd_{{ row.material.id }}">Nova quantidade</label>
+              <div class="small text-muted mb-2">Disponível para novas alocações: {{ '%.0f'|format(row.available_quantity) }} · Limite operacional deste ponto: {{ '%.0f'|format(row.max_for_point) }}</div>
+              <label class="form-label small mb-1" for="qtd_{{ row.material.id }}">Quantidade atualmente em uso no ponto</label>
               <input id="qtd_{{ row.material.id }}" class="form-control form-control-lg" type="number" min="0" step="1" name="qtd_{{ row.material.id }}" value="{{ request.form.get('qtd_' ~ row.material.id, '%.0f'|format(row.current_quantity)) }}">
             </div>
           {% else %}
