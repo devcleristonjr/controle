@@ -1018,6 +1018,103 @@ def update_stock(
     return movimento
 
 
+
+def get_point_operational_snapshot(point: PontoEstoque) -> dict:
+    """Return the operational stock state for a point, with legacy fallback."""
+    allocations = (
+        AlocacaoPontoMaterial.query.filter_by(ponto_estoque_id=point.id, ativo=True)
+        .join(AlocacaoPontoMaterial.material)
+        .order_by(Material.nome.asc(), AlocacaoPontoMaterial.data_alocacao.asc())
+        .all()
+    )
+
+    if allocations:
+        materials = {}
+        totals = {
+            "allocated": Decimal("0"),
+            "in_use": Decimal("0"),
+            "damaged": Decimal("0"),
+            "lost": Decimal("0"),
+            "removed": Decimal("0"),
+            "replenishment_pending": Decimal("0"),
+        }
+        for allocation in allocations:
+            material = materials.setdefault(
+                allocation.material_id,
+                {
+                    "material_id": allocation.material_id,
+                    "material": allocation.material.nome,
+                    "allocated": Decimal("0"),
+                    "in_use": Decimal("0"),
+                    "damaged": Decimal("0"),
+                    "lost": Decimal("0"),
+                    "removed": Decimal("0"),
+                    "replenishment_pending": Decimal("0"),
+                    "allocations": [],
+                },
+            )
+            values = {
+                "allocated": Decimal(allocation.quantidade_alocada or 0),
+                "in_use": Decimal(allocation.quantidade_em_uso or 0),
+                "damaged": Decimal(allocation.quantidade_danificada_total or 0),
+                "lost": Decimal(allocation.quantidade_perdida_total or 0),
+                "removed": Decimal(allocation.quantidade_retirada_total or 0),
+                "replenishment_pending": Decimal(allocation.quantidade_reposicao_pendente or 0),
+            }
+            for key, value in values.items():
+                material[key] += value
+                totals[key] += value
+            material["allocations"].append(allocation)
+
+        return {
+            "source": "operational",
+            "materials": list(materials.values()),
+            "allocations": allocations,
+            "totals": totals,
+        }
+
+    # Transitional fallback: points not yet migrated to operational allocations.
+    legacy_rows = (
+        EstoqueMaterial.query.filter_by(ponto_estoque_id=point.id)
+        .join(EstoqueMaterial.material)
+        .order_by(Material.nome.asc())
+        .all()
+    )
+    materials = []
+    totals = {
+        "allocated": Decimal("0"),
+        "in_use": Decimal("0"),
+        "damaged": Decimal("0"),
+        "lost": Decimal("0"),
+        "removed": Decimal("0"),
+        "replenishment_pending": Decimal("0"),
+    }
+    for row in legacy_rows:
+        quantity = Decimal(row.quantidade or 0)
+        materials.append(
+            {
+                "material_id": row.material_id,
+                "material": row.material.nome,
+                "allocated": quantity,
+                "in_use": quantity,
+                "damaged": Decimal("0"),
+                "lost": Decimal("0"),
+                "removed": Decimal("0"),
+                "replenishment_pending": Decimal("0"),
+                "allocations": [],
+            }
+        )
+        totals["allocated"] += quantity
+        totals["in_use"] += quantity
+
+    return {
+        "source": "legacy",
+        "materials": materials,
+        "allocations": [],
+        "totals": totals,
+    }
+
+
 def get_allocation_monitoring_rows(filters: dict | None = None) -> list[dict]:
     """Return one operational row per active material allocation."""
     filters = filters or {}
