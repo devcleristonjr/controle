@@ -475,7 +475,7 @@ body.app-body {
 
 
 /* =========================================================
-   CAMADA VISUAL — ESTOQUE BAHIA
+   CAMADA VISUAL — CONTROLE DE MATERIAIS
    Refinamento visual sem alterar regras de negócio.
    ========================================================= */
 
@@ -935,7 +935,7 @@ details[open] > summary::after {
 
 
 /* =========================================================
-   TEMA DARK AZUL-MARINHO — ESTOQUE BAHIA
+   TEMA DARK AZUL-MARINHO — CONTROLE DE MATERIAIS
    Inspirado na linguagem visual do Steam Client.
    Apenas identidade visual; sem alteração de regras de negócio.
    ========================================================= */
