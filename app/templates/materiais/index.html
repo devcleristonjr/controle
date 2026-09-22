@@ -49,7 +49,7 @@
                 <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
               </form>
               {% if current_user.is_admin %}
-                <form method="post" action="{{ url_for('materiais.delete', material_id=material.id) }}" onsubmit="return confirm('Excluir este material permanentemente?');">
+                <form method="post" action="{{ url_for('materiais.delete', material_id=material.id) }}" onsubmit="return confirm('Excluir este material permanentemente? O histórico vinculado também será apagado.');">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button class="btn btn-sm btn-danger" type="submit">Excluir</button>
                 </form>
