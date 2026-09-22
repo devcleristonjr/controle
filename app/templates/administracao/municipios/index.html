@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Municípios | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Municípios</h1>
+    <p class="text-muted mb-0">Cadastro e gestão dos municípios vinculados aos territórios.</p>
+  </div>
+  <a href="{{ url_for('municipios.create') }}" class="btn btn-primary">Novo município</a>
+</div>
+
+<div class="card card-soft">
+  <div class="card-body table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr><th>Nome</th><th>Território</th><th>Código IBGE</th><th>Ativo</th><th>Ações</th></tr>
+      </thead>
+      <tbody>
+        {% for municipio in municipios %}
+          <tr>
+            <td class="fw-semibold">{{ municipio.nome }}</td>
+            <td>{{ municipio.territorio.nome }}</td>
+            <td>{{ municipio.codigo_ibge or '-' }}</td>
+            <td>{{ 'Sim' if municipio.ativo else 'Não' }}</td>
+            <td class="d-flex gap-2">
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('municipios.edit', municipio_id=municipio.id) }}">Editar</a>
+              <form method="post" action="{{ url_for('municipios.deactivate', municipio_id=municipio.id) }}" onsubmit="return confirm('Desativar este município?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted">Nenhum município cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'coleta_public/base.html' %}
+{% block coleta_title %}Ponto cadastrado{% endblock %}
+{% block coleta_content %}
+<div class="public-card p-4 p-md-5 mb-3">
+  <div class="soft-label mb-2">Fluxo concluído</div>
+  <h1 class="h3 fw-bold mb-2">✅ PONTO {{ 'CADASTRADO' if operation == 'novo' else 'ATUALIZADO' }}</h1>
+  <p class="text-muted mb-4">{{ ponto.nome }}{% if municipio %} · {{ municipio.nome }} — BA{% endif %}</p>
+
+  <div class="vstack gap-2 mb-4">
+    <div class="material-row"><span class="soft-label d-block">Território</span><strong>{{ municipio.territorio.nome }}</strong></div>
+    <div class="material-row"><span class="soft-label d-block">Responsável</span><strong>{{ ponto.responsavel_nome or '-' }}</strong></div>
+    <div class="material-row"><span class="soft-label d-block">Cadastro realizado por</span><strong>{{ coletor_nome }}</strong></div>
+    <div class="material-row"><span class="soft-label d-block">Foto</span><strong>{{ '✅ Adicionada' if foto_path else 'Não adicionada' }}</strong></div>
+    {% if operation == 'novo' %}
+      <div class="material-row"><span class="soft-label d-block">Localização atual no mapa</span><strong>{{ '✅ Registrada' if location_registered else 'Não informada (opcional)' }}</strong></div>
+    {% else %}
+      <div class="material-row"><span class="soft-label d-block">Localização do ponto no mapa</span><strong>Mantida sem alterações nesta atualização</strong></div>
+    {% endif %}
+  </div>
+
+  <div class="vstack gap-2 mb-4">
+    {% for row in estoque %}
+      <div class="material-row d-flex justify-content-between align-items-center gap-3">
+        <div>
+          <div class="fw-semibold">{{ row.material.nome }}</div>
+          <div class="small text-muted">Total {{ '%.0f'|format(row.total_quantity) }} · Alocado {{ '%.0f'|format(row.allocated_quantity) }} · Disponível {{ '%.0f'|format(row.available_quantity) }}</div>
+        </div>
+        <div class="fw-bold">{{ '%.0f'|format(row.current_quantity) }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="mb-4">
+    <div class="soft-label mb-2">Link de atualização deste ponto</div>
+    <div class="input-group input-group-lg">
+      <input id="link-atualizacao" class="form-control" type="text" readonly value="{{ url_for('coleta.coleta_form', token=ponto.coleta_token, _external=True) }}">
+      <button class="btn btn-outline-secondary" type="button" data-copy-link="link-atualizacao">📋 Copiar link</button>
+    </div>
+  </div>
+
+  <div class="d-grid gap-2">
+    <a class="btn btn-outline-primary btn-lg" href="{{ url_for('dashboard.mapa') }}">🗺️ Ver ponto no mapa</a>
+    <a class="btn btn-success btn-lg" href="{{ url_for('coleta_public.index') }}">Nova solicitação</a>
+  </div>
+</div>
+{% endblock %}

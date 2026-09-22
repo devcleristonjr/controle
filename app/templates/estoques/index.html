@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Estoques | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Pontos de estoque</h1>
+    <p class="text-muted mb-0">Liste, filtre e acesse detalhes dos pontos cadastrados.</p>
+  </div>
+  <a href="{{ url_for('estoques.create') }}" class="btn btn-primary">Novo ponto</a>
+</div>
+
+<div class="card card-soft">
+  <div class="card-body table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr><th>Local</th><th>Município</th><th>Território</th><th>Responsável</th><th>Banners</th><th>Última atualização</th><th>Ações</th></tr>
+      </thead>
+      <tbody>
+        {% for ponto in pontos %}
+          <tr>
+            <td class="fw-semibold">{{ ponto.nome }}</td>
+            <td>{{ ponto.municipio.nome }}</td>
+            <td>{{ ponto.municipio.territorio.nome }}</td>
+            <td>{{ ponto.responsavel_nome or '-' }}</td>
+            <td>{{ '%.0f'|format(banner_totals.get(ponto.id, 0)) }}</td>
+            <td>{{ ponto.updated_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td>
+            <td class="d-flex gap-2 flex-wrap">
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}">Visualizar</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar</a>
+              <a class="btn btn-sm btn-outline-success" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Estoque</a>
+              <a class="btn btn-sm btn-outline-dark" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Histórico</a>
+              <form method="post" action="{{ url_for('estoques.deactivate', ponto_id=ponto.id) }}" onsubmit="return confirm('Desativar este ponto?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
+              </form>
+              {% if current_user.is_admin %}
+                <form method="post" action="{{ url_for('estoques.delete', ponto_id=ponto.id) }}" onsubmit="return confirm('Excluir este ponto permanentemente? Esta ação também remove histórico, coletas e estoques vinculados.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-danger" type="submit">Excluir</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="7" class="text-muted">Nenhum ponto cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

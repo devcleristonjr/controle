@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Histórico | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Histórico de movimentações</h1>
+    <p class="text-muted mb-0">{{ ponto.nome }} • {{ ponto.municipio.nome }}</p>
+  </div>
+  <a href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}" class="btn btn-outline-secondary">Voltar</a>
+</div>
+
+<div class="card card-soft">
+  <div class="card-body table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr><th>Data</th><th>Origem</th><th>Usuário</th><th>Material</th><th>Tipo</th><th>Quantidade</th><th>Antes</th><th>Depois</th><th>Observação</th></tr>
+      </thead>
+      <tbody>
+        {% for mov in movimentacoes %}
+          <tr>
+            <td>{{ mov.created_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td>
+            <td>{{ mov.origem }}</td>
+            <td>{{ mov.usuario.nome if mov.usuario else 'Coleta web' }}</td>
+            <td>{{ mov.material.nome }}</td>
+            <td>{{ mov.tipo }}</td>
+            <td>{{ '%.0f'|format(mov.quantidade) }}</td>
+            <td>{{ '%.0f'|format(mov.quantidade_anterior) }}</td>
+            <td>{{ '%.0f'|format(mov.quantidade_posterior) }}</td>
+            <td>{{ mov.observacao or '-' }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9" class="text-muted">Nenhuma movimentação registrada.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

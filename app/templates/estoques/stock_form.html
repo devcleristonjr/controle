@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Atualizar estoque | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card card-soft">
+      <div class="card-body p-4 p-lg-5">
+        <h1 class="h4 fw-bold mb-1">Atualizar estoque</h1>
+        <p class="text-muted mb-4">{{ ponto.nome }} • {{ ponto.municipio.nome }}</p>
+        <div class="alert alert-light border mb-4">
+          <div class="fw-semibold mb-2" id="material-summary-title">Resumo do material</div>
+          <div class="row g-2 small">
+            <div class="col-sm-6">Estoque total: <strong id="material-total">0</strong></div>
+            <div class="col-sm-6">Já alocado: <strong id="material-allocated">0</strong></div>
+            <div class="col-sm-6">Disponível: <strong id="material-available">0</strong></div>
+            <div class="col-sm-6">Saldo atual neste ponto: <strong id="material-current-point">0</strong></div>
+            <div class="col-12">Máximo final permitido neste ponto: <strong id="material-max-for-point">0</strong></div>
+          </div>
+        </div>
+        <form method="post" novalidate>
+          {{ form.hidden_tag() }}
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ form.material_id.label(class_='form-label') }}
+              {{ form.material_id(class_='form-select') }}
+            </div>
+            <div class="col-md-6">
+              {{ form.tipo.label(class_='form-label') }}
+              {{ form.tipo(class_='form-select') }}
+            </div>
+            <div class="col-md-6">
+              {{ form.quantidade.label(class_='form-label') }}
+              {{ form.quantidade(class_='form-control') }}
+              <div class="form-text">Em ajuste, informe a quantidade final desejada. O backend bloqueia valores acima do limite disponível.</div>
+            </div>
+            <div class="col-md-12">
+              {{ form.observacao.label(class_='form-label') }}
+              {{ form.observacao(class_='form-control', rows=4) }}
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit">Confirmar</button>
+            <a href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    const select = document.getElementById("material_id");
+    const stats = {{ material_stats|tojson }};
+    const title = document.getElementById("material-summary-title");
+    const total = document.getElementById("material-total");
+    const allocated = document.getElementById("material-allocated");
+    const available = document.getElementById("material-available");
+    const currentPoint = document.getElementById("material-current-point");
+    const maxForPoint = document.getElementById("material-max-for-point");
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+    }
+
+    function syncMaterialSummary() {
+      if (!select) return;
+      const data = stats[select.value] || {};
+      title.textContent = `Resumo do material selecionado`;
+      total.textContent = formatNumber(data.total);
+      allocated.textContent = formatNumber(data.allocated);
+      available.textContent = formatNumber(data.available);
+      currentPoint.textContent = formatNumber(data.point_current);
+      maxForPoint.textContent = formatNumber(data.max_for_point);
+    }
+
+    if (select) {
+      select.addEventListener("change", syncMaterialSummary);
+      syncMaterialSummary();
+    }
+  })();
+</script>
+{% endblock %}

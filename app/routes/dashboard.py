@@ -1,0 +1,52 @@
+from __future__ import annotations
+
+from flask import Blueprint, render_template, request
+from flask_login import login_required
+
+from app.models.material import Material
+from app.models.municipio import Municipio
+from app.models.territorio import Territorio
+from app.services import get_dashboard_metrics
+
+
+dashboard_bp = Blueprint("dashboard", __name__)
+
+
+@dashboard_bp.get("/")
+@login_required
+def index():
+    filters = {
+        key: request.args.get(key, type=int)
+        for key in ("territorio_id", "municipio_id", "material_id")
+        if request.args.get(key)
+    }
+    filters["status"] = request.args.get("status")
+    metrics = get_dashboard_metrics(filters)
+    territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
+    municipios = Municipio.query.filter_by(ativo=True).order_by(Municipio.nome.asc()).all()
+    materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
+    return render_template(
+        "dashboard/index.html",
+        metrics=metrics,
+        territorios=territorios,
+        municipios=municipios,
+        materiais=materiais,
+        filters=filters,
+    )
+
+
+@dashboard_bp.get("/mapa")
+@login_required
+def mapa():
+    territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
+    municipios = Municipio.query.filter_by(ativo=True).order_by(Municipio.nome.asc()).all()
+    materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
+    return render_template(
+        "mapa/index.html",
+        territorios=territorios,
+        municipios=municipios,
+        materiais=materiais,
+        map_center=(-12.8, -41.7),
+        map_zoom=7,
+        bahia_bounds=[[-18.75, -46.5], [-8.0, -37.0]],
+    )

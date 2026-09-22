@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="page-title h3 fw-bold mb-1">Dashboard</h1>
+    <p class="text-muted mb-0">Visão geral dos pontos de estoque da Bahia.</p>
+  </div>
+  <a href="{{ url_for('dashboard.mapa') }}" class="btn btn-outline-primary"><i class="bi bi-geo-alt me-2"></i>Abrir mapa</a>
+</div>
+
+<form method="get" class="card card-soft mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label" for="territorio_id_filter">Território</label>
+        <select id="territorio_id_filter" name="territorio_id" class="form-select">
+          <option value="">Todos</option>
+          {% for territorio in territorios %}
+            <option value="{{ territorio.id }}" {% if filters.get('territorio_id') == territorio.id %}selected{% endif %}>{{ territorio.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="municipio_id_filter">Município</label>
+        <select id="municipio_id_filter" name="municipio_id" class="form-select">
+          <option value="">Todos</option>
+          {% for municipio in municipios %}
+            <option value="{{ municipio.id }}" {% if filters.get('municipio_id') == municipio.id %}selected{% endif %}>{{ municipio.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="material_id_filter">Material</label>
+        <select id="material_id_filter" name="material_id" class="form-select">
+          <option value="">Todos</option>
+          {% for material in materiais %}
+            <option value="{{ material.id }}" {% if filters.get('material_id') == material.id %}selected{% endif %}>{{ material.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="status_filter">Status</label>
+        <select id="status_filter" name="status" class="form-select">
+          <option value="">Todos</option>
+          <option value="ativo" {% if filters.get('status') == 'ativo' %}selected{% endif %}>Ativo</option>
+          <option value="inativo" {% if filters.get('status') == 'inativo' %}selected{% endif %}>Inativo</option>
+        </select>
+      </div>
+      <div class="col-md-1 d-grid">
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total de pontos</div><div class="display-6 fw-bold">{{ metrics.total_points }}</div></div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total de municípios</div><div class="display-6 fw-bold">{{ metrics.total_municipios }}</div></div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total de territórios</div><div class="display-6 fw-bold">{{ metrics.total_territorios }}</div></div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Quantidade alocada</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.total_stock_allocated) }}</div></div></div></div>
+  <div class="col-md-6 col-xl-3"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">Total de materiais</div><div class="display-6 fw-bold">{{ metrics.total_materiais }}</div></div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">{{ metrics.stock_summary.label }} · Total</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.stock_summary.total) }}</div></div></div></div>
+  <div class="col-md-4"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">{{ metrics.stock_summary.label }} · Alocado</div><div class="display-6 fw-bold">{{ '%.0f'|format(metrics.stock_summary.allocated) }}</div></div></div></div>
+  <div class="col-md-4"><div class="card card-soft stat-card h-100"><div class="card-body"><div class="metric-kicker">{{ metrics.stock_summary.label }} · Disponível</div><div class="display-6 fw-bold {% if metrics.stock_summary.is_inconsistent %}text-danger{% endif %}">{{ '%.0f'|format(metrics.stock_summary.available) }}</div></div></div></div>
+</div>
+
+<div class="card card-soft mb-4">
+  <div class="card-header bg-white border-0 fw-semibold">Materiais ativos</div>
+  <div class="card-body">
+    <div class="row g-3">
+      {% for item in metrics.material_cards %}
+        <div class="col-12 col-md-6 col-xl-4">
+          <div class="material-metric-card">
+            <div class="fw-bold mb-2">{{ item.nome }}</div>
+            <div class="small d-flex justify-content-between"><span class="text-muted">Quantidade total</span><span>{{ '%.0f'|format(item.total) }}</span></div>
+            <div class="small d-flex justify-content-between"><span class="text-muted">Quantidade alocada</span><span>{{ '%.0f'|format(item.allocated) }}</span></div>
+            <div class="small d-flex justify-content-between align-items-center mt-2"><span class="text-muted">Disponível</span><span class="material-metric-value {% if item.is_inconsistent %}text-danger{% endif %}">{{ '%.0f'|format(item.available) }}</span></div>
+            <div class="small mt-2 text-muted">Unidade: {{ item.unidade }}</div>
+          </div>
+        </div>
+      {% else %}
+        <div class="col-12">
+          <p class="text-muted mb-0">Nenhum material ativo cadastrado.</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card card-soft h-100">
+      <div class="card-header bg-white border-0 fw-semibold">Pontos atualizados recentemente</div>
+      <div class="card-body">
+        {% if metrics.recent_points %}
+          <div class="list-group list-group-flush">
+            {% for ponto in metrics.recent_points %}
+              <a href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-semibold">{{ ponto.nome }}</div>
+                  <div class="text-muted small">{{ ponto.municipio.nome }} • {{ ponto.municipio.territorio.nome }}</div>
+                </div>
+                <span class="badge badge-soft">Atualizado</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">Nenhum ponto cadastrado com os filtros atuais.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card card-soft h-100">
+      <div class="card-header bg-white border-0 fw-semibold">Pontos com maior estoque alocado</div>
+      <div class="card-body">
+        {% if metrics.top_stock_points %}
+          <div class="list-group list-group-flush">
+            {% for row in metrics.top_stock_points %}
+              <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-semibold">{{ row[0].nome }}</div>
+                  <div class="text-muted small">{{ row[0].municipio.nome }}</div>
+                </div>
+                <span class="badge text-bg-primary">{{ '%.0f'|format(row.stock_total) }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">Sem dados para exibir.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12" id="ultimas-movimentacoes">
+    <div class="card card-soft">
+      <div class="card-header bg-white border-0 fw-semibold">Últimas movimentações</div>
+      <div class="card-body table-responsive">
+        <table class="table table-modern align-middle mb-0">
+          <thead>
+            <tr><th>Data</th><th>Usuário</th><th>Local</th><th>Material</th><th>Tipo</th><th>Qtd.</th><th>Antes</th><th>Depois</th></tr>
+          </thead>
+          <tbody>
+            {% for mov in metrics.recent_movements %}
+              <tr>
+                <td>{{ mov.created_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td>
+                <td>{{ mov.usuario.nome }}</td>
+                <td>{{ mov.ponto_estoque.nome }}</td>
+                <td>{{ mov.material.nome }}</td>
+                <td>{{ mov.tipo }}</td>
+                <td>{{ '%.0f'|format(mov.quantidade) }}</td>
+                <td>{{ '%.0f'|format(mov.quantidade_anterior) }}</td>
+                <td>{{ '%.0f'|format(mov.quantidade_posterior) }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="8" class="text-muted">Nenhuma movimentação registrada.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

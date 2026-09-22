@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {% block coleta_title %}Cadastro e Atualização de Estoque{% endblock %}
+{% endblock %}
+
+{% block content %}
+
+<div class="public-body min-vh-100">
+  <main class="container py-3 py-md-4 public-shell">
+
+    {% block coleta_content %}
+      {% block content_inner %}{% endblock %}
+    {% endblock %}
+
+  </main>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+  (function () {
+
+    /*
+     * Filtro de municípios
+     */
+    document.querySelectorAll("[data-select-filter]").forEach(function (input) {
+
+      const targetId = input.getAttribute("data-select-filter");
+      const select = document.getElementById(targetId);
+
+      if (!select) return;
+
+      input.addEventListener("input", function () {
+
+        const query = input.value.trim().toLowerCase();
+
+        Array.from(select.options).forEach(function (option, index) {
+
+          if (index === 0) return;
+
+          const label = option.textContent.toLowerCase();
+
+          option.hidden =
+            Boolean(query) && !label.includes(query);
+
+        });
+
+      });
+
+    });
+
+
+    /*
+     * Geolocalização
+     */
+    const btn = document.getElementById("btn-localizacao");
+
+    if (btn) {
+
+      const statusEl =
+        document.getElementById("status-localizacao");
+
+      const latInput =
+        document.querySelector('input[name="latitude"]');
+
+      const lonInput =
+        document.querySelector('input[name="longitude"]');
+
+
+      btn.addEventListener("click", function () {
+
+        if (!navigator.geolocation) {
+
+          if (statusEl) {
+
+            statusEl.className =
+              "text-warning small fw-semibold mt-2";
+
+            statusEl.textContent =
+              "Geolocalização não suportada neste navegador. Você pode continuar sem informar localização atual.";
+
+          }
+
+          return;
+        }
+
+
+        if (statusEl) {
+
+          statusEl.className =
+            "text-warning small fw-semibold mt-2";
+
+          statusEl.textContent =
+            "Obtendo sua localização atual...";
+
+        }
+
+
+        navigator.geolocation.getCurrentPosition(
+
+          function (position) {
+
+            if (latInput) {
+              latInput.value =
+                position.coords.latitude.toFixed(6);
+            }
+
+            if (lonInput) {
+              lonInput.value =
+                position.coords.longitude.toFixed(6);
+            }
+
+
+            if (statusEl) {
+
+              statusEl.className =
+                "text-success small fw-semibold mt-2";
+
+              statusEl.textContent =
+                "✅ Localização atual registrada no mapa";
+
+            }
+
+          },
+
+          function () {
+
+            if (statusEl) {
+
+              statusEl.className =
+                "text-muted small fw-semibold mt-2";
+
+              statusEl.textContent =
+                "Localização atual não informada (opcional)";
+
+            }
+
+          },
+
+          {
+            enableHighAccuracy: true,
+            timeout: 10000
+          }
+
+        );
+
+      });
+
+    }
+
+
+    /*
+     * Copiar link de atualização
+     */
+    const copyButtons =
+      document.querySelectorAll("[data-copy-link]");
+
+
+    copyButtons.forEach(function (button) {
+
+      button.addEventListener("click", async function () {
+
+        const targetId =
+          button.getAttribute("data-copy-link");
+
+        const input =
+          document.getElementById(targetId);
+
+        if (!input) return;
+
+
+        try {
+
+          await navigator.clipboard.writeText(
+            input.value
+          );
+
+          const original =
+            button.textContent;
+
+          button.textContent =
+            "Link copiado!";
+
+
+          setTimeout(function () {
+
+            button.textContent =
+              original;
+
+          }, 1400);
+
+
+        } catch (_error) {
+
+          input.select();
+
+          document.execCommand("copy");
+
+          const original =
+            button.textContent;
+
+          button.textContent =
+            "Link copiado!";
+
+
+          setTimeout(function () {
+
+            button.textContent =
+              original;
+
+          }, 1400);
+
+        }
+
+      });
+
+    });
+
+  })();
+</script>
+
+{% endblock %}

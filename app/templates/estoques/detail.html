@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}{{ ponto.nome }} | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">{{ ponto.nome }}</h1>
+    <p class="text-muted mb-0">{{ ponto.municipio.nome }} • {{ ponto.municipio.territorio.nome }}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-primary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar ponto</a>
+    <a class="btn btn-primary" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Atualizar estoque</a>
+    <a class="btn btn-outline-dark" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Ver histórico</a>
+    {% if current_user.is_admin %}
+      <form method="post" action="{{ url_for('estoques.delete', ponto_id=ponto.id) }}" onsubmit="return confirm('Excluir este ponto permanentemente? Esta ação também remove histórico, coletas e estoques vinculados.');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-danger" type="submit">Excluir ponto</button>
+      </form>
+    {% endif %}
+    {% if whatsapp_url %}
+      <a class="btn btn-success" target="_blank" rel="noopener noreferrer" href="{{ whatsapp_url }}">💬 Falar no WhatsApp</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card card-soft h-100">
+      {% if ponto.foto %}
+        <img src="/{{ ponto.foto }}" class="card-img-top detail-photo" alt="Foto do local">
+      {% endif %}
+      <div class="card-body">
+        <div class="mb-2"><strong>Responsável:</strong> {{ ponto.responsavel_nome or '-' }}</div>
+        <div class="mb-2"><strong>Telefone:</strong> {{ ponto.responsavel_telefone or '-' }}</div>
+        <div class="mb-2"><strong>WhatsApp:</strong> {{ ponto.responsavel_whatsapp or '-' }}</div>
+        <div class="mb-2"><strong>Endereço:</strong> {{ ponto.endereco or '-' }}</div>
+        <div class="mb-2">
+          <strong>Link de coleta:</strong>
+          <label for="coleta-link" class="visually-hidden">Link de coleta</label>
+          <div class="input-group input-group-sm mt-1">
+            <input id="coleta-link" type="text" class="form-control" readonly title="Link de coleta" placeholder="Link de coleta" value="{{ url_for('coleta.coleta_form', token=ponto.coleta_token, _external=True) }}">
+            <button id="copiar-coleta-link" class="btn btn-outline-secondary" type="button">Copiar link</button>
+          </div>
+        </div>
+        <div class="mb-2"><strong>Atualizado em:</strong> {{ ponto.updated_at|datahora_bahia('%d/%m/%Y %H:%M') }}</div>
+        <div class="mb-0"><strong>Observações:</strong> {{ ponto.observacoes or '-' }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card card-soft h-100">
+      <div class="card-header bg-white border-0 fw-semibold">Estoque dos materiais</div>
+      <div class="card-body table-responsive">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr><th>Material</th><th>No ponto</th><th>Total</th><th>Alocado</th><th>Disponível</th></tr>
+          </thead>
+          <tbody>
+            {% for item in estoque %}
+              {% set snapshot = snapshots.get(item.material_id, {}) %}
+              <tr>
+                <td class="fw-semibold">{{ item.material.nome }}</td>
+                <td>{{ '%.0f'|format(item.quantidade) }}</td>
+                <td>{{ '%.0f'|format(snapshot.get('total', 0)) }}</td>
+                <td>{{ '%.0f'|format(snapshot.get('allocated', 0)) }}</td>
+                <td class="{% if snapshot.get('is_inconsistent') %}text-danger fw-semibold{% endif %}">{{ '%.0f'|format(snapshot.get('available', 0)) }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="5" class="text-muted">Nenhum material cadastrado para este ponto.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const btn = document.getElementById("copiar-coleta-link");
+    const input = document.getElementById("coleta-link");
+    if (!btn || !input) return;
+
+    btn.addEventListener("click", async function () {
+      try {
+        await navigator.clipboard.writeText(input.value);
+        btn.textContent = "Copiado";
+        setTimeout(function () { btn.textContent = "Copiar link"; }, 1200);
+      } catch (_error) {
+        // Fallback for browsers without clipboard API permissions.
+        input.select();
+        document.execCommand("copy");
+        btn.textContent = "Copiado";
+        setTimeout(function () { btn.textContent = "Copiar link"; }, 1200);
+      }
+    });
+  })();
+</script>
+{% endblock %}

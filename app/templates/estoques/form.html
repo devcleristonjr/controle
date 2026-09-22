@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="card card-soft">
+      <div class="card-body p-4 p-lg-5">
+        <h1 class="h4 fw-bold mb-4">{{ title }}</h1>
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {{ form.hidden_tag() }}
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ form.nome.label(class_='form-label') }}
+              {{ form.nome(class_='form-control') }}
+              {% for error in form.nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              {{ form.municipio_id.label(class_='form-label') }}
+              {{ form.municipio_id(class_='form-select', id='municipio-select') }}
+              {% for error in form.municipio_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              <div class="form-text mt-2" id="territorio-auto">Território: escolha um município.</div>
+            </div>
+            <div class="col-md-12">
+              {{ form.endereco.label(class_='form-label') }}
+              {{ form.endereco(class_='form-control') }}
+            </div>
+            <div class="col-md-12">
+              {{ form.coordenadas.label(class_='form-label') }}
+              {{ form.coordenadas(class_='form-control', placeholder='12°55\'39.9"S 38°23\'14.8"W') }}
+              <div class="form-text">Cole exatamente como o Google Maps: 12°55'39.9"S 38°23'14.8"W. Se preferir, também pode preencher lat/long separadamente.</div>
+            </div>
+            <div class="col-md-6">
+              {{ form.latitude.label(class_='form-label') }}
+              {{ form.latitude(class_='form-control', placeholder="12°55'39.9\"S") }}
+              <div class="form-text">Aceita decimal ou DMS, como 12°55'39.9"S.</div>
+            </div>
+            <div class="col-md-6">
+              {{ form.longitude.label(class_='form-label') }}
+              {{ form.longitude(class_='form-control', placeholder="38°23'14.8\"W") }}
+              <div class="form-text">Aceita decimal ou DMS, como 38°23'14.8"W.</div>
+            </div>
+            <div class="col-md-6">
+              {{ form.responsavel_nome.label(class_='form-label') }}
+              {{ form.responsavel_nome(class_='form-control') }}
+            </div>
+            <div class="col-md-3">
+              {{ form.responsavel_telefone.label(class_='form-label') }}
+              {{ form.responsavel_telefone(class_='form-control') }}
+            </div>
+            <div class="col-md-3">
+              {{ form.responsavel_whatsapp.label(class_='form-label') }}
+              {{ form.responsavel_whatsapp(class_='form-control') }}
+            </div>
+            <div class="col-md-12">
+              {{ form.foto.label(class_='form-label') }}
+              {{ form.foto(class_='form-control', accept='.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp') }}
+              {% for error in form.foto.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+              <div class="form-text">JPG, JPEG, PNG e WEBP, com nome seguro e tamanho limitado pelo sistema.</div>
+            </div>
+            <div class="col-md-12">
+              {{ form.observacoes.label(class_='form-label') }}
+              {{ form.observacoes(class_='form-control', rows=4) }}
+            </div>
+            <div class="col-md-12 form-check">
+              {{ form.ativo(class_='form-check-input') }}
+              {{ form.ativo.label(class_='form-check-label') }}
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit">Salvar</button>
+            <a href="{{ url_for('estoques.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const territorioText = document.getElementById('territorio-auto');
+  const municipioSelect = document.getElementById('municipio-select');
+  const territorioMap = {{ municipios|map(attribute='territorio.nome')|list|tojson }};
+  const municipioMap = {{ municipios|map(attribute='id')|list|tojson }};
+  const municipioOptions = [];
+  {% for municipio in municipios %}
+    municipioOptions.push({ id: {{ municipio.id }}, nome: '{{ municipio.territorio.nome }}' });
+  {% endfor %}
+  function updateTerritorioLabel() {
+    const value = Number(municipioSelect.value);
+    const match = municipioOptions.find(item => item.id === value);
+    if (match) {
+      territorioText.textContent = 'Território: ' + match.nome;
+    } else {
+      territorioText.textContent = 'Território: escolha um município.';
+    }
+  }
+  if (municipioSelect) {
+    municipioSelect.addEventListener('change', updateTerritorioLabel);
+    updateTerritorioLabel();
+  }
+</script>
+{% endblock %}

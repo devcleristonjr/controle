@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card card-soft">
+      <div class="card-body p-4 p-lg-5">
+        <h1 class="h4 fw-bold mb-4">{{ title }}</h1>
+        <form method="post" novalidate>
+          {{ form.hidden_tag() }}
+          <div class="mb-3">
+            {{ form.nome.label(class_='form-label') }}
+            {{ form.nome(class_='form-control') }}
+            {% for error in form.nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            {{ form.territorio_id.label(class_='form-label') }}
+            {{ form.territorio_id(class_='form-select') }}
+            {% for error in form.territorio_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="mb-3">
+            {{ form.codigo_ibge.label(class_='form-label') }}
+            {{ form.codigo_ibge(class_='form-control') }}
+            {% for error in form.codigo_ibge.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ form.latitude.label(class_='form-label') }}
+              {{ form.latitude(class_='form-control') }}
+            </div>
+            <div class="col-md-6">
+              {{ form.longitude.label(class_='form-label') }}
+              {{ form.longitude(class_='form-control') }}
+            </div>
+          </div>
+          <div class="form-check mt-4 mb-4">
+            {{ form.ativo(class_='form-check-input') }}
+            {{ form.ativo.label(class_='form-check-label') }}
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Salvar</button>
+            <a href="{{ url_for('municipios.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

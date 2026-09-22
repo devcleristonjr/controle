@@ -1,0 +1,104 @@
+{% extends 'coleta_public/base.html' %}
+{% block coleta_title %}Atualização de estoque{% endblock %}
+{% block coleta_content %}
+<div class="public-card p-4 p-md-5 mb-3">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <div class="soft-label mb-1">Atualização de estoque</div>
+      <h1 class="h3 fw-bold mb-2">{{ ponto.nome }}</h1>
+      <p class="text-muted mb-0">{{ municipio.nome }} — {{ municipio.territorio.nome }}</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('coleta_public.atualizar_busca', municipio_id=municipio.id) }}">Voltar</a>
+  </div>
+
+  <div class="progress mb-4" role="progressbar" aria-label="Etapas da atualização" aria-valuenow="3" aria-valuemin="1" aria-valuemax="4" style="height: 10px;">
+    <div class="progress-bar bg-primary" style="width: 75%"></div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+    {% if preview %}<input type="hidden" name="confirm" value="1">{% endif %}
+    {% if preview %}
+      <input type="hidden" name="coletor_nome" value="{{ form.coletor_nome.data or '' }}">
+      <input type="hidden" name="observacoes" value="{{ form.observacoes.data or '' }}">
+      {% for row in quantity_rows %}
+        <input type="hidden" name="qtd_{{ row.material.id }}" value="{{ row.new_quantity }}">
+      {% endfor %}
+      <input type="hidden" name="foto_path" value="{{ foto_path or form.foto_path.data or '' }}">
+    {% elif foto_path %}
+      <input type="hidden" name="foto_path" value="{{ foto_path }}">
+    {% endif %}
+
+    {% if preview %}
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3"># CONFIRME OS DADOS</h2>
+        <div class="vstack gap-2 mb-3">
+          <div class="material-row"><span class="soft-label d-block">Ponto</span><strong>{{ ponto.nome }}</strong></div>
+          {% for row in quantity_rows %}
+            <div class="material-row">
+              <div class="fw-semibold">{{ row.material.nome }}</div>
+              <div class="small text-muted">Total {{ '%.0f'|format(row.total_quantity) }} · Alocado {{ '%.0f'|format(row.allocated_quantity) }} · Disponível {{ '%.0f'|format(row.available_quantity) }}</div>
+              <div class="fw-bold">{{ '%.0f'|format(row.current_quantity) }} → {{ '%.0f'|format(row.new_quantity) }}</div>
+            </div>
+          {% endfor %}
+          <div class="material-row"><span class="soft-label d-block">Foto</span><strong>{{ '✅ Adicionada' if has_photo else 'Não adicionada' }}</strong></div>
+          <div class="material-row"><span class="soft-label d-block">Localização do ponto no mapa</span><strong>Mantida sem alterações nesta atualização</strong></div>
+          <div class="material-row"><span class="soft-label d-block">Atualizado por</span><strong>{{ form.coletor_nome.data }}</strong></div>
+        </div>
+        {% if form.observacoes.data %}
+          <div class="material-row mb-3">
+            <span class="soft-label d-block">Observações</span>
+            <div>{{ form.observacoes.data }}</div>
+          </div>
+        {% endif %}
+        <div class="d-grid gap-2 d-md-flex">
+          <button class="btn btn-outline-secondary btn-lg flex-fill" type="button" onclick="history.back()">Voltar</button>
+          <button class="btn btn-primary btn-lg flex-fill" type="submit">Confirmar atualização</button>
+        </div>
+      </section>
+    {% else %}
+      <section class="mb-4">
+        <div class="vstack gap-3">
+          {% for row in materiais %}
+            <div class="material-row">
+              <div class="fw-semibold mb-1">{{ row.material.nome }}</div>
+              <div class="small text-muted">Estoque total: {{ '%.0f'|format(row.total_quantity) }}</div>
+              <div class="small text-muted">Já alocado: {{ '%.0f'|format(row.allocated_quantity) }}</div>
+              <div class="small text-muted mb-2">Disponível: {{ '%.0f'|format(row.available_quantity) }} · Máximo final neste ponto: {{ '%.0f'|format(row.max_for_point) }}</div>
+              <label class="form-label small mb-1" for="qtd_{{ row.material.id }}">Nova quantidade</label>
+              <input id="qtd_{{ row.material.id }}" class="form-control form-control-lg" type="number" min="0" step="1" name="qtd_{{ row.material.id }}" value="{{ request.form.get('qtd_' ~ row.material.id, '%.0f'|format(row.current_quantity)) }}">
+            </div>
+          {% else %}
+            <div class="alert alert-warning mb-0">Este ponto não possui materiais cadastrados.</div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">📷 Foto do local</h2>
+        {{ form.foto(class_='form-control form-control-lg', accept='image/jpeg,image/jpg,image/png,image/webp', capture='environment') }}
+        <div class="form-text">JPG, JPEG, PNG ou WEBP. Limite de 5 MB.</div>
+        <input type="hidden" name="foto_path" value="{{ form.foto_path.data or '' }}">
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">Nome de quem está realizando esta atualização</h2>
+        <div class="mb-3">
+          {{ form.coletor_nome.label(class_='form-label') }}
+          {{ form.coletor_nome(class_='form-control form-control-lg', placeholder='Seu nome') }}
+          {% for error in form.coletor_nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">Observações</h2>
+        {{ form.observacoes(class_='form-control', rows=3, placeholder='Opcional') }}
+      </section>
+
+      <div class="d-grid">
+        <button class="btn btn-primary btn-lg" type="submit">Continuar para confirmação</button>
+      </div>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

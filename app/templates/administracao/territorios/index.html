@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Territórios | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Territórios</h1>
+    <p class="text-muted mb-0">Estrutura de regionalização da Bahia.</p>
+  </div>
+  <a href="{{ url_for('territorios.create') }}" class="btn btn-primary">Novo território</a>
+</div>
+
+<div class="card card-soft">
+  <div class="card-body table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr><th>Nome</th><th>Código</th><th>Ativo</th><th>Ações</th></tr>
+      </thead>
+      <tbody>
+        {% for territorio in territorios %}
+          <tr>
+            <td class="fw-semibold">{{ territorio.nome }}</td>
+            <td>{{ territorio.codigo or '-' }}</td>
+            <td>{{ 'Sim' if territorio.ativo else 'Não' }}</td>
+            <td class="d-flex gap-2">
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('territorios.edit', territorio_id=territorio.id) }}">Editar</a>
+              <form method="post" action="{{ url_for('territorios.deactivate', territorio_id=territorio.id) }}" onsubmit="return confirm('Desativar este território?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted">Nenhum território cadastrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

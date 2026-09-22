@@ -1,0 +1,223 @@
+{% extends 'coleta_public/base.html' %}
+{% block coleta_title %}Cadastro de novo ponto{% endblock %}
+{% block coleta_content %}
+<div class="public-card p-4 p-md-5 mb-3">
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+    <div>
+      <div class="soft-label mb-1">Novo ponto</div>
+      <h1 class="h3 fw-bold mb-2">Cadastrar novo ponto de estoque</h1>
+      <p class="text-muted mb-0">Preencha os dados abaixo e avance para a confirmação antes de salvar.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('coleta_public.index') }}">Voltar</a>
+  </div>
+
+  <div class="progress mb-4" role="progressbar" aria-label="Etapas do cadastro" aria-valuenow="2" aria-valuemin="1" aria-valuemax="4" style="height: 10px;">
+    <div class="progress-bar bg-success" style="width: 50%"></div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+    {% if preview %}<input type="hidden" name="confirm" value="1">{% endif %}
+    {% if preview %}
+      <input type="hidden" name="nome_local" value="{{ form.nome_local.data or '' }}">
+      <input type="hidden" name="municipio_id" value="{{ form.municipio_id.data or '' }}">
+      <input type="hidden" name="endereco" value="{{ form.endereco.data or '' }}">
+      <input type="hidden" name="responsavel_nome" value="{{ form.responsavel_nome.data or '' }}">
+      <input type="hidden" name="responsavel_whatsapp" value="{{ form.responsavel_whatsapp.data or '' }}">
+      <input type="hidden" name="coletor_nome" value="{{ form.coletor_nome.data or '' }}">
+      <input type="hidden" name="observacoes" value="{{ form.observacoes.data or '' }}">
+      <input type="hidden" name="latitude" value="{{ form.latitude.data or '' }}">
+      <input type="hidden" name="longitude" value="{{ form.longitude.data or '' }}">
+      {% for row in quantities %}
+        <input type="hidden" name="qtd_{{ row.material.id }}" value="{{ row.new_quantity }}">
+      {% endfor %}
+      <input type="hidden" name="foto_path" value="{{ foto_path or form.foto_path.data or '' }}">
+    {% elif foto_path %}
+      <input type="hidden" name="foto_path" value="{{ foto_path }}">
+    {% endif %}
+
+    {% if preview %}
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3"># CONFIRME OS DADOS</h2>
+        {% if duplicate_points %}
+          <div class="alert alert-warning border-0 mb-3">
+            <div class="fw-bold mb-1">⚠️ Já existe um ponto com nome semelhante neste município.</div>
+            <div class="small mb-2">Verifique antes de continuar. Você ainda pode prosseguir se tiver certeza.</div>
+            <div class="vstack gap-2">
+              {% for point in duplicate_points %}
+                <div class="p-2 bg-white rounded-3 border">
+                  <div class="fw-semibold">{{ point.nome }}</div>
+                  <div class="small text-muted">{{ point.endereco or 'Sem endereço' }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        <div class="vstack gap-2 mb-3">
+          <div class="material-row"><span class="soft-label d-block">Local</span><strong>{{ form.nome_local.data }}</strong></div>
+          <div class="material-row"><span class="soft-label d-block">Município</span><strong>{{ municipio.nome }} — {{ municipio.territorio.nome }}</strong></div>
+          <div class="material-row"><span class="soft-label d-block">Território</span><strong>{{ municipio.territorio.nome }}</strong></div>
+          <div class="material-row"><span class="soft-label d-block">Responsável</span><strong>{{ form.responsavel_nome.data }}</strong></div>
+          <div class="material-row"><span class="soft-label d-block">WhatsApp</span><strong>{{ form.responsavel_whatsapp.data }}</strong></div>
+          <div class="material-row"><span class="soft-label d-block">Cadastro realizado por</span><strong>{{ form.coletor_nome.data }}</strong></div>
+          <div class="material-row"><span class="soft-label d-block">Localização atual no mapa</span><strong>{{ '✅ Registrada' if location_registered else 'Não informada (opcional)' }}</strong></div>
+          <div class="material-row"><span class="soft-label d-block">Foto</span><strong>{{ '✅ Adicionada' if has_photo else 'Não adicionada' }}</strong></div>
+        </div>
+
+        <div class="vstack gap-2 mb-3">
+          {% for row in quantities %}
+            <div class="material-row d-flex justify-content-between align-items-center gap-3">
+              <div>
+                <div class="fw-semibold">{{ row.material.nome }}</div>
+                <div class="small text-muted">Total {{ '%.0f'|format(row.total_quantity) }} · Alocado {{ '%.0f'|format(row.allocated_quantity) }} · Disponível {{ '%.0f'|format(row.available_quantity) }}</div>
+              </div>
+              <div class="fw-bold">{{ '%.0f'|format(row.new_quantity) }}</div>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if form.observacoes.data %}
+          <div class="material-row mb-4">
+            <span class="soft-label d-block">Observações</span>
+            <div>{{ form.observacoes.data }}</div>
+          </div>
+        {% endif %}
+
+        <input type="hidden" name="duplicate_ack" value="1">
+        <div class="d-grid gap-2 d-md-flex">
+          <button class="btn btn-outline-secondary btn-lg flex-fill" type="button" onclick="history.back()">Voltar</button>
+          <button class="btn btn-success btn-lg flex-fill" type="submit">Confirmar cadastro</button>
+        </div>
+      </section>
+    {% else %}
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">Dados do ponto</h2>
+        <div class="mb-3">
+          {{ form.nome_local.label(class_='form-label') }}
+          {{ form.nome_local(class_='form-control form-control-lg', placeholder='Nome do local') }}
+          {% for error in form.nome_local.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="municipio-select">Município</label>
+          <select id="municipio-select" name="municipio_id" class="form-select form-select-lg">
+            <option value="">Selecione um município</option>
+            {% for municipio_item in municipios %}
+              <option
+                value="{{ municipio_item.id }}"
+                data-territorio="{{ municipio_item.territorio.nome }}"
+                {% if form.municipio_id.data == municipio_item.id %}selected{% endif %}
+              >{{ municipio_item.nome }} - {{ municipio_item.territorio.nome }}</option>
+            {% endfor %}
+          </select>
+          {% for error in form.municipio_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Território de Identidade</label>
+          <input id="territorio-preview" class="form-control form-control-lg" type="text" readonly value="">
+          <div class="form-text">O território é definido automaticamente a partir do município.</div>
+        </div>
+
+        <div class="mb-3">
+          {{ form.endereco.label(class_='form-label') }}
+          {{ form.endereco(class_='form-control', placeholder='Opcional') }}
+          <div class="form-text">Este é o endereço do ponto (rua, número, bairro, complemento e município).</div>
+        </div>
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">Responsável pelo ponto</h2>
+        <div class="mb-3">
+          {{ form.responsavel_nome.label(class_='form-label') }}
+          {{ form.responsavel_nome(class_='form-control form-control-lg', placeholder='Nome do responsável') }}
+          {% for error in form.responsavel_nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="mb-3">
+          {{ form.responsavel_whatsapp.label(class_='form-label') }}
+          {{ form.responsavel_whatsapp(class_='form-control form-control-lg', placeholder='WhatsApp') }}
+          {% for error in form.responsavel_whatsapp.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">Quem está realizando o cadastro</h2>
+        <div class="mb-3">
+          {{ form.coletor_nome.label(class_='form-label') }}
+          {{ form.coletor_nome(class_='form-control form-control-lg', placeholder='Seu nome') }}
+          {% for error in form.coletor_nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-2">📍 Localização no mapa</h2>
+        <p class="mb-2">Deseja usar sua localização atual para registrar este ponto no mapa?</p>
+        <input type="hidden" name="latitude" value="{{ form.latitude.data or '' }}">
+        <input type="hidden" name="longitude" value="{{ form.longitude.data or '' }}">
+        <button type="button" id="btn-localizacao" class="btn btn-outline-primary btn-lg w-100">Usar minha localização atual</button>
+        <div class="form-text mt-2">Sua localização atual será usada para posicionar este ponto no mapa. O endereço informado acima continuará sendo mantido como endereço do ponto.</div>
+        <div id="status-localizacao" class="small fw-semibold mt-2 {{ 'text-success' if location_registered else 'text-muted' }}">
+          {{ '✅ Localização atual registrada no mapa' if location_registered else 'Localização atual não informada (opcional)' }}
+        </div>
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">📷 Foto do local</h2>
+        {{ form.foto(class_='form-control form-control-lg', accept='image/jpeg,image/jpg,image/png,image/webp', capture='environment') }}
+        <div class="form-text">JPG, JPEG, PNG ou WEBP. Limite de 5 MB.</div>
+        <input type="hidden" name="foto_path" value="{{ form.foto_path.data or '' }}">
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">📦 Estoque inicial</h2>
+        <div class="vstack gap-3">
+          {% for material in materiais %}
+            {% set snapshot = snapshots.get(material.id, {}) %}
+            <div class="material-row">
+              <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
+                <div class="fw-semibold">{{ material.nome }}</div>
+              </div>
+              <div class="small text-muted">Estoque total: {{ '%.0f'|format(snapshot.get('total', 0)) }}</div>
+              <div class="small text-muted">Já alocado: {{ '%.0f'|format(snapshot.get('allocated', 0)) }}</div>
+              <div class="small text-muted mb-2">Disponível: {{ '%.0f'|format(snapshot.get('available', 0)) }}</div>
+              <label class="form-label small mb-1" for="qtd_{{ material.id }}">Quantidade inicial</label>
+              <input id="qtd_{{ material.id }}" class="form-control form-control-lg" type="number" min="0" step="1" name="qtd_{{ material.id }}" value="{{ request.form.get('qtd_' ~ material.id, '') }}">
+            </div>
+          {% else %}
+            <div class="alert alert-warning mb-0">Nenhum material ativo encontrado no sistema.</div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="mb-4">
+        <h2 class="h5 fw-bold mb-3">Observações</h2>
+        {{ form.observacoes(class_='form-control', rows=3, placeholder='Opcional') }}
+      </section>
+
+      <div class="d-grid">
+        <button class="btn btn-success btn-lg" type="submit">Continuar para confirmação</button>
+      </div>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+  (function () {
+    const select = document.getElementById("municipio-select");
+    const territorioPreview = document.getElementById("territorio-preview");
+    if (!select || !territorioPreview) return;
+
+    function syncTerritorio() {
+      const selected = select.options[select.selectedIndex];
+      territorioPreview.value = selected && selected.dataset ? (selected.dataset.territorio || "") : "";
+    }
+
+    select.addEventListener("change", syncTerritorio);
+    syncTerritorio();
+  })();
+</script>
+{% endblock %}
