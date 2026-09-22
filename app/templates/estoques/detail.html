@@ -96,6 +96,12 @@
                 <a class="btn btn-sm btn-warning" href="{{ url_for('estoques.register_occurrence', alocacao_id=alocacao_material.id, tipo='REPOSICAO_NECESSARIA') }}">
                   <i class="bi bi-arrow-repeat me-1"></i>Precisa reposição
                 </a>
+                <a class="btn btn-sm btn-outline-danger" href="{{ url_for('estoques.register_occurrence', alocacao_id=alocacao_material.id) }}">
+                  <i class="bi bi-exclamation-triangle me-1"></i>Ocorrência
+                </a>
+                <a class="btn btn-sm btn-outline-success" href="{{ url_for('estoques.register_replenishment', alocacao_id=alocacao_material.id) }}">
+                  <i class="bi bi-box-arrow-in-down me-1"></i>Repor
+                </a>
               {% endif %}
               {% if material.in_use == 0 %}
                 <form method="post" action="{{ url_for('estoques.remove_material', ponto_id=ponto.id, material_id=material.material_id) }}" onsubmit="return confirm('Remover este material do ponto? O histórico será preservado.');">
