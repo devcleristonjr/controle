@@ -5,27 +5,40 @@
   <div class="col-lg-8">
     <div class="card card-soft">
       <div class="card-body p-4 p-lg-5">
-        <h1 class="h4 fw-bold mb-1">Registrar reposição</h1>
+        <h1 class="h4 fw-bold mb-1">Repor material no ponto</h1>
         <p class="text-muted mb-4">{{ ponto.nome }} • {{ alocacao.material.nome }}</p>
 
-        <div class="alert alert-light border small">
-          <div>Quantidade alocada: <strong>{{ '%.0f'|format(alocacao.quantidade_alocada) }}</strong></div>
-          <div>Em uso atualmente: <strong>{{ '%.0f'|format(alocacao.quantidade_em_uso) }}</strong></div>
-          <div>Necessidade de reposição atual: <strong>{{ '%.0f'|format(alocacao.quantidade_reposicao_pendente) }}</strong></div>
+        <div class="alert alert-dark border small">
+          <div>Registrado no ponto: <strong>{{ '%.0f'|format(alocacao.quantidade_alocada) }}</strong></div>
+          <div>Em condições de uso: <strong>{{ '%.0f'|format(alocacao.quantidade_em_uso) }}</strong></div>
+          <div>Reposição necessária: <strong>{{ '%.0f'|format(alocacao.quantidade_reposicao_pendente) }}</strong></div>
         </div>
 
-        <form method="post" novalidate>
+        <div class="alert alert-info border small">
+          <strong>Como funciona:</strong>
+          informe a quantidade que voltou ao ponto. Essa quantidade será somada às unidades
+          em condições de uso e reduzirá a necessidade de reposição.
+        </div>
+
+        <form method="post" novalidate id="replenishment-form">
           {{ form.hidden_tag() }}
           <div class="row g-3">
             <div class="col-md-6">
               {{ form.quantidade_reposta.label(class_='form-label') }}
-              {{ form.quantidade_reposta(class_='form-control') }}
+              {{ form.quantidade_reposta(class_='form-control', id='replenishment-quantity', min='0.01', step='0.01') }}
+              <div class="form-text">Máximo para esta reposição: {{ '%.0f'|format(alocacao.quantidade_reposicao_pendente) }}.</div>
             </div>
             <div class="col-12">
               {{ form.observacao.label(class_='form-label') }}
-              {{ form.observacao(class_='form-control', rows=4) }}
+              {{ form.observacao(class_='form-control', rows=4, placeholder='Registre uma informação sobre a reposição, se necessário.') }}
             </div>
           </div>
+
+          <div id="replenishment-preview" class="alert alert-success border mt-4 d-none" role="status">
+            <strong>Após esta reposição:</strong>
+            <span id="replenishment-preview-text"></span>
+          </div>
+
           <div class="d-flex gap-2 mt-4">
             <button class="btn btn-primary" type="submit">Registrar reposição</button>
             <a class="btn btn-outline-secondary" href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}">Cancelar</a>
@@ -35,4 +48,39 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  const quantityField = document.getElementById('replenishment-quantity');
+  const preview = document.getElementById('replenishment-preview');
+  const previewText = document.getElementById('replenishment-preview-text');
+  if (!quantityField || !preview || !previewText) return;
+
+  const currentInUse = Number('{{ alocacao.quantidade_em_uso }}');
+  const pending = Number('{{ alocacao.quantidade_reposicao_pendente }}');
+
+  function updatePreview() {
+    const quantity = Number(quantityField.value || 0);
+    if (quantity <= 0) {
+      preview.classList.add('d-none');
+      previewText.textContent = '';
+      return;
+    }
+
+    const nextInUse = currentInUse + quantity;
+    const nextPending = Math.max(0, pending - quantity);
+    const unit = quantity === 1 ? 'unidade' : 'unidades';
+    const pendingUnit = nextPending === 1 ? 'unidade' : 'unidades';
+
+    previewText.textContent =
+      nextInUse + ' em condições de uso e ' +
+      nextPending + ' ' + pendingUnit + ' ainda ' +
+      (nextPending === 1 ? 'precisa' : 'precisam') + ' de reposição.';
+    preview.classList.remove('d-none');
+  }
+
+  quantityField.addEventListener('input', updatePreview);
+  updatePreview();
+})();
+</script>
 {% endblock %}
