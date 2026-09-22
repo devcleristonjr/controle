@@ -1,19 +1,20 @@
 {% extends 'base.html' %}
 {% block title %}Pontos | Estoque Bahia{% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
+    <div class="metric-kicker mb-1">Operação</div>
     <h1 class="h3 fw-bold mb-1">Pontos de estoque</h1>
-    <p class="text-muted mb-0">Acesse rapidamente cada ponto e veja o que precisa de atenção.</p>
+    <p class="text-muted mb-0">Escolha um ponto para acompanhar materiais, reposição e ocorrências.</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
-    <a href="{{ url_for('dashboard.mapa') }}" class="btn btn-outline-primary"><i class="bi bi-geo-alt me-1"></i>Mapa</a>
+    <a href="{{ url_for('dashboard.mapa') }}" class="btn btn-outline-primary"><i class="bi bi-geo-alt me-1"></i>Ver mapa</a>
     <a href="{{ url_for('estoques.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo ponto</a>
   </div>
 </div>
 
 {% if current_user.is_admin %}
-<details class="card card-soft mb-3">
+<details class="card card-soft mb-4">
   <summary class="card-body fw-semibold" style="cursor:pointer;">Ferramentas administrativas</summary>
   <div class="card-body pt-0 d-flex gap-2 flex-wrap">
     <a href="{{ url_for('estoques.legacy_audit') }}" class="btn btn-outline-info">Auditar legado</a>
@@ -25,42 +26,56 @@
 <div class="row g-3">
 {% for ponto in pontos %}
   <div class="col-12 col-xl-6">
-    <div class="card card-soft h-100">
-      <div class="card-body">
+    <article class="card card-soft h-100 point-card">
+      <div class="card-body p-4">
         <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-          <div>
-            <h2 class="h5 fw-bold mb-1">{{ ponto.nome }}</h2>
-            <div class="text-muted small">{{ ponto.municipio.nome }} • {{ ponto.municipio.territorio.nome }}</div>
+          <div class="min-w-0">
+            <div class="small text-muted mb-1">{{ ponto.municipio.nome }} • {{ ponto.municipio.territorio.nome }}</div>
+            <h2 class="h5 fw-bold mb-0 text-truncate">{{ ponto.nome }}</h2>
           </div>
           {% if ponto.ativo %}
-            <span class="badge text-bg-success">Ativo</span>
+            <span class="badge text-bg-success rounded-pill">Ativo</span>
           {% else %}
-            <span class="badge text-bg-secondary">Inativo</span>
+            <span class="badge text-bg-secondary rounded-pill">Inativo</span>
           {% endif %}
         </div>
 
-        <div class="row g-2 small mb-3">
-          <div class="col-6"><div class="border rounded p-2"><span class="text-muted d-block">Responsável</span><strong>{{ ponto.responsavel_nome or '-' }}</strong></div></div>
-          <div class="col-6"><div class="border rounded p-2"><span class="text-muted d-block">Banners</span><strong>{{ '%.0f'|format(banner_totals.get(ponto.id, 0)) }}</strong></div></div>
+        <div class="point-card-summary mb-3">
+          <div>
+            <span class="small text-muted d-block">Responsável</span>
+            <strong>{{ ponto.responsavel_nome or 'Não informado' }}</strong>
+          </div>
+          <div class="text-end">
+            <span class="small text-muted d-block">Banners</span>
+            <strong class="fs-5">{{ '%.0f'|format(banner_totals.get(ponto.id, 0)) }}</strong>
+          </div>
         </div>
 
-        <div class="small text-muted mb-3">Atualizado em {{ ponto.updated_at|datahora_bahia('%d/%m/%Y %H:%M') }}</div>
+        <div class="small text-muted mb-3">
+          <i class="bi bi-clock me-1"></i>Atualizado em {{ ponto.updated_at|datahora_bahia('%d/%m/%Y %H:%M') }}
+        </div>
 
         <div class="d-flex flex-wrap gap-2">
           <a class="btn btn-sm btn-primary" href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}"><i class="bi bi-box-seam me-1"></i>Ver ponto</a>
-          <a class="btn btn-sm btn-warning" href="{{ url_for('dashboard.monitoramento', responsavel=ponto.responsavel_nome or '') }}"><i class="bi bi-activity me-1"></i>Monitorar</a>
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar</a>
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Histórico</a>
-          <a class="btn btn-sm btn-outline-success" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Ajustar estoque</a>
-          {% if current_user.is_admin %}
-          <form method="post" action="{{ url_for('estoques.deactivate', ponto_id=ponto.id) }}" onsubmit="return confirm('Desativar este ponto?');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
-          </form>
-          {% endif %}
+          <a class="btn btn-sm btn-outline-success" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}"><i class="bi bi-arrow-left-right me-1"></i>Ajustar estoque</a>
         </div>
+
+        <details class="mt-3 point-card-more">
+          <summary class="small fw-semibold">Mais ações</summary>
+          <div class="d-flex flex-wrap gap-2 pt-3">
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('dashboard.monitoramento', responsavel=ponto.responsavel_nome or '') }}"><i class="bi bi-activity me-1"></i>Monitorar</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar ponto</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Histórico legado</a>
+            {% if current_user.is_admin %}
+            <form method="post" action="{{ url_for('estoques.deactivate', ponto_id=ponto.id) }}" onsubmit="return confirm('Desativar este ponto?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
+            </form>
+            {% endif %}
+          </div>
+        </details>
       </div>
-    </div>
+    </article>
   </div>
 {% else %}
   <div class="col-12"><div class="card card-soft"><div class="card-body text-muted">Nenhum ponto cadastrado.</div></div></div>
