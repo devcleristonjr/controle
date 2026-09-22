@@ -5,7 +5,7 @@
   <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
     <div>
       <div class="soft-label mb-1">Novo ponto</div>
-      <h1 class="h3 fw-bold mb-2">Cadastrar novo ponto de estoque</h1>
+      <h1 class="h3 fw-bold mb-2">Cadastrar novo ponto</h1>
       <p class="text-muted mb-0">Preencha os dados abaixo e avance para a confirmação antes de salvar.</p>
     </div>
     <a class="btn btn-outline-secondary" href="{{ url_for('coleta_public.index') }}">Voltar</a>
@@ -70,7 +70,7 @@
             <div class="material-row d-flex justify-content-between align-items-center gap-3">
               <div>
                 <div class="fw-semibold">{{ row.material.nome }}</div>
-                <div class="small text-muted">Total {{ '%.0f'|format(row.total_quantity) }} · Alocado {{ '%.0f'|format(row.allocated_quantity) }} · Disponível {{ '%.0f'|format(row.available_quantity) }}</div>
+                <div class="small text-muted">Quantidade registrada no sistema: {{ '%.0f'|format(row.total_quantity) }}</div>
               </div>
               <div class="fw-bold">{{ '%.0f'|format(row.new_quantity) }}</div>
             </div>
@@ -170,7 +170,7 @@
       </section>
 
       <section class="mb-4">
-        <h2 class="h5 fw-bold mb-3">📦 Alocação inicial no ponto</h2>
+        <h2 class="h5 fw-bold mb-3">📦 Materiais existentes neste ponto</h2>
         <div class="vstack gap-3">
           {% for material in materiais %}
             {% set snapshot = snapshots.get(material.id, {}) %}
@@ -178,10 +178,8 @@
               <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
                 <div class="fw-semibold">{{ material.nome }}</div>
               </div>
-              <div class="small text-muted">Estoque total: {{ '%.0f'|format(snapshot.get('total', 0)) }}</div>
-              <div class="small text-muted">Já alocado nos pontos: {{ '%.0f'|format(snapshot.get('allocated', 0)) }}</div>
-              <div class="small text-muted mb-2">Disponível para esta alocação: {{ '%.0f'|format(snapshot.get('available', 0)) }}</div>
-              <label class="form-label small mb-1" for="qtd_{{ material.id }}">Quantidade a alocar neste ponto</label>
+              <div class="small text-muted">Quantidade registrada no sistema: {{ '%.0f'|format(snapshot.get('total', 0)) }}</div>
+              <label class="form-label small mb-1" for="qtd_{{ material.id }}">Quantidade existente neste ponto</label>
               <input id="qtd_{{ material.id }}" class="form-control form-control-lg" type="number" min="0" step="1" name="qtd_{{ material.id }}" value="{{ request.form.get('qtd_' ~ material.id, '') }}">
             </div>
           {% else %}
