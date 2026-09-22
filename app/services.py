@@ -648,9 +648,15 @@ def get_dashboard_metrics(filters: dict | None = None) -> dict:
     base_points = _apply_point_filters(base_points, filters)
     base_points = _apply_monitoring_filters_to_points_query(base_points, filters)
     if material_id := filters.get("material_id"):
-        base_points = base_points.join(PontoEstoque.alocacoes).filter(
+        operational_material_points = db.session.query(AlocacaoPontoMaterial.ponto_estoque_id).filter(
             AlocacaoPontoMaterial.material_id == material_id,
             AlocacaoPontoMaterial.ativo.is_(True),
+        )
+        legacy_material_points = db.session.query(EstoqueMaterial.ponto_estoque_id).filter(
+            EstoqueMaterial.material_id == material_id,
+        )
+        base_points = base_points.filter(
+            PontoEstoque.id.in_(operational_material_points.union(legacy_material_points))
         )
     active_points = base_points.filter(PontoEstoque.ativo.is_(True))
     point_ids = [point_id for (point_id,) in active_points.with_entities(PontoEstoque.id).distinct().all()]
@@ -1123,144 +1129,155 @@ def get_point_operational_snapshot(point: PontoEstoque) -> dict:
         "allocations": allocations,
         "totals": totals,
     }
-
-    legacy_rows = (
-        EstoqueMaterial.query.filter_by(ponto_estoque_id=point.id)
-        .join(EstoqueMaterial.material)
-        .order_by(Material.nome.asc())
-        .all()
-    )
-    materials = []
-    totals = {
-        "allocated": Decimal("0"),
-        "in_use": Decimal("0"),
-        "damaged": Decimal("0"),
-        "lost": Decimal("0"),
-        "removed": Decimal("0"),
-        "replenishment_pending": Decimal("0"),
-    }
-    for row in legacy_rows:
-        quantity = Decimal(row.quantidade or 0)
-        materials.append(
-            {
-                "material_id": row.material_id,
-                "material": row.material.nome,
-                "allocated": quantity,
-                "in_use": quantity,
-                "damaged": Decimal("0"),
-                "lost": Decimal("0"),
-                "removed": Decimal("0"),
-                "replenishment_pending": Decimal("0"),
-                "allocations": [],
-            }
-        )
-        totals["allocated"] += quantity
-        totals["in_use"] += quantity
-
-    return {
-        "source": "legacy",
-        "materials": materials,
-        "allocations": [],
-        "totals": totals,
-    }
-
-
+\n
 def get_allocation_monitoring_rows(filters: dict | None = None) -> list[dict]:
-    """Return one operational row per active material allocation."""
+    """Return monitoring rows from the operational model, with legacy-only fallback."""
     filters = filters or {}
     query = (
-        db.session.query(AlocacaoPontoMaterial)
-        .join(AlocacaoPontoMaterial.ponto_estoque)
+        PontoEstoque.query
         .join(PontoEstoque.municipio)
         .join(Municipio.territorio)
-        .join(AlocacaoPontoMaterial.material)
-        .filter(AlocacaoPontoMaterial.ativo.is_(True))
     )
+    query = _apply_point_filters(query, filters)
 
     if filters.get("territorio_id"):
         query = query.filter(Municipio.territorio_id == filters["territorio_id"])
     if filters.get("municipio_id"):
         query = query.filter(PontoEstoque.municipio_id == filters["municipio_id"])
-    if filters.get("material_id"):
-        query = query.filter(AlocacaoPontoMaterial.material_id == filters["material_id"])
-    if filters.get("responsavel"):
-        value = f"%{filters['responsavel'].strip()}%"
-        query = query.filter(
-            or_(
+
+    responsavel = (filters.get("responsavel") or "").strip()
+    if responsavel:
+        value = f"%{responsavel}%"
+        query = query.filter(PontoEstoque.responsavel_nome.ilike(value) | PontoEstoque.id.in_(
+            db.session.query(AlocacaoPontoMaterial.ponto_estoque_id).filter(
+                AlocacaoPontoMaterial.ativo.is_(True),
                 AlocacaoPontoMaterial.responsavel_alocacao.ilike(value),
-                PontoEstoque.responsavel_nome.ilike(value),
             )
-        )
-    if filters.get("localizador"):
-        query = query.filter(AlocacaoPontoMaterial.localizador.ilike(f"%{filters['localizador'].strip()}%"))
+        ))
+
+    localizador = (filters.get("localizador") or "").strip()
+    if localizador:
+        query = query.filter(PontoEstoque.id.in_(
+            db.session.query(AlocacaoPontoMaterial.ponto_estoque_id).filter(
+                AlocacaoPontoMaterial.ativo.is_(True),
+                AlocacaoPontoMaterial.localizador.ilike(f"%{localizador}%"),
+            )
+        ))
 
     occurrence_type = (filters.get("occurrence_type") or "").strip().upper()
+    with_occurrences = (filters.get("with_occurrences") or "").strip().lower()
     period_start = _parse_date_start(filters.get("period_start"))
     period_end = _parse_date_end(filters.get("period_end"))
-    if occurrence_type or period_start or period_end or filters.get("with_occurrences") in {"with", "without"}:
-        occurrence_query = db.session.query(OcorrenciaAlocacao.alocacao_id).filter(
-            OcorrenciaAlocacao.alocacao_id == AlocacaoPontoMaterial.id
-        )
-        if occurrence_type:
-            occurrence_query = occurrence_query.filter(OcorrenciaAlocacao.tipo == occurrence_type)
+    if occurrence_type or period_start or period_end or with_occurrences in {"with", "without"}:
+        occurrence_points = db.session.query(
+            AlocacaoPontoMaterial.ponto_estoque_id
+        ).join(
+            OcorrenciaAlocacao, OcorrenciaAlocacao.alocacao_id == AlocacaoPontoMaterial.id
+        ).filter(AlocacaoPontoMaterial.ativo.is_(True))
+        if occurrence_type and occurrence_type != "ALL":
+            occurrence_points = occurrence_points.filter(OcorrenciaAlocacao.tipo == occurrence_type)
         if period_start is not None:
-            occurrence_query = occurrence_query.filter(OcorrenciaAlocacao.ocorrido_em >= period_start)
+            occurrence_points = occurrence_points.filter(OcorrenciaAlocacao.ocorrido_em >= period_start)
         if period_end is not None:
-            occurrence_query = occurrence_query.filter(OcorrenciaAlocacao.ocorrido_em < period_end)
-        if filters.get("with_occurrences") == "without":
-            query = query.filter(~db.session.query(OcorrenciaAlocacao.id).filter(
-                OcorrenciaAlocacao.alocacao_id == AlocacaoPontoMaterial.id
-            ).exists())
-        else:
-            query = query.filter(occurrence_query.exists())
+            occurrence_points = occurrence_points.filter(OcorrenciaAlocacao.ocorrido_em < period_end)
+        occurrence_points = occurrence_points.distinct()
+        if with_occurrences == "with" or occurrence_type or period_start or period_end:
+            query = query.filter(PontoEstoque.id.in_(occurrence_points))
+        elif with_occurrences == "without":
+            query = query.filter(~PontoEstoque.id.in_(occurrence_points))
 
-    replenishment_filter = (filters.get("replenishment") or "").strip().lower()
-    if replenishment_filter == "with":
-        query = query.filter(AlocacaoPontoMaterial.quantidade_reposicao_pendente > 0)
-    elif replenishment_filter == "without":
-        query = query.filter(AlocacaoPontoMaterial.quantidade_reposicao_pendente <= 0)
-
+    points = query.order_by(PontoEstoque.nome.asc()).all()
     rows = []
-    for allocation in query.order_by(
-        AlocacaoPontoMaterial.quantidade_reposicao_pendente.desc(),
-        AlocacaoPontoMaterial.data_alocacao.desc(),
-        PontoEstoque.nome.asc(),
-    ).all():
-        occurrence_count = (
-            db.session.query(func.count(OcorrenciaAlocacao.id))
-            .filter(OcorrenciaAlocacao.alocacao_id == allocation.id)
-            .scalar()
-            or 0
-        )
-        last_occurrence = (
-            OcorrenciaAlocacao.query.filter_by(alocacao_id=allocation.id)
-            .order_by(OcorrenciaAlocacao.ocorrido_em.desc())
-            .first()
-        )
-        last_replenishment = (
-            ReposicaoAlocacao.query.filter_by(alocacao_id=allocation.id)
-            .order_by(ReposicaoAlocacao.data_reposicao.desc())
-            .first()
-        )
-        rows.append(
-            {
-                "id": allocation.id,
-                "ponto_id": allocation.ponto_estoque_id,
-                "ponto": allocation.ponto_estoque.nome,
-                "municipio": allocation.ponto_estoque.municipio.nome,
-                "territorio": allocation.ponto_estoque.municipio.territorio.nome,
-                "material": allocation.material.nome,
-                "localizador": allocation.localizador,
-                "responsavel": allocation.responsavel_alocacao or allocation.ponto_estoque.responsavel_nome,
-                "alocada": Decimal(allocation.quantidade_alocada or 0),
-                "em_uso": Decimal(allocation.quantidade_em_uso or 0),
-                "danificada": Decimal(allocation.quantidade_danificada_total or 0),
-                "perdida": Decimal(allocation.quantidade_perdida_total or 0),
-                "retirada": Decimal(allocation.quantidade_retirada_total or 0),
-                "reposicao_pendente": Decimal(allocation.quantidade_reposicao_pendente or 0),
-                "ocorrencias": int(occurrence_count),
-                "ultima_ocorrencia": last_occurrence.ocorrido_em if last_occurrence else None,
-                "ultima_reposicao": last_replenishment.data_reposicao if last_replenishment else None,
-            }
-        )
+    selected_material_id = filters.get("material_id")
+    replenishment_filter = (filters.get("replenishment") or "").strip().lower()
+
+    for point in points:
+        snapshot = get_point_operational_snapshot(point)
+        for material in snapshot["materials"]:
+            if selected_material_id and material["material_id"] != selected_material_id:
+                continue
+
+            source = material.get("source", snapshot["source"])
+            if replenishment_filter == "with" and material["replenishment_pending"] <= 0:
+                continue
+            if replenishment_filter == "without" and material["replenishment_pending"] > 0:
+                continue
+
+            allocations = material.get("allocations") or []
+            if source == "operational":
+                for allocation in allocations:
+                    occurrence_query = OcorrenciaAlocacao.query.filter_by(alocacao_id=allocation.id)
+                    if occurrence_type and occurrence_type != "ALL":
+                        occurrence_query = occurrence_query.filter(OcorrenciaAlocacao.tipo == occurrence_type)
+                    if period_start is not None:
+                        occurrence_query = occurrence_query.filter(OcorrenciaAlocacao.ocorrido_em >= period_start)
+                    if period_end is not None:
+                        occurrence_query = occurrence_query.filter(OcorrenciaAlocacao.ocorrido_em < period_end)
+                    occurrence_count = occurrence_query.count()
+                    if occurrence_type or period_start or period_end:
+                        if occurrence_count == 0:
+                            continue
+                    elif with_occurrences == "with" and occurrence_count == 0:
+                        continue
+                    elif with_occurrences == "without" and occurrence_count > 0:
+                        continue
+
+                    last_occurrence = occurrence_query.order_by(OcorrenciaAlocacao.ocorrido_em.desc()).first()
+                    last_replenishment = (
+                        ReposicaoAlocacao.query.filter_by(alocacao_id=allocation.id)
+                        .order_by(ReposicaoAlocacao.data_reposicao.desc())
+                        .first()
+                    )
+                    rows.append(
+                        {
+                            "id": allocation.id,
+                            "ponto_id": point.id,
+                            "ponto": point.nome,
+                            "municipio": point.municipio.nome,
+                            "territorio": point.municipio.territorio.nome,
+                            "material": allocation.material.nome,
+                            "localizador": allocation.localizador,
+                            "responsavel": allocation.responsavel_alocacao or point.responsavel_nome,
+                            "alocada": Decimal(allocation.quantidade_alocada or 0),
+                            "em_uso": Decimal(allocation.quantidade_em_uso or 0),
+                            "danificada": Decimal(allocation.quantidade_danificada_total or 0),
+                            "perdida": Decimal(allocation.quantidade_perdida_total or 0),
+                            "retirada": Decimal(allocation.quantidade_retirada_total or 0),
+                            "reposicao_pendente": Decimal(allocation.quantidade_reposicao_pendente or 0),
+                            "ocorrencias": int(occurrence_count),
+                            "ultima_ocorrencia": last_occurrence.ocorrido_em if last_occurrence else None,
+                            "ultima_reposicao": last_replenishment.data_reposicao if last_replenishment else None,
+                            "source": "operational",
+                        }
+                    )
+            else:
+                if occurrence_type or period_start or period_end:
+                    continue
+                if with_occurrences == "with":
+                    continue
+                rows.append(
+                    {
+                        "id": f"legacy-{point.id}-{material['material_id']}",
+                        "ponto_id": point.id,
+                        "ponto": point.nome,
+                        "municipio": point.municipio.nome,
+                        "territorio": point.municipio.territorio.nome,
+                        "material": material["material"],
+                        "localizador": None,
+                        "responsavel": point.responsavel_nome,
+                        "alocada": Decimal(material["allocated"]),
+                        "em_uso": Decimal(material["in_use"]),
+                        "danificada": Decimal("0"),
+                        "perdida": Decimal("0"),
+                        "retirada": Decimal("0"),
+                        "reposicao_pendente": Decimal("0"),
+                        "ocorrencias": 0,
+                        "ultima_ocorrencia": None,
+                        "ultima_reposicao": None,
+                        "source": "legacy",
+                    }
+                )
+
+    rows.sort(key=lambda row: (-row["reposicao_pendente"], row["ponto"], row["material"]))
     return rows
+
