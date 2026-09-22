@@ -23,7 +23,7 @@
       <div class="material-row d-flex justify-content-between align-items-center gap-3">
         <div>
           <div class="fw-semibold">{{ row.material.nome }}</div>
-          <div class="small text-muted">Total {{ '%.0f'|format(row.total_quantity) }} · Alocado {{ '%.0f'|format(row.allocated_quantity) }} · Disponível {{ '%.0f'|format(row.available_quantity) }}</div>
+          <div class="small text-muted">Estoque geral {{ '%.0f'|format(row.total_quantity) }} · Alocado nos pontos {{ '%.0f'|format(row.allocated_quantity) }} · Disponível para alocação {{ '%.0f'|format(row.available_quantity) }}</div>
         </div>
         <div class="fw-bold">{{ '%.0f'|format(row.current_quantity) }}</div>
       </div>
