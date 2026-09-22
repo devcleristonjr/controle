@@ -9,7 +9,7 @@
   <div class="d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-primary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar ponto</a>
     <a class="btn btn-success" href="{{ url_for('estoques.create_allocation', ponto_id=ponto.id) }}">Nova alocação</a>
-    <a class="btn btn-outline-warning" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Atualizar estoque (legado)</a>
+    <a class="btn btn-outline-warning" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Ajuste legado</a>
     <a class="btn btn-outline-dark" href="{{ url_for('estoques.operational_history', ponto_id=ponto.id) }}">Histórico operacional</a>
     <a class="btn btn-outline-secondary" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Histórico legado</a>
     {% if current_user.is_admin %}
@@ -50,24 +50,27 @@
   </div>
   <div class="col-lg-7">
     <div class="card card-soft h-100">
-      <div class="card-header bg-white border-0 fw-semibold">Estoque dos materiais</div>
+      <div class="card-header bg-white border-0">
+        <div class="fw-semibold">Resumo dos materiais no ponto</div>
+        <div class="small text-muted">A quantidade em uso/alocada é a referência operacional. O estoque legado permanece apenas como compatibilidade durante a transição.</div>
+      </div>
       <div class="card-body table-responsive">
         <table class="table align-middle mb-0">
           <thead>
-            <tr><th>Material</th><th>No ponto</th><th>Total</th><th>Alocado</th><th>Disponível</th></tr>
+            <tr><th>Material</th><th>Em uso no ponto</th><th>Total geral</th><th>Alocado geral</th><th>Disponível</th></tr>
           </thead>
           <tbody>
-            {% for item in estoque %}
-              {% set snapshot = snapshots.get(item.material_id, {}) %}
+            {% for material in operational_snapshot.materials %}
+              {% set snapshot = snapshots.get(material.material_id, {}) %}
               <tr>
-                <td class="fw-semibold">{{ item.material.nome }}</td>
-                <td>{{ '%.0f'|format(item.quantidade) }}</td>
+                <td class="fw-semibold">{{ material.material }}</td>
+                <td>{{ '%.0f'|format(material.in_use) }}</td>
                 <td>{{ '%.0f'|format(snapshot.get('total', 0)) }}</td>
                 <td>{{ '%.0f'|format(snapshot.get('allocated', 0)) }}</td>
                 <td class="{% if snapshot.get('is_inconsistent') %}text-danger fw-semibold{% endif %}">{{ '%.0f'|format(snapshot.get('available', 0)) }}</td>
               </tr>
             {% else %}
-              <tr><td colspan="5" class="text-muted">Nenhum material cadastrado para este ponto.</td></tr>
+              <tr><td colspan="5" class="text-muted">Nenhum material registrado neste ponto.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -82,7 +85,7 @@
       <div class="fw-semibold">Ficha operacional do ponto</div>
       <div class="small text-muted">
         {% if operational_snapshot.source == 'operational' %}
-          Dados calculados pelas alocações operacionais.
+          Dados calculados pelas alocações operacionais, com materiais ainda legados incorporados sem duplicação.
         {% else %}
           Ponto ainda sem alocações operacionais; exibindo o estoque legado como referência de transição.
         {% endif %}
