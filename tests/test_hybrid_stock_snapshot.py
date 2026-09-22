@@ -10,7 +10,7 @@ from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
 from app.models.territorio import Territorio
-from app.services import create_material_allocation, get_legacy_migration_candidates, get_material_allocation_snapshot, get_material_stock_snapshot, migrate_legacy_stock_to_allocation
+from app.services import create_material_allocation, get_legacy_migration_candidates, get_legacy_transition_audit, get_material_allocation_snapshot, get_material_stock_snapshot, migrate_legacy_stock_to_allocation
 from config import TestingConfig
 
 
@@ -121,3 +121,55 @@ def test_legacy_migration_preserves_effective_total_and_creates_operational_allo
         assert snapshot["allocated"] == Decimal("250")
         assert snapshot["available"] == Decimal("750")
         assert get_legacy_migration_candidates() == []
+
+
+
+def test_legacy_transition_audit_classifies_legacy_hybrid_and_operational_only():
+    app = create_app(TestingConfig)
+    with app.app_context():
+        db.create_all()
+
+        territorio = Territorio(nome="Metropolitana", codigo="MTR", ativo=True)
+        db.session.add(territorio)
+        db.session.flush()
+        municipio = Municipio(nome="Salvador", territorio_id=territorio.id, codigo_ibge="2927408", ativo=True)
+        db.session.add(municipio)
+        db.session.flush()
+
+        legacy_point = PontoEstoque(nome="Legado", municipio_id=municipio.id, ativo=True)
+        hybrid_point = PontoEstoque(nome="Hibrido", municipio_id=municipio.id, ativo=True)
+        operational_point = PontoEstoque(nome="Operacional", municipio_id=municipio.id, ativo=True)
+        db.session.add_all([legacy_point, hybrid_point, operational_point])
+        db.session.flush()
+
+        material = Material(nome="Banner", quantidade_total=Decimal("2000"), unidade="unidade", ativo=True)
+        db.session.add(material)
+        db.session.flush()
+
+        db.session.add_all([
+            EstoqueMaterial(ponto_estoque_id=legacy_point.id, material_id=material.id, quantidade=Decimal("100")),
+            EstoqueMaterial(ponto_estoque_id=hybrid_point.id, material_id=material.id, quantidade=Decimal("200")),
+        ])
+        create_material_allocation(
+            point=hybrid_point, material=material, quantidade_alocada=Decimal("200")
+        )
+        create_material_allocation(
+            point=operational_point, material=material, quantidade_alocada=Decimal("300")
+        )
+        db.session.commit()
+
+        audit = get_legacy_transition_audit()
+
+        assert audit["legacy_positive_rows"] == 2
+        assert audit["active_operational_rows"] == 2
+        assert audit["legacy_only_rows"] == 1
+        assert audit["hybrid_rows"] == 1
+        assert audit["operational_only_rows"] == 1
+        assert audit["legacy_only_pairs"] == 1
+        assert audit["hybrid_pairs"] == 1
+        assert audit["operational_only_pairs"] == 1
+        assert audit["legacy_only_quantity"] == Decimal("100")
+        assert audit["hybrid_legacy_quantity"] == Decimal("200")
+        assert audit["operational_quantity"] == Decimal("500")
+        assert audit["operational_only_quantity"] == Decimal("300")
+        assert len(audit["legacy_only_candidates"]) == 1

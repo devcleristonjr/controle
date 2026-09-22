@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Auditoria do legado | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Auditoria do estoque legado</h1>
+    <p class="text-muted mb-0">Visão de transição entre o estoque legado e a operação por alocação.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary" href="{{ url_for('estoques.legacy_migration') }}">Migrar registros</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('estoques.index') }}">Voltar aos pontos</a>
+  </div>
+</div>
+
+<div class="alert alert-info">
+  Esta tela apenas <strong>audita</strong> os dados. Nenhum registro é alterado automaticamente.
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><div class="card card-soft h-100"><div class="card-body"><div class="text-muted small">Legado positivo</div><div class="fs-3 fw-bold">{{ audit.legacy_positive_rows }}</div><div class="small text-muted">linhas</div></div></div></div>
+  <div class="col-md-3"><div class="card card-soft h-100"><div class="card-body"><div class="text-muted small">Legado-only</div><div class="fs-3 fw-bold">{{ audit.legacy_only_rows }}</div><div class="small text-muted">{{ audit.legacy_only_quantity }} unidades</div></div></div></div>
+  <div class="col-md-3"><div class="card card-soft h-100"><div class="card-body"><div class="text-muted small">Em transição</div><div class="fs-3 fw-bold">{{ audit.hybrid_rows }}</div><div class="small text-muted">{{ audit.hybrid_legacy_quantity }} unidades legadas</div></div></div></div>
+  <div class="col-md-3"><div class="card card-soft h-100"><div class="card-body"><div class="text-muted small">Operacional-only</div><div class="fs-3 fw-bold">{{ audit.operational_only_rows }}</div><div class="small text-muted">{{ audit.operational_only_quantity }} unidades</div></div></div></div>
+</div>
+
+<div class="card card-soft mb-4">
+  <div class="card-body">
+    <h2 class="h5 fw-bold">Pares ponto × material</h2>
+    <div class="row g-3">
+      <div class="col-md-4"><strong>{{ audit.legacy_only_pairs }}</strong> legado-only</div>
+      <div class="col-md-4"><strong>{{ audit.hybrid_pairs }}</strong> em transição</div>
+      <div class="col-md-4"><strong>{{ audit.operational_only_pairs }}</strong> somente operacional</div>
+    </div>
+    <hr>
+    <div class="small text-muted">
+      A classificação é feita por par ponto/material. Um registro híbrido possui estoque legado e uma alocação operacional ativa no mesmo ponto e material; o consolidado já evita dupla contagem.
+    </div>
+  </div>
+</div>
+
+<div class="card card-soft">
+  <div class="card-body table-responsive">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h5 fw-bold mb-0">Pendências de migração</h2>
+      <span class="badge text-bg-warning">{{ audit.legacy_only_rows }}</span>
+    </div>
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Ponto</th><th>Município</th><th>Material</th><th>Quantidade</th><th>Responsável</th></tr></thead>
+      <tbody>
+      {% for item in audit.legacy_only_candidates %}
+        <tr>
+          <td class="fw-semibold">{{ item.point.nome }}</td>
+          <td>{{ item.point.municipio.nome }}</td>
+          <td>{{ item.material.nome }}</td>
+          <td>{{ item.legacy_quantity }}</td>
+          <td>{{ item.point.responsavel_nome or '-' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-muted text-center py-4">Nenhum registro legado-only pendente.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

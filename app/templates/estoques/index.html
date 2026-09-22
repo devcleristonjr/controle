@@ -7,7 +7,7 @@
     <p class="text-muted mb-0">Liste, filtre e acesse detalhes dos pontos cadastrados.</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
-    {% if current_user.is_admin %}<a href="{{ url_for('estoques.legacy_migration') }}" class="btn btn-outline-warning">Migrar legado</a>{% endif %}
+    {% if current_user.is_admin %}<a href="{{ url_for('estoques.legacy_audit') }}" class="btn btn-outline-info">Auditar legado</a><a href="{{ url_for('estoques.legacy_migration') }}" class="btn btn-outline-warning">Migrar legado</a>{% endif %}
     <a href="{{ url_for('estoques.create') }}" class="btn btn-primary">Novo ponto</a>
   </div>
 </div>

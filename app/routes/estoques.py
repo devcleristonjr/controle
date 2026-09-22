@@ -30,6 +30,7 @@ from app.services import (
     get_material_allocation_snapshot,
     get_material_stock_snapshots,
     get_legacy_migration_candidates,
+    get_legacy_transition_audit,
     migrate_legacy_stock_to_allocation,
     get_point_operational_snapshot,
     register_allocation_occurrence,
@@ -369,6 +370,17 @@ def update_stock_view(ponto_id: int):
         ponto=ponto,
         material_stats=material_stats,
         selected_material_id=selected_material_id,
+    )
+
+
+@estoques_bp.get("/auditoria-legado")
+@login_required
+@admin_required
+def legacy_audit():
+    audit = get_legacy_transition_audit()
+    return render_template(
+        "estoques/legacy_audit.html",
+        audit=audit,
     )
 
 
