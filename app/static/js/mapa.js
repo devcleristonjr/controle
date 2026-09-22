@@ -187,10 +187,10 @@
           <div class="mb-2"><strong>Reposição necessária:</strong> <span class="${pointReplenishmentNeeded > 0 ? 'text-danger fw-semibold' : ''}">${pointReplenishmentNeeded}</span></div>
           ${hasMaterialFilter ? `<div class="mb-2"><strong>${escapeHtml(point.metric_label || 'Material selecionado')}:</strong> ${pointMetric}</div>` : ''}
           ${materialSummaryHtml}
-          <div class="mb-2"><strong>Responsável:</strong> ${escapeHtml(point.responsavel_nome || '-')}</div>
+          <div class="mb-2"><strong>Responsável pelo ponto:</strong> ${escapeHtml(point.responsavel_nome || '-')}</div>
           ${point.foto ? `<div class="mb-2"><img src="/${escapeHtml(point.foto)}" alt="Foto" style="width:100%;height:140px;object-fit:cover;border-radius:12px;"></div>` : ''}
           <div class="d-grid gap-2">
-            ${point.whatsapp_url ? `<a class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer" href="${escapeHtml(point.whatsapp_url)}">💬 Falar no WhatsApp</a>` : ''}
+            ${point.whatsapp_url ? `<a class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer" href="${escapeHtml(point.whatsapp_url)}">💬 Falar com o responsável</a>` : ''}
             <a class="btn btn-outline-primary btn-sm" href="${escapeHtml(point.detail_url)}">Ver detalhes</a>
           </div>
         </div>
