@@ -179,8 +179,6 @@
                 <div class="fw-semibold">{{ material.nome }}</div>
               </div>
               <div class="small text-muted">Quantidade registrada no sistema: {{ '%.0f'|format(snapshot.get('total', 0)) }}</div>
-              <div class="small text-muted"></div>
-              <div class="small text-muted mb-2"></div>
               <label class="form-label small mb-1" for="qtd_{{ material.id }}">Quantidade existente neste ponto</label>
               <input id="qtd_{{ material.id }}" class="form-control form-control-lg" type="number" min="0" step="1" name="qtd_{{ material.id }}" value="{{ request.form.get('qtd_' ~ material.id, '') }}">
             </div>
