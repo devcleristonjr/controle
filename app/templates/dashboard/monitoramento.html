@@ -4,7 +4,7 @@
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
     <h1 class="page-title h3 fw-bold mb-1">Monitoramento operacional</h1>
-    <p class="text-muted mb-0">Acompanhe cada alocação, ocorrência e necessidade de reposição sem alterar o histórico.</p>
+    <p class="text-muted mb-0">Acompanhe alocações, ocorrências e reposições. Pontos ainda não migrados aparecem como legado, sem perder os dados existentes.</p>
   </div>
   <a href="{{ url_for('dashboard.mapa') }}" class="btn btn-outline-primary"><i class="bi bi-geo-alt me-2"></i>Ver no mapa</a>
 </div>
@@ -41,18 +41,19 @@
   </div>
   <div class="card-body table-responsive">
     <table class="table table-modern align-middle mb-0">
-      <thead><tr><th>Local</th><th>Material</th><th>Localizador</th><th>Alocada</th><th>Em uso</th><th>Danificada</th><th>Perdida</th><th>Reposição</th><th>Ocorrências</th><th>Responsável</th><th></th></tr></thead>
+      <thead><tr><th>Local</th><th>Fonte</th><th>Material</th><th>Localizador</th><th>Alocada</th><th>Em uso</th><th>Danificada</th><th>Perdida</th><th>Reposição</th><th>Ocorrências</th><th>Responsável</th><th></th></tr></thead>
       <tbody>
       {% for row in rows %}
         <tr class="{% if row.reposicao_pendente > 0 %}table-warning{% endif %}">
           <td><div class="fw-semibold">{{ row.ponto }}</div><div class="small text-muted">{{ row.municipio }} • {{ row.territorio }}</div></td>
+          <td>{% if row.source == "operational" %}<span class="badge text-bg-success">Operacional</span>{% else %}<span class="badge text-bg-secondary">Legado / transição</span>{% endif %}</td>
           <td class="fw-semibold">{{ row.material }}</td><td>{{ row.localizador or '-' }}</td>
           <td>{{ '%.0f'|format(row.alocada) }}</td><td>{{ '%.0f'|format(row.em_uso) }}</td><td>{{ '%.0f'|format(row.danificada) }}</td><td>{{ '%.0f'|format(row.perdida) }}</td>
           <td class="{% if row.reposicao_pendente > 0 %}text-danger fw-bold{% endif %}">{{ '%.0f'|format(row.reposicao_pendente) }}</td>
           <td>{{ row.ocorrencias }}</td><td>{{ row.responsavel or '-' }}</td>
           <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('estoques.detail', ponto_id=row.ponto_id) }}">Detalhes</a></td>
         </tr>
-      {% else %}<tr><td colspan="11" class="text-muted text-center py-4">Nenhuma alocação encontrada com os filtros atuais.</td></tr>{% endfor %}
+      {% else %}<tr><td colspan="12" class="text-muted text-center py-4">Nenhum registro encontrado com os filtros atuais.</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
