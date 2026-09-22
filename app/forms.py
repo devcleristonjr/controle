@@ -197,14 +197,14 @@ class AlocacaoPontoMaterialForm(FlaskForm):
 
 
 class OcorrenciaAlocacaoForm(FlaskForm):
-    tipo = SelectField("Tipo de ocorrência", choices=OCCURRENCE_TYPE_CHOICES, validators=[DataRequired()])
+    tipo = SelectField("O que aconteceu com este material neste ponto?", choices=OCCURRENCE_TYPE_CHOICES, validators=[DataRequired()])
     quantidade_afetada = DecimalField(
-        "Quantidade afetada",
+        "Quantidade envolvida",
         places=2,
         rounding=None,
         validators=[DataRequired(), NumberRange(min=Decimal("0.01"))],
     )
-    descricao = TextAreaField("Descrição", validators=[Optional(), Length(max=4000)])
+    descricao = TextAreaField("Observação", validators=[Optional(), Length(max=4000)])
 
 
 class ReposicaoAlocacaoForm(FlaskForm):
