@@ -436,15 +436,20 @@ def delete_material_if_empty(material: Material) -> None:
             "Zere/remova as quantidades atuais primeiro."
         )
 
+    # Use ORM deletes instead of bulk DELETE here. The material relationships may
+    # already be loaded in the current SQLAlchemy session; deleting those rows in
+    # bulk leaves stale ORM instances that can trigger StaleDataError during flush.
+    movement_rows = MovimentacaoEstoque.query.filter_by(material_id=material.id).all()
     allocation_rows = AlocacaoPontoMaterial.query.filter_by(material_id=material.id).all()
-    db.session.query(MovimentacaoEstoque).filter(
-        MovimentacaoEstoque.material_id == material.id
-    ).delete(synchronize_session=False)
+    legacy_rows = EstoqueMaterial.query.filter_by(material_id=material.id).all()
+
+    for movement in movement_rows:
+        db.session.delete(movement)
     for allocation in allocation_rows:
         db.session.delete(allocation)
-    db.session.query(EstoqueMaterial).filter(
-        EstoqueMaterial.material_id == material.id
-    ).delete(synchronize_session=False)
+    for row in legacy_rows:
+        db.session.delete(row)
+
     db.session.delete(material)
     db.session.flush()
 

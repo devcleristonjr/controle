@@ -670,3 +670,73 @@ def test_zeroed_material_can_be_removed_from_point_and_deleted_without_history_b
         assert db.session.get(AlocacaoPontoMaterial, allocation_id) is None
         assert db.session.get(OcorrenciaAlocacao, occurrence_id) is None
 
+
+
+def test_material_with_loaded_legacy_stock_relationship_can_be_deleted_when_zero():
+    app = create_app(TestingConfig)
+    with app.app_context():
+        db.create_all()
+        admin = Usuario(nome="Admin", email="admin@example.com", perfil="ADMIN", ativo=True)
+        admin.set_password("123456")
+        db.session.add(admin)
+
+        territorio = Territorio(nome="Recôncavo", codigo="REC", ativo=True)
+        db.session.add(territorio)
+        db.session.flush()
+
+        municipio = Municipio(nome="Cachoeira", territorio_id=territorio.id, codigo_ibge="2904909", ativo=True)
+        db.session.add(municipio)
+        db.session.flush()
+
+        ponto = PontoEstoque(
+            nome="Ponto teste exclusão",
+            municipio_id=municipio.id,
+            latitude=Decimal("-12.618611"),
+            longitude=Decimal("-38.955556"),
+            ativo=True,
+        )
+        material = Material(
+            nome="Material zero",
+            quantidade_total=Decimal("10"),
+            unidade="unidade",
+            ativo=True,
+        )
+        db.session.add_all([ponto, material])
+        db.session.flush()
+
+        db.session.add(
+            EstoqueMaterial(
+                ponto_estoque_id=ponto.id,
+                material_id=material.id,
+                quantidade=Decimal("0"),
+            )
+        )
+        db.session.commit()
+
+        material = db.session.get(Material, material.id)
+        assert material is not None
+        assert len(material.estoques) == 1
+
+        material_id = material.id
+
+    client = app.test_client()
+    client.post(
+        "/login",
+        data={"email": "admin@example.com", "password": "123456"},
+        follow_redirects=True,
+    )
+
+    page = client.get("/materiais/")
+    csrf_match = __import__("re").search(r'name="csrf_token" value="([^"]+)"', page.get_data(as_text=True))
+    assert csrf_match is not None
+
+    response = client.post(
+        f"/materiais/{material_id}/excluir",
+        data={"csrf_token": csrf_match.group(1)},
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    with app.app_context():
+        assert db.session.get(Material, material_id) is None
+        assert EstoqueMaterial.query.filter_by(material_id=material_id).count() == 0
