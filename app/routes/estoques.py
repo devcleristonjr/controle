@@ -194,6 +194,11 @@ def register_occurrence(alocacao_id: int):
     alocacao = AlocacaoPontoMaterial.query.get_or_404(alocacao_id)
     form = OcorrenciaAlocacaoForm()
 
+    # Atalho da tela do ponto: ao clicar em "Precisa de reposição",
+    # o tipo já vem selecionado para evitar que o usuário procure a opção.
+    if request.method == "GET" and request.args.get("tipo") == "REPOSICAO_NECESSARIA":
+        form.tipo.data = "REPOSICAO_NECESSARIA"
+
     if form.validate_on_submit():
         try:
             register_allocation_occurrence(
