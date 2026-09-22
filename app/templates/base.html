@@ -15,11 +15,15 @@
 
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
       rel="stylesheet"
     >
 
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+      integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+"
+      crossorigin="anonymous"
       rel="stylesheet"
     >
 
@@ -34,7 +38,7 @@
   <body class="app-body">
 
     <!-- MENU MOBILE -->
-    <nav class="navbar navbar-expand-lg navbar-dark topbar-mobile d-md-none px-3 py-2">
+    <nav class="navbar navbar-expand-lg navbar-dark topbar-mobile d-md-none px-3 py-2" aria-label="Navegação mobile">
 
       <a
         class="navbar-brand fw-semibold"
@@ -164,7 +168,7 @@
 
 
         <!-- NAVEGAÇÃO -->
-        <nav class="nav flex-column gap-2">
+        <nav class="nav flex-column gap-2" aria-label="Navegação lateral">
 
           <!-- Dashboard -->
           <a
@@ -206,13 +210,13 @@
           </a>
 
 
-          <!-- Movimentações -->
+          <!-- Monitoramento operacional -->
           <a
             class="nav-link"
-            href="{{ url_for('dashboard.index') }}#ultimas-movimentacoes"
+            href="{{ url_for('dashboard.mapa') }}"
           >
             <i class="bi bi-arrow-left-right me-2"></i>
-            Movimentações
+            Monitoramento
           </a>
 
 
@@ -328,6 +332,8 @@
     <!-- BOOTSTRAP -->
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
     ></script>
 
     {% block scripts %}{% endblock %}

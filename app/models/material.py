@@ -16,3 +16,4 @@ class Material(TimestampMixin, db.Model):
 
     estoques = db.relationship("EstoqueMaterial", back_populates="material", lazy="selectin")
     movimentacoes = db.relationship("MovimentacaoEstoque", back_populates="material", lazy="selectin")
+    alocacoes = db.relationship("AlocacaoPontoMaterial", back_populates="material", lazy="selectin")

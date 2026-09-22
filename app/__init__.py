@@ -8,8 +8,11 @@ from flask import Flask, render_template
 from openpyxl import load_workbook
 
 from app.extensions import csrf, db, login_manager, migrate
+from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.fechamento_diario_estoque import FechamentoDiarioEstoque
 from app.models.municipio import Municipio
+from app.models.ocorrencia_alocacao import OcorrenciaAlocacao
+from app.models.reposicao_alocacao import ReposicaoAlocacao
 from app.models.usuario import Usuario
 from app.routes.administracao import municipios_bp, territorios_bp, usuarios_bp
 from app.routes.api import api_bp

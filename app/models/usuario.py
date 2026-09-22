@@ -18,6 +18,8 @@ class Usuario(TimestampMixin, UserMixin, db.Model):
     ativo = db.Column(db.Boolean, nullable=False, default=True)
 
     movimentacoes = db.relationship("MovimentacaoEstoque", back_populates="usuario", lazy="selectin")
+    ocorrencias_alocacao = db.relationship("OcorrenciaAlocacao", back_populates="usuario", lazy="selectin")
+    reposicoes_alocacao = db.relationship("ReposicaoAlocacao", back_populates="usuario", lazy="selectin")
 
     def set_password(self, password: str) -> None:
         self.senha_hash = generate_password_hash(password)

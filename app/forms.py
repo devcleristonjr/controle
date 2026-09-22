@@ -18,6 +18,13 @@ MATERIAL_UNIT_CHOICES = [
     ("metro", "Metro"),
     ("rolo", "Rolo"),
 ]
+OCCURRENCE_TYPE_CHOICES = [
+    ("DANIFICADO", "Danificou / Quebrou"),
+    ("PERDIDO", "Foi perdido"),
+    ("RETIRADO", "Foi retirado"),
+    ("REPOSICAO_NECESSARIA", "Precisa de reposição"),
+    ("OUTRO", "Outro"),
+]
 
 
 class UsuarioForm(FlaskForm):
@@ -174,3 +181,37 @@ class ColetaPublicAtualizacaoForm(FlaskForm):
             FileAllowed(["jpg", "jpeg", "png", "webp"], PUBLIC_IMAGE_VALIDATION_MESSAGE),
         ],
     )
+
+
+class AlocacaoPontoMaterialForm(FlaskForm):
+    material_id = SelectField("Material", coerce=int, validators=[DataRequired()])
+    quantidade_alocada = DecimalField(
+        "Quantidade para alocar",
+        places=2,
+        rounding=None,
+        validators=[DataRequired(), NumberRange(min=Decimal("0.01"))],
+    )
+    localizador = StringField("Localizador do ponto", validators=[Optional(), Length(max=180)])
+    responsavel_alocacao = StringField("Responsável pela alocação", validators=[Optional(), Length(max=180)])
+    observacoes = TextAreaField("Observações", validators=[Optional(), Length(max=4000)])
+
+
+class OcorrenciaAlocacaoForm(FlaskForm):
+    tipo = SelectField("Tipo de ocorrência", choices=OCCURRENCE_TYPE_CHOICES, validators=[DataRequired()])
+    quantidade_afetada = DecimalField(
+        "Quantidade afetada",
+        places=2,
+        rounding=None,
+        validators=[DataRequired(), NumberRange(min=Decimal("0.01"))],
+    )
+    descricao = TextAreaField("Descrição", validators=[Optional(), Length(max=4000)])
+
+
+class ReposicaoAlocacaoForm(FlaskForm):
+    quantidade_reposta = DecimalField(
+        "Quantidade reposta",
+        places=2,
+        rounding=None,
+        validators=[DataRequired(), NumberRange(min=Decimal("0.01"))],
+    )
+    observacao = TextAreaField("Observação", validators=[Optional(), Length(max=4000)])

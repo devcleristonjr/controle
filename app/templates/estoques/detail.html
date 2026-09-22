@@ -8,8 +8,10 @@
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <a class="btn btn-outline-primary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar ponto</a>
-    <a class="btn btn-primary" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Atualizar estoque</a>
-    <a class="btn btn-outline-dark" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Ver histórico</a>
+    <a class="btn btn-success" href="{{ url_for('estoques.create_allocation', ponto_id=ponto.id) }}">Nova alocação</a>
+    <a class="btn btn-outline-warning" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Atualizar estoque (legado)</a>
+    <a class="btn btn-outline-dark" href="{{ url_for('estoques.operational_history', ponto_id=ponto.id) }}">Histórico operacional</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Histórico legado</a>
     {% if current_user.is_admin %}
       <form method="post" action="{{ url_for('estoques.delete', ponto_id=ponto.id) }}" onsubmit="return confirm('Excluir este ponto permanentemente? Esta ação também remove histórico, coletas e estoques vinculados.');">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -73,6 +75,51 @@
     </div>
   </div>
 </div>
+
+<div class="card card-soft mt-4">
+  <div class="card-header bg-white border-0 fw-semibold">Alocações monitoradas no ponto</div>
+  <div class="card-body table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Material</th>
+          <th>Localizador</th>
+          <th>Alocada</th>
+          <th>Em uso</th>
+          <th>Danificada</th>
+          <th>Perdida</th>
+          <th>Reposição</th>
+          <th>Responsável</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alocacao in alocacoes %}
+          <tr>
+            <td class="fw-semibold">{{ alocacao.material.nome }}</td>
+            <td>{{ alocacao.localizador or '-' }}</td>
+            <td>{{ '%.0f'|format(alocacao.quantidade_alocada) }}</td>
+            <td>{{ '%.0f'|format(alocacao.quantidade_em_uso) }}</td>
+            <td>{{ '%.0f'|format(alocacao.quantidade_danificada_total) }}</td>
+            <td>{{ '%.0f'|format(alocacao.quantidade_perdida_total) }}</td>
+            <td class="{% if alocacao.quantidade_reposicao_pendente > 0 %}text-danger fw-semibold{% endif %}">{{ '%.0f'|format(alocacao.quantidade_reposicao_pendente) }}</td>
+            <td>{{ alocacao.responsavel_alocacao or '-' }}</td>
+            <td>
+              <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-danger" href="{{ url_for('estoques.register_occurrence', alocacao_id=alocacao.id) }}">Ocorrência</a>
+                <a class="btn btn-sm btn-outline-success" href="{{ url_for('estoques.register_replenishment', alocacao_id=alocacao.id) }}">Reposição</a>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="9" class="text-muted">Nenhuma alocação cadastrada neste ponto.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -87,12 +134,16 @@
         await navigator.clipboard.writeText(input.value);
         btn.textContent = "Copiado";
         setTimeout(function () { btn.textContent = "Copiar link"; }, 1200);
-      } catch (_error) {
+      } catch (error) {
         // Fallback for browsers without clipboard API permissions.
-        input.select();
-        document.execCommand("copy");
-        btn.textContent = "Copiado";
-        setTimeout(function () { btn.textContent = "Copiar link"; }, 1200);
+        try {
+          input.select();
+          document.execCommand("copy");
+          btn.textContent = "Copiado";
+          setTimeout(function () { btn.textContent = "Copiar link"; }, 1200);
+        } catch (fallbackError) {
+          console.warn("Falha ao copiar link de coleta", error, fallbackError);
+        }
       }
     });
   })();

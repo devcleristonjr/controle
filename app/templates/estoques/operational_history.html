@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Histórico operacional | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="h3 fw-bold mb-1">Histórico operacional consolidado</h1>
+    <p class="text-muted mb-0">{{ ponto.nome }} • {{ ponto.municipio.nome }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}" class="btn btn-outline-secondary">Voltar ao ponto</a>
+    <a href="{{ url_for('estoques.history', ponto_id=ponto.id) }}" class="btn btn-outline-dark">Ver histórico legado</a>
+  </div>
+</div>
+
+<div class="card card-soft">
+  <div class="card-body table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Evento</th>
+          <th>Material</th>
+          <th>Quantidade</th>
+          <th>Responsável</th>
+          <th>Origem</th>
+          <th>Detalhes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+          <tr>
+            <td>{{ entry.event_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td>
+            <td>
+              <span class="badge text-bg-light border">{{ entry.label }}</span>
+            </td>
+            <td>{{ entry.material }}</td>
+            <td>{{ '%.0f'|format(entry.quantity) }}</td>
+            <td>{{ entry.responsible or '-' }}</td>
+            <td>{{ entry.source }}</td>
+            <td>{{ entry.detail or '-' }}</td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-muted">Nenhum evento registrado para este ponto.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

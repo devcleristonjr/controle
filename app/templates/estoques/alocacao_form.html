@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Nova alocação | Estoque Bahia{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card card-soft">
+      <div class="card-body p-4 p-lg-5">
+        <h1 class="h4 fw-bold mb-1">Nova alocação de material</h1>
+        <p class="text-muted mb-4">{{ ponto.nome }} • {{ ponto.municipio.nome }}</p>
+
+        {% if selected_snapshot %}
+          <div class="alert alert-light border">
+            <div class="small text-muted">Material selecionado</div>
+            <div class="fw-semibold">{{ selected_snapshot.nome }}</div>
+            <div class="small mt-2">Total disponível no sistema: <strong>{{ '%.0f'|format(selected_snapshot.total) }}</strong></div>
+            <div class="small">Já alocado em outros pontos: <strong>{{ '%.0f'|format(selected_snapshot.allocated) }}</strong></div>
+            <div class="small">Saldo para novas alocações: <strong>{{ '%.0f'|format(selected_snapshot.available) }}</strong></div>
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate>
+          {{ form.hidden_tag() }}
+          <div class="row g-3">
+            <div class="col-md-6">
+              {{ form.material_id.label(class_='form-label') }}
+              {{ form.material_id(class_='form-select') }}
+            </div>
+            <div class="col-md-6">
+              {{ form.quantidade_alocada.label(class_='form-label') }}
+              {{ form.quantidade_alocada(class_='form-control') }}
+            </div>
+            <div class="col-md-6">
+              {{ form.localizador.label(class_='form-label') }}
+              {{ form.localizador(class_='form-control', placeholder='Ex.: recebido via WhatsApp') }}
+            </div>
+            <div class="col-md-6">
+              {{ form.responsavel_alocacao.label(class_='form-label') }}
+              {{ form.responsavel_alocacao(class_='form-control') }}
+            </div>
+            <div class="col-12">
+              {{ form.observacoes.label(class_='form-label') }}
+              {{ form.observacoes(class_='form-control', rows=4) }}
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit">Salvar alocação</button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

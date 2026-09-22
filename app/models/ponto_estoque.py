@@ -5,6 +5,9 @@ from app.models.base import TimestampMixin
 from app.utils import generate_coleta_token
 
 
+CASCADE_DELETE_ORPHAN = "all, delete-orphan"
+
+
 class PontoEstoque(TimestampMixin, db.Model):
     __tablename__ = "pontos_estoque"
 
@@ -26,18 +29,24 @@ class PontoEstoque(TimestampMixin, db.Model):
     estoques = db.relationship(
         "EstoqueMaterial",
         back_populates="ponto_estoque",
-        cascade="all, delete-orphan",
+        cascade=CASCADE_DELETE_ORPHAN,
         lazy="selectin",
     )
     movimentacoes = db.relationship(
         "MovimentacaoEstoque",
         back_populates="ponto_estoque",
-        cascade="all, delete-orphan",
+        cascade=CASCADE_DELETE_ORPHAN,
         lazy="selectin",
     )
     coletas = db.relationship(
         "ColetaRegistro",
         back_populates="ponto_estoque",
-        cascade="all, delete-orphan",
+        cascade=CASCADE_DELETE_ORPHAN,
+        lazy="selectin",
+    )
+    alocacoes = db.relationship(
+        "AlocacaoPontoMaterial",
+        back_populates="ponto_estoque",
+        cascade=CASCADE_DELETE_ORPHAN,
         lazy="selectin",
     )

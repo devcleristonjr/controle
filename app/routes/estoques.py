@@ -7,15 +7,32 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from app.extensions import db
-from app.forms import EstoqueMovimentacaoForm, PontoEstoqueForm
+from app.forms import (
+    AlocacaoPontoMaterialForm,
+    EstoqueMovimentacaoForm,
+    OcorrenciaAlocacaoForm,
+    PontoEstoqueForm,
+    ReposicaoAlocacaoForm,
+)
+from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.movimentacao_estoque import MovimentacaoEstoque
+from app.models.ocorrencia_alocacao import OcorrenciaAlocacao
 from app.models.ponto_estoque import PontoEstoque
+from app.models.reposicao_alocacao import ReposicaoAlocacao
 from app.models.territorio import Territorio
 from app.security import admin_required, role_required
-from app.services import get_material_stock_snapshots, update_stock
+from app.services import (
+    create_material_allocation,
+    get_operational_history_entries,
+    get_material_allocation_snapshot,
+    get_material_stock_snapshots,
+    register_allocation_occurrence,
+    register_allocation_replenishment,
+    update_stock,
+)
 from app.utils import (
     build_whatsapp_url,
     digits_only,
@@ -107,12 +124,120 @@ def detail(ponto_id: int):
         EstoqueMaterial.query.filter_by(ponto_estoque_id=ponto.id).join(EstoqueMaterial.material).order_by(Material.nome.asc()).all()
     )
     snapshots = get_material_stock_snapshots([item.material_id for item in estoque])
+    alocacoes = (
+        AlocacaoPontoMaterial.query.filter_by(ponto_estoque_id=ponto.id, ativo=True)
+        .join(AlocacaoPontoMaterial.material)
+        .order_by(AlocacaoPontoMaterial.data_alocacao.desc())
+        .all()
+    )
     return render_template(
         "estoques/detail.html",
         ponto=ponto,
         estoque=estoque,
         snapshots=snapshots,
+        alocacoes=alocacoes,
         whatsapp_url=build_whatsapp_url(ponto.responsavel_whatsapp or ponto.responsavel_telefone),
+    )
+
+
+@estoques_bp.route("/<int:ponto_id>/alocacoes/nova", methods=["GET", "POST"])
+@login_required
+@role_required("ADMIN", "OPERADOR")
+def create_allocation(ponto_id: int):
+    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    form = AlocacaoPontoMaterialForm()
+    materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
+    form.material_id.choices = [(material.id, material.nome) for material in materiais]
+
+    selected_material_id = form.material_id.data or (materiais[0].id if materiais else None)
+    selected_snapshot = None
+    if selected_material_id:
+        selected_snapshot = get_material_allocation_snapshot(selected_material_id)
+
+    if form.validate_on_submit():
+        material = Material.query.get_or_404(form.material_id.data)
+        try:
+            create_material_allocation(
+                point=ponto,
+                material=material,
+                quantidade_alocada=Decimal(form.quantidade_alocada.data),
+                localizador=form.localizador.data,
+                responsavel_alocacao=form.responsavel_alocacao.data,
+                observacoes=form.observacoes.data,
+            )
+            db.session.commit()
+            flash("Alocação criada com sucesso.", "success")
+            return redirect(url_for(ESTOQUES_DETAIL_ENDPOINT, ponto_id=ponto.id))
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+
+    return render_template(
+        "estoques/alocacao_form.html",
+        form=form,
+        ponto=ponto,
+        selected_snapshot=selected_snapshot,
+    )
+
+
+@estoques_bp.route("/alocacoes/<int:alocacao_id>/ocorrencia", methods=["GET", "POST"])
+@login_required
+@role_required("ADMIN", "OPERADOR")
+def register_occurrence(alocacao_id: int):
+    alocacao = AlocacaoPontoMaterial.query.get_or_404(alocacao_id)
+    form = OcorrenciaAlocacaoForm()
+
+    if form.validate_on_submit():
+        try:
+            register_allocation_occurrence(
+                allocation=alocacao,
+                occurrence_type=form.tipo.data,
+                quantidade_afetada=Decimal(form.quantidade_afetada.data),
+                descricao=form.descricao.data,
+                usuario=current_user,
+            )
+            db.session.commit()
+            flash("Ocorrência registrada com sucesso.", "success")
+            return redirect(url_for(ESTOQUES_DETAIL_ENDPOINT, ponto_id=alocacao.ponto_estoque_id))
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+
+    return render_template(
+        "estoques/ocorrencia_form.html",
+        form=form,
+        alocacao=alocacao,
+        ponto=alocacao.ponto_estoque,
+    )
+
+
+@estoques_bp.route("/alocacoes/<int:alocacao_id>/reposicao", methods=["GET", "POST"])
+@login_required
+@role_required("ADMIN", "OPERADOR")
+def register_replenishment(alocacao_id: int):
+    alocacao = AlocacaoPontoMaterial.query.get_or_404(alocacao_id)
+    form = ReposicaoAlocacaoForm()
+
+    if form.validate_on_submit():
+        try:
+            register_allocation_replenishment(
+                allocation=alocacao,
+                quantidade_reposta=Decimal(form.quantidade_reposta.data),
+                observacao=form.observacao.data,
+                usuario=current_user,
+            )
+            db.session.commit()
+            flash("Reposição registrada com sucesso.", "success")
+            return redirect(url_for(ESTOQUES_DETAIL_ENDPOINT, ponto_id=alocacao.ponto_estoque_id))
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+
+    return render_template(
+        "estoques/reposicao_form.html",
+        form=form,
+        alocacao=alocacao,
+        ponto=alocacao.ponto_estoque,
     )
 
 
@@ -248,3 +373,11 @@ def history(ponto_id: int):
     ponto = PontoEstoque.query.get_or_404(ponto_id)
     movimentacoes = MovimentacaoEstoque.query.filter_by(ponto_estoque_id=ponto.id).order_by(MovimentacaoEstoque.created_at.desc()).all()
     return render_template("estoques/history.html", ponto=ponto, movimentacoes=movimentacoes)
+
+
+@estoques_bp.get("/<int:ponto_id>/historico-operacional")
+@login_required
+def operational_history(ponto_id: int):  # NOSONAR
+    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    entries = get_operational_history_entries(ponto)
+    return render_template("estoques/operational_history.html", ponto=ponto, entries=entries)

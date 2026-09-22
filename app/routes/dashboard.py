@@ -21,6 +21,13 @@ def index():
         if request.args.get(key)
     }
     filters["status"] = request.args.get("status")
+    filters["replenishment"] = request.args.get("replenishment")
+    filters["responsavel"] = request.args.get("responsavel")
+    filters["localizador"] = request.args.get("localizador")
+    filters["occurrence_type"] = request.args.get("occurrence_type")
+    filters["with_occurrences"] = request.args.get("with_occurrences")
+    filters["period_start"] = request.args.get("period_start")
+    filters["period_end"] = request.args.get("period_end")
     metrics = get_dashboard_metrics(filters)
     territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
     municipios = Municipio.query.filter_by(ativo=True).order_by(Municipio.nome.asc()).all()

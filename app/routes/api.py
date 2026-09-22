@@ -11,7 +11,13 @@ from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
 from app.models.territorio import Territorio
-from app.services import build_map_points, get_dashboard_metrics, get_material_stock_snapshot, get_material_stock_snapshots
+from app.services import (
+    build_map_points,
+    get_dashboard_metrics,
+    get_material_stock_snapshot,
+    get_material_stock_snapshots,
+    get_operational_history_entries,
+)
 
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
@@ -189,6 +195,13 @@ def dashboard_data():
         if request.args.get(key)
     }
     filters["status"] = request.args.get("status")
+    filters["replenishment"] = request.args.get("replenishment")
+    filters["responsavel"] = request.args.get("responsavel")
+    filters["localizador"] = request.args.get("localizador")
+    filters["occurrence_type"] = request.args.get("occurrence_type")
+    filters["with_occurrences"] = request.args.get("with_occurrences")
+    filters["period_start"] = request.args.get("period_start")
+    filters["period_end"] = request.args.get("period_end")
     metrics = get_dashboard_metrics(filters)
     return jsonify(
         {
@@ -197,6 +210,11 @@ def dashboard_data():
             "total_territorios": metrics["total_territorios"],
             "total_materiais": metrics["total_materiais"],
             "total_stock_allocated": float(metrics["total_stock_allocated"]),
+            "total_in_use": float(metrics["total_in_use"]),
+            "total_damaged": float(metrics["total_damaged"]),
+            "total_lost": float(metrics["total_lost"]),
+            "total_removed": float(metrics["total_removed"]),
+            "total_replenishment_needed": float(metrics["total_replenishment_needed"]),
             "total_banners": float(metrics["total_banners"]),
             "stock_summary": {
                 "label": metrics["stock_summary"]["label"],
@@ -230,4 +248,41 @@ def mapa_data():
         if request.args.get(key)
     }
     filters["status"] = request.args.get("status")
+    filters["replenishment"] = request.args.get("replenishment")
+    filters["responsavel"] = request.args.get("responsavel")
+    filters["localizador"] = request.args.get("localizador")
+    filters["occurrence_type"] = request.args.get("occurrence_type")
+    filters["with_occurrences"] = request.args.get("with_occurrences")
+    filters["period_start"] = request.args.get("period_start")
+    filters["period_end"] = request.args.get("period_end")
     return jsonify(build_map_points(filters))
+
+
+@api_bp.get("/estoques/<int:ponto_id>/historico-operacional")
+@login_required
+def operational_history_data(ponto_id: int):
+    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    entries = get_operational_history_entries(ponto)
+    return jsonify(
+        {
+            "ponto": {
+                "id": ponto.id,
+                "nome": ponto.nome,
+                "municipio": ponto.municipio.nome,
+                "territorio": ponto.municipio.territorio.nome,
+            },
+            "entries": [
+                {
+                    "event_type": entry["event_type"],
+                    "event_at": entry["event_at"].isoformat() if entry.get("event_at") else None,
+                    "material": entry["material"],
+                    "quantity": float(entry["quantity"]),
+                    "label": entry["label"],
+                    "detail": entry.get("detail"),
+                    "responsible": entry.get("responsible"),
+                    "source": entry.get("source"),
+                }
+                for entry in entries
+            ],
+        }
+    )

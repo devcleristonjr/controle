@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Mapa | Estoque Bahia{% endblock %}
 {% block extra_head %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
 {% endblock %}
 {% block content %}
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
@@ -11,7 +11,7 @@
   </div>
   <div class="d-flex gap-2">
     <div class="stat-mini px-3 py-2"><div class="small text-muted">Total de pontos</div><div class="fw-bold" id="map-total-pontos">0</div></div>
-    <div class="stat-mini px-3 py-2"><div class="small text-muted" id="map-total-metric-label">Estoque total</div><div class="fw-bold" id="map-total-banners">0</div></div>
+    <div class="stat-mini px-3 py-2"><div class="small text-muted" id="map-total-metric-label">Em uso estimado</div><div class="fw-bold" id="map-total-banners">0</div></div>
   </div>
 </div>
 
@@ -20,7 +20,7 @@
     <div class="row g-3 align-items-end">
       <div class="col-md-3">
         <label class="form-label" for="filter-territorio">Território</label>
-        <select id="filter-territorio" class="form-select" aria-label="Território">
+        <select id="filter-territorio" class="form-select">
           <option value="">Todos</option>
           {% for territorio in territorios %}
             <option value="{{ territorio.id }}">{{ territorio.nome }}</option>
@@ -29,7 +29,7 @@
       </div>
       <div class="col-md-3">
         <label class="form-label" for="filter-municipio">Município</label>
-        <select id="filter-municipio" class="form-select" aria-label="Município">
+        <select id="filter-municipio" class="form-select">
           <option value="">Todos</option>
           {% for municipio in municipios %}
             <option value="{{ municipio.id }}">{{ municipio.nome }}</option>
@@ -38,7 +38,7 @@
       </div>
       <div class="col-md-3">
         <label class="form-label" for="filter-material">Material</label>
-        <select id="filter-material" class="form-select" aria-label="Material">
+        <select id="filter-material" class="form-select">
           <option value="">Todos</option>
           {% for material in materiais %}
             <option value="{{ material.id }}">{{ material.nome }}</option>
@@ -47,13 +47,55 @@
       </div>
       <div class="col-md-2">
         <label class="form-label" for="filter-status">Status</label>
-        <select id="filter-status" class="form-select" aria-label="Status">
+        <select id="filter-status" class="form-select">
           <option value="">Todos</option>
           <option value="ativo">Ativo</option>
           <option value="inativo">Inativo</option>
         </select>
       </div>
-      <div class="col-md-1 d-grid">
+      <div class="col-md-2">
+        <label class="form-label" for="filter-replenishment">Reposição</label>
+        <select id="filter-replenishment" class="form-select">
+          <option value="">Todos</option>
+          <option value="with">Com necessidade</option>
+          <option value="without">Sem necessidade</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="filter-responsavel">Responsável</label>
+        <input id="filter-responsavel" class="form-control" type="text" placeholder="Nome do responsável">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="filter-localizador">Rua/Localizador</label>
+        <input id="filter-localizador" class="form-control" type="text" placeholder="Ex.: WHATS-001">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="filter-occurrence-type">Ocorrência</label>
+        <select id="filter-occurrence-type" class="form-select">
+          <option value="">Todas</option>
+          <option value="DANIFICADO">Danificado</option>
+          <option value="PERDIDO">Perdido</option>
+          <option value="RETIRADO">Retirado</option>
+          <option value="REPOSICAO_NECESSARIA">Precisa de reposição</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="filter-with-occurrences">Situação de ocorrência</label>
+        <select id="filter-with-occurrences" class="form-select">
+          <option value="">Todos</option>
+          <option value="with">Com ocorrências</option>
+          <option value="without">Sem ocorrências</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="filter-period-start">Período (início)</label>
+        <input id="filter-period-start" class="form-control" type="date">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label" for="filter-period-end">Período (fim)</label>
+        <input id="filter-period-end" class="form-control" type="date">
+      </div>
+      <div class="col-md-2 d-grid">
         <button id="map-filter-button" class="btn btn-primary" type="button">Aplicar</button>
       </div>
     </div>
@@ -63,6 +105,6 @@
 <div id="leaflet-map" class="map-container card-soft"></div>
 {% endblock %}
 {% block scripts %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 <script src="{{ url_for('static', filename='js/mapa.js') }}"></script>
 {% endblock %}
