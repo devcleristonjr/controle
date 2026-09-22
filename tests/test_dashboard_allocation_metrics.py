@@ -178,7 +178,8 @@ def test_dashboard_map_and_monitoring_include_legacy_only_points_without_double_
     assert dashboard["stock_summary"]["allocated"] == 550.0
     assert dashboard["stock_summary"]["available"] == 450.0
 
-    by_material = client.get("/api/mapa?material_id=1").get_json()
+    material_id = client.get("/api/materiais").get_json()[0]["id"]
+    by_material = client.get(f"/api/mapa?material_id={material_id}").get_json()
     legacy_map_point = next(point for point in mapa if point["nome"] == "Rua Y")
     assert legacy_map_point["fonte_operacional"] == "legacy"
     assert legacy_map_point["status_migracao"] == "Legado / aguardando migração"
