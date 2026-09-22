@@ -1,4 +1,4 @@
-# 📦 Estoque Bahia
+# 📦 Controle de Materiais
 
 Sistema web para **gestão, controle e acompanhamento de estoques**, desenvolvido em Flask e estruturado para atender operações com pontos de estoque, materiais, movimentações, territórios e coleta de informações em campo.
 
@@ -8,7 +8,7 @@ O projeto está em desenvolvimento contínuo, com foco em uma interface simples,
 
 ## 📌 Sobre o projeto
 
-O **Estoque Bahia** foi desenvolvido para centralizar informações relacionadas ao controle de materiais e estoques, permitindo acompanhar diferentes pontos de armazenamento e suas respectivas movimentações.
+O **Controle de Materiais** foi desenvolvido para centralizar informações relacionadas ao controle de materiais e estoques, permitindo acompanhar diferentes pontos de armazenamento e suas respectivas movimentações.
 
 A aplicação possui uma área administrativa para gerenciamento do estoque e uma área específica de **Coleta**, destinada ao cadastro e atualização de informações diretamente relacionadas aos pontos de estoque.
 
@@ -580,4 +580,4 @@ A definição da licença deve seguir o que estiver estabelecido no repositório
 
 ## 📌 Projeto em desenvolvimento
 
-O **Estoque Bahia** é um projeto em evolução. A documentação será atualizada à medida que novos módulos, funcionalidades e melhorias forem incorporados ao sistema.
+O **Controle de Materiais** é um projeto em evolução. A documentação será atualizada à medida que novos módulos, funcionalidades e melhorias forem incorporados ao sistema.
