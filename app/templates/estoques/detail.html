@@ -59,49 +59,55 @@
     <div class="card card-soft h-100">
       <div class="card-header bg-white border-0">
         <div class="fw-semibold">Materiais neste ponto</div>
-        <div class="small text-muted">Aqui você vê o saldo atual e, com um clique, pode indicar que o material precisa de reposição.</div>
+        <div class="small text-muted">Primeiro veja o que está em uso. Depois escolha a ação necessária.</div>
       </div>
-      <div class="card-body table-responsive">
-        <table class="table align-middle mb-0">
-          <thead>
-            <tr><th>Material</th><th>Em uso no ponto</th><th>Total geral</th><th>Alocado geral</th><th>Disponível</th><th>Ações</th></tr>
-          </thead>
-          <tbody>
-            {% for material in operational_snapshot.materials %}
-              {% set snapshot = snapshots.get(material.material_id, {}) %}
-              <tr>
-                {% set alocacao_material = (alocacoes|selectattr('material_id', 'equalto', material.material_id)|list|first) %}
-                <td class="fw-semibold">{{ material.material }}</td>
-                <td>
-                  <strong>{{ '%.0f'|format(material.in_use) }}</strong>
-                  {% if alocacao_material and alocacao_material.quantidade_reposicao_pendente > 0 %}
-                    <span class="badge text-bg-warning ms-1">Reposição</span>
-                  {% endif %}
-                </td>
-                <td>{{ '%.0f'|format(snapshot.get('total', 0)) }}</td>
-                <td>{{ '%.0f'|format(snapshot.get('allocated', 0)) }}</td>
-                <td class="{% if snapshot.get('is_inconsistent') %}text-danger fw-semibold{% endif %}">{{ '%.0f'|format(snapshot.get('available', 0)) }}</td>
-                <td>
-                  <div class="d-flex flex-wrap gap-1">
-                    {% if alocacao_material %}
-                      <a class="btn btn-sm btn-warning" href="{{ url_for('estoques.register_occurrence', alocacao_id=alocacao_material.id, tipo='REPOSICAO_NECESSARIA') }}">
-                        <i class="bi bi-arrow-repeat me-1"></i>Precisa reposição
-                      </a>
-                    {% endif %}
-                    {% if material.in_use == 0 %}
-                      <form method="post" action="{{ url_for('estoques.remove_material', ponto_id=ponto.id, material_id=material.material_id) }}" onsubmit="return confirm('Remover este material do ponto? O histórico será preservado.');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button class="btn btn-sm btn-outline-danger" type="submit">Remover</button>
-                      </form>
-                    {% endif %}
-                  </div>
-                </td>
-              </tr>
-            {% else %}
-              <tr><td colspan="6" class="text-muted">Nenhum material registrado neste ponto.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="card-body">
+        {% for material in operational_snapshot.materials %}
+          {% set snapshot = snapshots.get(material.material_id, {}) %}
+          {% set alocacao_material = (alocacoes|selectattr('material_id', 'equalto', material.material_id)|list|first) %}
+          <div class="material-point-card mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+              <div>
+                <div class="fw-bold">{{ material.material }}</div>
+                {% if alocacao_material and alocacao_material.quantidade_reposicao_pendente > 0 %}
+                  <span class="badge text-bg-warning rounded-pill mt-1">Reposição pendente</span>
+                {% endif %}
+              </div>
+              <div class="text-end">
+                <div class="small text-muted">Em uso</div>
+                <div class="fs-4 fw-bold">{{ '%.0f'|format(material.in_use) }}</div>
+              </div>
+            </div>
+
+            <div class="row g-2 small mb-3">
+              <div class="col-4">
+                <div class="material-point-metric"><span>Estoque geral</span><strong>{{ '%.0f'|format(snapshot.get('total', 0)) }}</strong></div>
+              </div>
+              <div class="col-4">
+                <div class="material-point-metric"><span>Alocado geral</span><strong>{{ '%.0f'|format(snapshot.get('allocated', 0)) }}</strong></div>
+              </div>
+              <div class="col-4">
+                <div class="material-point-metric"><span>Disponível</span><strong class="{% if snapshot.get('is_inconsistent') %}text-danger{% endif %}">{{ '%.0f'|format(snapshot.get('available', 0)) }}</strong></div>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+              {% if alocacao_material %}
+                <a class="btn btn-sm btn-warning" href="{{ url_for('estoques.register_occurrence', alocacao_id=alocacao_material.id, tipo='REPOSICAO_NECESSARIA') }}">
+                  <i class="bi bi-arrow-repeat me-1"></i>Precisa reposição
+                </a>
+              {% endif %}
+              {% if material.in_use == 0 %}
+                <form method="post" action="{{ url_for('estoques.remove_material', ponto_id=ponto.id, material_id=material.material_id) }}" onsubmit="return confirm('Remover este material do ponto? O histórico será preservado.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-danger" type="submit">Remover</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="text-muted">Nenhum material registrado neste ponto.</div>
+        {% endfor %}
       </div>
     </div>
   </div>
