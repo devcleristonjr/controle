@@ -212,10 +212,10 @@
 
           <!-- Monitoramento operacional -->
           <a
-            class="nav-link"
-            href="{{ url_for('dashboard.mapa') }}"
+            class="nav-link {% if request.endpoint == 'dashboard.monitoramento' %}active{% endif %}"
+            href="{{ url_for('dashboard.monitoramento') }}"
           >
-            <i class="bi bi-arrow-left-right me-2"></i>
+            <i class="bi bi-activity me-2"></i>
             Monitoramento
           </a>
 
