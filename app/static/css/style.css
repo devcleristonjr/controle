@@ -772,3 +772,93 @@ a:focus-visible {
     min-height: 42px;
   }
 }
+
+
+/* Refinamento visual da jornada MAPA -> PONTO -> MATERIAL -> AÇÃO */
+.point-card {
+  overflow: hidden;
+}
+
+.point-card-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.point-card-more {
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.point-card-more summary,
+.card-soft > summary {
+  list-style: none;
+}
+
+.point-card-more summary::-webkit-details-marker,
+.card-soft > summary::-webkit-details-marker {
+  display: none;
+}
+
+.point-card-more summary::after,
+.card-soft > summary::after {
+  content: "＋";
+  float: right;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.point-card-more[open] summary::after,
+.card-soft > summary[open]::after {
+  content: "−";
+}
+
+.material-point-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem;
+  background: var(--surface-soft);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.material-point-card:hover {
+  border-color: rgba(21, 94, 239, 0.22);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
+}
+
+.material-point-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.material-point-metric span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.material-point-metric strong {
+  font-size: 1rem;
+}
+
+@media (max-width: 575.98px) {
+  .point-card-summary {
+    align-items: flex-start;
+  }
+
+  .material-point-metric {
+    padding: 0.55rem;
+  }
+
+  .material-point-metric strong {
+    font-size: 0.92rem;
+  }
+}
