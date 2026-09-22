@@ -95,7 +95,7 @@
   <div class="col-lg-6">
     <div class="card card-soft h-100">
       <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
-        <strong>Resumo de estoque</strong>
+        <strong>Resumo dos materiais</strong>
         <a class="small text-decoration-none" href="{{ url_for('dashboard.monitoramento') }}">Monitorar →</a>
       </div>
       <div class="card-body">
@@ -109,14 +109,14 @@
 
   <div class="col-12">
     <details class="card card-soft">
-      <summary class="card-body fw-semibold" style="cursor:pointer;">Últimas movimentações</summary>
+      <summary class="card-body fw-semibold" style="cursor:pointer;">Últimos registros</summary>
       <div class="card-body pt-0 table-responsive">
         <table class="table table-modern align-middle mb-0">
           <thead><tr><th>Data</th><th>Usuário</th><th>Local</th><th>Material</th><th>Tipo</th><th>Qtd.</th><th>Antes</th><th>Depois</th></tr></thead>
           <tbody>
             {% for mov in metrics.recent_movements %}
               <tr><td>{{ mov.created_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td><td>{{ mov.usuario.nome }}</td><td>{{ mov.ponto_estoque.nome }}</td><td>{{ mov.material.nome }}</td><td>{{ mov.tipo }}</td><td>{{ '%.0f'|format(mov.quantidade) }}</td><td>{{ '%.0f'|format(mov.quantidade_anterior) }}</td><td>{{ '%.0f'|format(mov.quantidade_posterior) }}</td></tr>
-            {% else %}<tr><td colspan="8" class="text-muted">Nenhuma movimentação registrada.</td></tr>{% endfor %}
+            {% else %}<tr><td colspan="8" class="text-muted">Nenhum registro anterior.</td></tr>{% endfor %}
           </tbody>
         </table>
       </div>
