@@ -234,6 +234,20 @@
     button.addEventListener('click', refreshMap);
   }
 
+  const clearButton = document.getElementById('map-clear-filters');
+  if (clearButton) {
+    clearButton.addEventListener('click', () => {
+      Object.values(filters).forEach((element) => {
+        if (element) {
+          element.value = '';
+        }
+      });
+      refreshMap().catch((error) => {
+        console.error(error);
+      });
+    });
+  }
+
   refreshMap().catch((error) => {
     console.error(error);
   });
