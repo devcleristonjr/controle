@@ -57,7 +57,7 @@
       <div class="card-body table-responsive">
         <table class="table align-middle mb-0">
           <thead>
-            <tr><th>Material</th><th>Em uso no ponto</th><th>Total geral</th><th>Alocado geral</th><th>Disponível</th></tr>
+            <tr><th>Material</th><th>Em uso no ponto</th><th>Total geral</th><th>Alocado geral</th><th>Disponível</th><th>Ações</th></tr>
           </thead>
           <tbody>
             {% for material in operational_snapshot.materials %}
@@ -68,9 +68,19 @@
                 <td>{{ '%.0f'|format(snapshot.get('total', 0)) }}</td>
                 <td>{{ '%.0f'|format(snapshot.get('allocated', 0)) }}</td>
                 <td class="{% if snapshot.get('is_inconsistent') %}text-danger fw-semibold{% endif %}">{{ '%.0f'|format(snapshot.get('available', 0)) }}</td>
+                <td>
+                  {% if material.in_use == 0 %}
+                    <form method="post" action="{{ url_for('estoques.remove_material', ponto_id=ponto.id, material_id=material.material_id) }}" onsubmit="return confirm('Remover este material do ponto? O histórico será preservado.');">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Remover</button>
+                    </form>
+                  {% else %}
+                    <span class="text-muted small">Zere antes</span>
+                  {% endif %}
+                </td>
               </tr>
             {% else %}
-              <tr><td colspan="5" class="text-muted">Nenhum material registrado neste ponto.</td></tr>
+              <tr><td colspan="6" class="text-muted">Nenhum material registrado neste ponto.</td></tr>
             {% endfor %}
           </tbody>
         </table>
