@@ -1,54 +1,69 @@
 {% extends 'base.html' %}
-{% block title %}Estoques | Estoque Bahia{% endblock %}
+{% block title %}Pontos | Estoque Bahia{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
     <h1 class="h3 fw-bold mb-1">Pontos de estoque</h1>
-    <p class="text-muted mb-0">Liste, filtre e acesse detalhes dos pontos cadastrados.</p>
+    <p class="text-muted mb-0">Acesse rapidamente cada ponto e veja o que precisa de atenção.</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
-    {% if current_user.is_admin %}<a href="{{ url_for('estoques.legacy_audit') }}" class="btn btn-outline-info">Auditar legado</a><a href="{{ url_for('estoques.legacy_migration') }}" class="btn btn-outline-warning">Migrar legado</a>{% endif %}
-    <a href="{{ url_for('estoques.create') }}" class="btn btn-primary">Novo ponto</a>
+    <a href="{{ url_for('dashboard.mapa') }}" class="btn btn-outline-primary"><i class="bi bi-geo-alt me-1"></i>Mapa</a>
+    <a href="{{ url_for('estoques.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Novo ponto</a>
   </div>
 </div>
 
-<div class="card card-soft">
-  <div class="card-body table-responsive">
-    <table class="table align-middle mb-0">
-      <thead>
-        <tr><th>Local</th><th>Município</th><th>Território</th><th>Responsável</th><th>Banners</th><th>Última atualização</th><th>Ações</th></tr>
-      </thead>
-      <tbody>
-        {% for ponto in pontos %}
-          <tr>
-            <td class="fw-semibold">{{ ponto.nome }}</td>
-            <td>{{ ponto.municipio.nome }}</td>
-            <td>{{ ponto.municipio.territorio.nome }}</td>
-            <td>{{ ponto.responsavel_nome or '-' }}</td>
-            <td>{{ '%.0f'|format(banner_totals.get(ponto.id, 0)) }}</td>
-            <td>{{ ponto.updated_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td>
-            <td class="d-flex gap-2 flex-wrap">
-              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}">Visualizar</a>
-              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar</a>
-              <a class="btn btn-sm btn-outline-success" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Estoque</a>
-              <a class="btn btn-sm btn-outline-dark" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Histórico</a>
-              <form method="post" action="{{ url_for('estoques.deactivate', ponto_id=ponto.id) }}" onsubmit="return confirm('Desativar este ponto?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
-              </form>
-              {% if current_user.is_admin %}
-                <form method="post" action="{{ url_for('estoques.delete', ponto_id=ponto.id) }}" onsubmit="return confirm('Excluir este ponto permanentemente? Esta ação também remove histórico, coletas e estoques vinculados.');">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm btn-danger" type="submit">Excluir</button>
-                </form>
-              {% endif %}
-            </td>
-          </tr>
-        {% else %}
-          <tr><td colspan="7" class="text-muted">Nenhum ponto cadastrado.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+{% if current_user.is_admin %}
+<details class="card card-soft mb-3">
+  <summary class="card-body fw-semibold" style="cursor:pointer;">Ferramentas administrativas</summary>
+  <div class="card-body pt-0 d-flex gap-2 flex-wrap">
+    <a href="{{ url_for('estoques.legacy_audit') }}" class="btn btn-outline-info">Auditar legado</a>
+    <a href="{{ url_for('estoques.legacy_migration') }}" class="btn btn-outline-warning">Migrar legado</a>
   </div>
+</details>
+{% endif %}
+
+<div class="row g-3">
+{% for ponto in pontos %}
+  <div class="col-12 col-xl-6">
+    <div class="card card-soft h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <h2 class="h5 fw-bold mb-1">{{ ponto.nome }}</h2>
+            <div class="text-muted small">{{ ponto.municipio.nome }} • {{ ponto.municipio.territorio.nome }}</div>
+          </div>
+          {% if ponto.ativo %}
+            <span class="badge text-bg-success">Ativo</span>
+          {% else %}
+            <span class="badge text-bg-secondary">Inativo</span>
+          {% endif %}
+        </div>
+
+        <div class="row g-2 small mb-3">
+          <div class="col-6"><div class="border rounded p-2"><span class="text-muted d-block">Responsável</span><strong>{{ ponto.responsavel_nome or '-' }}</strong></div></div>
+          <div class="col-6"><div class="border rounded p-2"><span class="text-muted d-block">Banners</span><strong>{{ '%.0f'|format(banner_totals.get(ponto.id, 0)) }}</strong></div></div>
+        </div>
+
+        <div class="small text-muted mb-3">Atualizado em {{ ponto.updated_at|datahora_bahia('%d/%m/%Y %H:%M') }}</div>
+
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-sm btn-primary" href="{{ url_for('estoques.detail', ponto_id=ponto.id) }}"><i class="bi bi-box-seam me-1"></i>Ver ponto</a>
+          <a class="btn btn-sm btn-warning" href="{{ url_for('dashboard.monitoramento', responsavel=ponto.responsavel_nome or '') }}"><i class="bi bi-activity me-1"></i>Monitorar</a>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar</a>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.history', ponto_id=ponto.id) }}">Histórico</a>
+          <a class="btn btn-sm btn-outline-success" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Ajustar estoque</a>
+          {% if current_user.is_admin %}
+          <form method="post" action="{{ url_for('estoques.deactivate', ponto_id=ponto.id) }}" onsubmit="return confirm('Desativar este ponto?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="col-12"><div class="card card-soft"><div class="card-body text-muted">Nenhum ponto cadastrado.</div></div></div>
+{% endfor %}
 </div>
 {% endblock %}
