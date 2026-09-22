@@ -107,6 +107,17 @@
             </a>
           </li>
 
+          <!-- Monitoramento -->
+          <li class="nav-item">
+            <a
+              class="nav-link {% if request.endpoint == 'dashboard.monitoramento' %}active{% endif %}"
+              href="{{ url_for('dashboard.monitoramento') }}"
+            >
+              <i class="bi bi-activity me-2"></i>
+              Monitoramento
+            </a>
+          </li>
+
           <!-- Materiais -->
           <li class="nav-item">
             <a
