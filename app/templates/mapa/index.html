@@ -17,8 +17,16 @@
 
 <div class="card card-soft mb-3">
   <div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <div>
+        <div class="fw-semibold">Encontre um ponto no mapa</div>
+        <div class="small text-muted">Use os filtros principais ou abra “Mais filtros” para uma busca detalhada.</div>
+      </div>
+      <span class="badge text-bg-light">Mapa operacional</span>
+    </div>
+
     <div class="row g-3 align-items-end">
-      <div class="col-md-3">
+      <div class="col-lg-3 col-md-6">
         <label class="form-label" for="filter-territorio">Território</label>
         <select id="filter-territorio" class="form-select">
           <option value="">Todos</option>
@@ -27,7 +35,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-3">
+      <div class="col-lg-3 col-md-6">
         <label class="form-label" for="filter-municipio">Município</label>
         <select id="filter-municipio" class="form-select">
           <option value="">Todos</option>
@@ -36,7 +44,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-3">
+      <div class="col-lg-3 col-md-6">
         <label class="form-label" for="filter-material">Material</label>
         <select id="filter-material" class="form-select">
           <option value="">Todos</option>
@@ -45,15 +53,7 @@
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-2">
-        <label class="form-label" for="filter-status">Status</label>
-        <select id="filter-status" class="form-select">
-          <option value="">Todos</option>
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
-        </select>
-      </div>
-      <div class="col-md-2">
+      <div class="col-lg-3 col-md-6">
         <label class="form-label" for="filter-replenishment">Reposição</label>
         <select id="filter-replenishment" class="form-select">
           <option value="">Todos</option>
@@ -61,43 +61,59 @@
           <option value="without">Sem necessidade</option>
         </select>
       </div>
-      <div class="col-md-3">
-        <label class="form-label" for="filter-responsavel">Responsável</label>
-        <input id="filter-responsavel" class="form-control" type="text" placeholder="Nome do responsável">
+    </div>
+
+    <details class="mt-3">
+      <summary class="fw-semibold">Mais filtros</summary>
+      <div class="row g-3 align-items-end pt-3">
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="filter-status">Status</label>
+          <select id="filter-status" class="form-select">
+            <option value="">Todos</option>
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+          </select>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="filter-responsavel">Responsável</label>
+          <input id="filter-responsavel" class="form-control" type="text" placeholder="Nome do responsável">
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="filter-localizador">Rua/Localizador</label>
+          <input id="filter-localizador" class="form-control" type="text" placeholder="Ex.: WHATS-001">
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="filter-occurrence-type">Ocorrência</label>
+          <select id="filter-occurrence-type" class="form-select">
+            <option value="">Todas</option>
+            <option value="DANIFICADO">Danificado</option>
+            <option value="PERDIDO">Perdido</option>
+            <option value="RETIRADO">Retirado</option>
+            <option value="REPOSICAO_NECESSARIA">Precisa de reposição</option>
+          </select>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="filter-with-occurrences">Situação de ocorrência</label>
+          <select id="filter-with-occurrences" class="form-select">
+            <option value="">Todos</option>
+            <option value="with">Com ocorrências</option>
+            <option value="without">Sem ocorrências</option>
+          </select>
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="filter-period-start">Período (início)</label>
+          <input id="filter-period-start" class="form-control" type="date">
+        </div>
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label" for="filter-period-end">Período (fim)</label>
+          <input id="filter-period-end" class="form-control" type="date">
+        </div>
       </div>
-      <div class="col-md-3">
-        <label class="form-label" for="filter-localizador">Rua/Localizador</label>
-        <input id="filter-localizador" class="form-control" type="text" placeholder="Ex.: WHATS-001">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="filter-occurrence-type">Ocorrência</label>
-        <select id="filter-occurrence-type" class="form-select">
-          <option value="">Todas</option>
-          <option value="DANIFICADO">Danificado</option>
-          <option value="PERDIDO">Perdido</option>
-          <option value="RETIRADO">Retirado</option>
-          <option value="REPOSICAO_NECESSARIA">Precisa de reposição</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="filter-with-occurrences">Situação de ocorrência</label>
-        <select id="filter-with-occurrences" class="form-select">
-          <option value="">Todos</option>
-          <option value="with">Com ocorrências</option>
-          <option value="without">Sem ocorrências</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="filter-period-start">Período (início)</label>
-        <input id="filter-period-start" class="form-control" type="date">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label" for="filter-period-end">Período (fim)</label>
-        <input id="filter-period-end" class="form-control" type="date">
-      </div>
-      <div class="col-md-2 d-grid">
-        <button id="map-filter-button" class="btn btn-primary" type="button">Aplicar</button>
-      </div>
+    </details>
+
+    <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
+      <button id="map-clear-filters" class="btn btn-outline-secondary" type="button">Limpar filtros</button>
+      <button id="map-filter-button" class="btn btn-primary" type="button"><i class="bi bi-search me-1"></i>Aplicar filtros</button>
     </div>
   </div>
 </div>
