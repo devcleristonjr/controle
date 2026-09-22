@@ -16,6 +16,7 @@
   }).addTo(map);
 
   const markerLayer = L.layerGroup().addTo(map);
+
   const totalPontosEl = document.getElementById('map-total-pontos');
   const totalMetricEl = document.getElementById('map-total-banners');
   const totalMetricLabelEl = document.getElementById('map-total-metric-label');
