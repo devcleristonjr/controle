@@ -84,7 +84,7 @@
   function renderMap(points, adjustBounds = true) { // NOSONAR
     markerLayer.clearLayers();
     let totalMetric = 0;
-    let metricLabel = 'Estoque total';
+    let metricLabel = 'Em condições de uso';
     const bounds = [];
     const duplicateCounts = new Map();
 
@@ -115,7 +115,7 @@
           <div class="p-1" style="min-width: 240px; max-width: 320px;">
             <div class="fw-bold mb-1">Agrupamento de pontos (${count})</div>
             <div class="small text-muted mb-2">Aproxime o zoom para ver os pontos individualmente.</div>
-            <div class="small mb-2"><strong>Em uso estimado:</strong> ${Math.round(cluster.totalInUse)}</div>
+            <div class="small mb-2"><strong>Em condições de uso:</strong> ${Math.round(cluster.totalInUse)}</div>
             <div class="small mb-2"><strong>Reposição necessária:</strong> ${Math.round(cluster.totalReplenishment)}</div>
             <div class="small">${preview}</div>
             ${extra}
@@ -159,7 +159,7 @@
         `
         : '<div class="mb-2"><strong>Materiais:</strong> <span class="text-muted">Sem estoque informado</span></div>';
       totalMetric += pointMetric;
-      metricLabel = hasMaterialFilter ? (point.metric_label || metricLabel) : 'Estoque total';
+      metricLabel = hasMaterialFilter ? (point.metric_label || metricLabel) : 'Em condições de uso';
       bounds.push([point.latitude, point.longitude]);
 
       const coordinateKey = `${point.latitude}:${point.longitude}`;
