@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from app import create_app
 from app.extensions import db
+from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
@@ -132,3 +133,59 @@ def test_map_api_advanced_filters_match_allocation_monitoring_fields():
 
     assert len(by_period) == 1
     assert by_period[0]["occurrence_count"] == 1
+
+def test_dashboard_map_and_monitoring_include_legacy_only_points_without_double_counting():
+    app = create_app(TestingConfig)
+    with app.app_context():
+        db.create_all()
+        _seed_context_with_allocation_data()
+
+        territorio = Territorio.query.filter_by(codigo="MTR").first()
+        municipio = Municipio.query.filter_by(codigo_ibge="2927408").first()
+        material = Material.query.filter_by(nome="Bandeira").first()
+
+        legacy_point = PontoEstoque(
+            nome="Rua Y",
+            municipio_id=municipio.id,
+            latitude=Decimal("-12.9800"),
+            longitude=Decimal("-38.5100"),
+            ativo=True,
+        )
+        db.session.add(legacy_point)
+        db.session.flush()
+        db.session.add(
+            EstoqueMaterial(
+                ponto_estoque_id=legacy_point.id,
+                material_id=material.id,
+                quantidade=Decimal("150"),
+            )
+        )
+        db.session.commit()
+
+    client = app.test_client()
+    client.post(
+        "/login",
+        data={"email": "admin@example.com", "password": "123456"},
+        follow_redirects=True,
+    )
+
+    dashboard = client.get("/api/dashboard").get_json()
+    mapa = client.get("/api/mapa").get_json()
+
+    assert dashboard["total_points"] == 2
+    assert dashboard["total_stock_allocated"] == 550.0
+    assert dashboard["total_in_use"] == 540.0
+    assert dashboard["stock_summary"]["allocated"] == 550.0
+    assert dashboard["stock_summary"]["available"] == 450.0
+
+    by_material = client.get("/api/mapa?material_id=1").get_json()
+    legacy_map_point = next(point for point in mapa if point["nome"] == "Rua Y")
+    assert legacy_map_point["fonte_operacional"] == "legacy"
+    assert legacy_map_point["status_migracao"] == "Legado / aguardando migração"
+    assert legacy_map_point["total_alocado"] == 150.0
+    assert len(by_material) == 2
+
+    monitoring = client.get("/monitoramento").get_data(as_text=True)
+    assert "Rua X" in monitoring
+    assert "Rua Y" in monitoring
+    assert "Legado / transição" in monitoring
