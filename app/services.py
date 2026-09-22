@@ -813,7 +813,6 @@ def build_map_points(filters: dict | None = None) -> list[dict]:  # NOSONAR
     occurrence_type = (filters.get("occurrence_type") or "").strip().upper()
     period_start = _parse_date_start(filters.get("period_start"))
     period_end = _parse_date_end(filters.get("period_end"))
-    replenishment_filter = (filters.get("replenishment") or "").strip().lower()
 
     query = (
         db.session.query(PontoEstoque)
@@ -824,37 +823,33 @@ def build_map_points(filters: dict | None = None) -> list[dict]:  # NOSONAR
     query = _apply_point_filters(query, filters)
     query = _apply_monitoring_filters_to_points_query(query, filters)
 
-    if material_id:
-        query = query.join(PontoEstoque.alocacoes).filter(
-            AlocacaoPontoMaterial.material_id == material_id,
-            AlocacaoPontoMaterial.ativo.is_(True),
-        )
-
     points = []
     for point in query.order_by(PontoEstoque.nome.asc()).all():
-        allocation_aggregate = (
-            db.session.query(
-                func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_alocada), 0),
-                func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_em_uso), 0),
-                func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_reposicao_pendente), 0),
-                func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_danificada_total), 0),
-            )
-            .select_from(AlocacaoPontoMaterial)
-            .filter(
-                AlocacaoPontoMaterial.ponto_estoque_id == point.id,
-                AlocacaoPontoMaterial.ativo.is_(True),
-            )
-            .first()
-        )
-        total_allocated = Decimal(allocation_aggregate[0] or 0)
-        total_in_use = Decimal(allocation_aggregate[1] or 0)
-        total_replenishment_needed = Decimal(allocation_aggregate[2] or 0)
-        total_damaged = Decimal(allocation_aggregate[3] or 0)
+        snapshot = get_point_operational_snapshot(point)
+        snapshot_materials = snapshot["materials"]
+        if material_id:
+            snapshot_materials = [
+                item for item in snapshot_materials if item["material_id"] == material_id
+            ]
+            if not snapshot_materials:
+                continue
 
-        if replenishment_filter == "with" and total_replenishment_needed <= 0:
-            continue
-        if replenishment_filter == "without" and total_replenishment_needed > 0:
-            continue
+        total_allocated = sum(
+            (Decimal(item["allocated"]) for item in snapshot_materials),
+            Decimal("0"),
+        )
+        total_in_use = sum(
+            (Decimal(item["in_use"]) for item in snapshot_materials),
+            Decimal("0"),
+        )
+        total_replenishment_needed = sum(
+            (Decimal(item["replenishment_pending"]) for item in snapshot_materials),
+            Decimal("0"),
+        )
+        total_damaged = sum(
+            (Decimal(item["damaged"]) for item in snapshot_materials),
+            Decimal("0"),
+        )
 
         point_localizadores = (
             db.session.query(AlocacaoPontoMaterial.localizador)
@@ -886,69 +881,38 @@ def build_map_points(filters: dict | None = None) -> list[dict]:  # NOSONAR
             occurrence_summary_query = occurrence_summary_query.filter(OcorrenciaAlocacao.ocorrido_em >= period_start)
         if period_end is not None:
             occurrence_summary_query = occurrence_summary_query.filter(OcorrenciaAlocacao.ocorrido_em < period_end)
-
         occurrence_count, last_occurrence_at = occurrence_summary_query.first()
 
-        material_summary = (
-            db.session.query(Material.nome, func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_em_uso), 0))
-            .select_from(AlocacaoPontoMaterial)
-            .join(AlocacaoPontoMaterial.material)
-            .filter(
-                AlocacaoPontoMaterial.ponto_estoque_id == point.id,
-                AlocacaoPontoMaterial.ativo.is_(True),
+        material_summary = [
+            {
+                "nome": item["material"],
+                "quantidade": float(item["in_use"]),
+            }
+            for item in sorted(
+                snapshot_materials,
+                key=lambda item: (-Decimal(item["in_use"]), item["material"]),
             )
-            .group_by(Material.nome)
-            .order_by(func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_em_uso), 0).desc(), Material.nome.asc())
-            .all()
-        )
+            if Decimal(item["in_use"]) > 0
+        ]
 
-        if total_allocated == Decimal("0") and total_in_use == Decimal("0"):
-            # Transitional fallback for points still represented only in legacy stock rows.
-            total_stock = (
-                db.session.query(func.coalesce(func.sum(EstoqueMaterial.quantidade), 0))
-                .select_from(EstoqueMaterial)
-                .filter(EstoqueMaterial.ponto_estoque_id == point.id)
-                .scalar()
-                or Decimal("0")
-            )
-            total_allocated = Decimal(total_stock)
-            total_in_use = Decimal(total_stock)
-            material_summary = (
-                db.session.query(Material.nome, EstoqueMaterial.quantidade)
-                .select_from(EstoqueMaterial)
-                .join(EstoqueMaterial.material)
-                .filter(EstoqueMaterial.ponto_estoque_id == point.id)
-                .order_by(EstoqueMaterial.quantidade.desc(), Material.nome.asc())
-                .all()
-            )
+        sources = {item.get("source", snapshot["source"]) for item in snapshot_materials}
+        if sources == {"operational"}:
+            migration_source = "operational"
+            migration_label = "Operacional"
+        elif sources == {"legacy"}:
+            migration_source = "legacy"
+            migration_label = "Legado / aguardando migração"
+        else:
+            migration_source = "hybrid"
+            migration_label = "Em transição"
 
         if material_id:
-            metric_total = (
-                db.session.query(func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_em_uso), 0))
-                .select_from(AlocacaoPontoMaterial)
-                .filter(
-                    AlocacaoPontoMaterial.ponto_estoque_id == point.id,
-                    AlocacaoPontoMaterial.material_id == material_id,
-                    AlocacaoPontoMaterial.ativo.is_(True),
-                )
-                .scalar()
-                or Decimal("0")
-            )
-            if Decimal(metric_total) == Decimal("0"):
-                metric_total = (
-                    db.session.query(func.coalesce(func.sum(EstoqueMaterial.quantidade), 0))
-                    .select_from(EstoqueMaterial)
-                    .filter(
-                        EstoqueMaterial.ponto_estoque_id == point.id,
-                        EstoqueMaterial.material_id == material_id,
-                    )
-                    .scalar()
-                    or Decimal("0")
-                )
+            metric_total = total_in_use
             metric_label = selected_material.nome if selected_material is not None else "Material selecionado"
         else:
             metric_total = total_in_use
-            metric_label = "Estoque total"
+            metric_label = "Estoque em uso"
+
         points.append(
             {
                 "id": point.id,
@@ -969,22 +933,16 @@ def build_map_points(filters: dict | None = None) -> list[dict]:  # NOSONAR
                 "total_reposicao_necessaria": float(total_replenishment_needed),
                 "total_danificado": float(total_damaged),
                 "total_estoque": float(total_in_use),
-                "materiais_resumo": [
-                    {
-                        "nome": material_name,
-                        "quantidade": float(material_quantity),
-                    }
-                    for material_name, material_quantity in material_summary
-                ],
+                "fonte_operacional": migration_source,
+                "status_migracao": migration_label,
+                "materiais_resumo": material_summary,
                 "metric_label": metric_label,
                 "metric_value": float(metric_total),
-                # Backward compatible key used by existing frontend snippets.
                 "total_banners": float(metric_total),
                 "detail_url": f"/estoques/{point.id}",
             }
         )
     return points
-
 
 def update_stock(
     point: PontoEstoque,
