@@ -11,7 +11,7 @@ from app.extensions import db
 from app.forms import MATERIAL_UNIT_CHOICES, MaterialForm
 from app.models.material import Material
 from app.security import admin_required
-from app.services import get_material_stock_snapshots, list_material_stock_inconsistencies, set_material_total
+from app.services import delete_material_if_empty, get_material_stock_snapshots, list_material_stock_inconsistencies, set_material_total
 
 
 materiais_bp = Blueprint("materiais", __name__, url_prefix="/materiais")
@@ -118,13 +118,13 @@ def deactivate(material_id: int):
 def delete(material_id: int):
     material = Material.query.get_or_404(material_id)
     try:
-        db.session.delete(material)
+        delete_material_if_empty(material)
         db.session.commit()
-        flash("Material excluído permanentemente.", "warning")
+        flash("Material excluído permanentemente. O histórico vinculado também foi removido.", "warning")
+    except ValueError as exc:
+        db.session.rollback()
+        flash(str(exc), "danger")
     except IntegrityError:
         db.session.rollback()
-        flash(
-            "Não foi possível excluir este material porque ele possui vínculos com estoque ou histórico.",
-            "danger",
-        )
+        flash("Não foi possível excluir este material por causa de um vínculo não previsto.", "danger")
     return redirect(url_for(MATERIAIS_INDEX_ENDPOINT))

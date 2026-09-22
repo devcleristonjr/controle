@@ -3,8 +3,10 @@ from datetime import datetime
 
 from app import create_app
 from app.extensions import db
+from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
+from app.models.ocorrencia_alocacao import OcorrenciaAlocacao
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
 from app.models.territorio import Territorio
@@ -577,3 +579,94 @@ def test_material_index_flags_legacy_unit_values_for_review():
     assert response.status_code == 200
     assert "Unidades legadas fora do padrão" in html
     assert 'Banner legado: unidade atual "500"' in html
+
+
+def test_zeroed_material_can_be_removed_from_point_and_deleted_without_history_blocking():
+    app = create_app(TestingConfig)
+    with app.app_context():
+        db.create_all()
+        admin = Usuario(nome="Admin", email="admin@example.com", perfil="ADMIN", ativo=True)
+        admin.set_password("123456")
+        db.session.add(admin)
+        territorio = Territorio(nome="Recôncavo", codigo="REC", ativo=True)
+        db.session.add(territorio)
+        db.session.flush()
+        municipio = Municipio(nome="Cachoeira", territorio_id=territorio.id, codigo_ibge="2904909", ativo=True)
+        db.session.add(municipio)
+        db.session.flush()
+        ponto = PontoEstoque(
+            nome="Ponto material removível",
+            municipio_id=municipio.id,
+            latitude=Decimal("-12.618611"),
+            longitude=Decimal("-38.955556"),
+            ativo=True,
+        )
+        material = Material(nome="Material com histórico", quantidade_total=Decimal("10"), unidade="un", ativo=True)
+        db.session.add_all([ponto, material])
+        db.session.flush()
+        allocation = AlocacaoPontoMaterial(
+            ponto_estoque_id=ponto.id,
+            material_id=material.id,
+            quantidade_alocada=Decimal("10"),
+            quantidade_em_uso=Decimal("0"),
+            quantidade_danificada_total=Decimal("10"),
+            quantidade_perdida_total=Decimal("0"),
+            quantidade_retirada_total=Decimal("0"),
+            quantidade_reposicao_pendente=Decimal("10"),
+            ativo=True,
+        )
+        db.session.add(allocation)
+        db.session.flush()
+        occurrence = OcorrenciaAlocacao(
+            alocacao_id=allocation.id,
+            tipo="DANIFICADO",
+            quantidade_afetada=Decimal("10"),
+            descricao="Histórico de teste",
+            origem="PAINEL",
+        )
+        db.session.add(occurrence)
+        db.session.commit()
+        ponto_id = ponto.id
+        material_id = material.id
+        allocation_id = allocation.id
+        occurrence_id = occurrence.id
+
+    client = app.test_client()
+    client.post(
+        "/login",
+        data={"email": "admin@example.com", "password": "123456"},
+        follow_redirects=True,
+    )
+
+    page = client.get(f"/estoques/{ponto_id}")
+    csrf_match = __import__("re").search(r'name="csrf_token" value="([^"]+)"', page.get_data(as_text=True))
+    assert csrf_match is not None
+
+    remove_response = client.post(
+        f"/estoques/{ponto_id}/materiais/{material_id}/remover",
+        data={"csrf_token": csrf_match.group(1)},
+        follow_redirects=True,
+    )
+    assert remove_response.status_code == 200
+
+    with app.app_context():
+        allocation = db.session.get(AlocacaoPontoMaterial, allocation_id)
+        assert allocation is not None
+        assert allocation.ativo is False
+        assert db.session.get(OcorrenciaAlocacao, occurrence_id) is not None
+
+    page = client.get("/materiais/")
+    csrf_match = __import__("re").search(r'name="csrf_token" value="([^"]+)"', page.get_data(as_text=True))
+    assert csrf_match is not None
+    delete_response = client.post(
+        f"/materiais/{material_id}/excluir",
+        data={"csrf_token": csrf_match.group(1)},
+        follow_redirects=True,
+    )
+    assert delete_response.status_code == 200
+
+    with app.app_context():
+        assert db.session.get(Material, material_id) is None
+        assert db.session.get(AlocacaoPontoMaterial, allocation_id) is None
+        assert db.session.get(OcorrenciaAlocacao, occurrence_id) is None
+

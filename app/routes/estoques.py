@@ -33,6 +33,7 @@ from app.services import (
     get_legacy_transition_audit,
     migrate_legacy_stock_to_allocation,
     get_point_operational_snapshot,
+    remove_material_from_point,
     register_allocation_occurrence,
     register_allocation_replenishment,
     update_stock,
@@ -245,6 +246,24 @@ def register_replenishment(alocacao_id: int):
         alocacao=alocacao,
         ponto=alocacao.ponto_estoque,
     )
+
+
+@estoques_bp.post("/<int:ponto_id>/materiais/<int:material_id>/remover")
+@login_required
+@role_required("ADMIN", "OPERADOR")
+def remove_material(ponto_id: int, material_id: int):
+    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    material = Material.query.get_or_404(material_id)
+    try:
+        removed = remove_material_from_point(point=ponto, material=material)
+        if not removed:
+            raise ValueError("Este material não possui registro atual para remover neste ponto.")
+        db.session.commit()
+        flash(f"{material.nome} removido do ponto. O histórico foi preservado.", "success")
+    except ValueError as exc:
+        db.session.rollback()
+        flash(str(exc), "danger")
+    return redirect(url_for(ESTOQUES_DETAIL_ENDPOINT, ponto_id=ponto.id))
 
 
 @estoques_bp.route("/<int:ponto_id>/editar", methods=["GET", "POST"])

@@ -48,11 +48,15 @@ def _sum_allocated_stock_all() -> Decimal:
 
 
 def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
-    """Count operational allocations and legacy stock only where no allocation exists."""
+    """Count current stock in use and legacy stock only where no allocation exists.
+
+    quantidade_alocada is the historical/original allocation size; quantidade_em_uso
+    is the current operational quantity and is what controls current stock.
+    """
     allocation_rows = (
         db.session.query(
             AlocacaoPontoMaterial.ponto_estoque_id,
-            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_alocada), 0),
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_em_uso), 0),
         )
         .filter(
             AlocacaoPontoMaterial.material_id == material_id,
@@ -387,6 +391,62 @@ def register_allocation_replenishment(
     db.session.add(replenishment)
     db.session.flush()
     return replenishment
+
+
+def remove_material_from_point(*, point: PontoEstoque, material: Material) -> bool:
+    """Remove the material from the point without deleting its operational history."""
+    allocations = AlocacaoPontoMaterial.query.filter_by(
+        ponto_estoque_id=point.id,
+        material_id=material.id,
+        ativo=True,
+    ).all()
+    legacy_rows = EstoqueMaterial.query.filter_by(
+        ponto_estoque_id=point.id,
+        material_id=material.id,
+    ).all()
+
+    current_operational = sum(
+        (Decimal(allocation.quantidade_em_uso or 0) for allocation in allocations),
+        Decimal("0"),
+    )
+    current_legacy = sum(
+        (Decimal(row.quantidade or 0) for row in legacy_rows),
+        Decimal("0"),
+    )
+    if current_operational + current_legacy > 0:
+        raise ValueError(
+            "Não é possível remover este material enquanto houver quantidade atual no ponto. "
+            "Zere a quantidade em uso/estoque antes de remover."
+        )
+
+    for allocation in allocations:
+        allocation.ativo = False
+    for row in legacy_rows:
+        db.session.delete(row)
+    db.session.flush()
+    return bool(allocations or legacy_rows)
+
+
+def delete_material_if_empty(material: Material) -> None:
+    """Delete a material only when current stock is zero; history is removed with it."""
+    current_stock = _sum_effective_allocated_stock(material.id)
+    if current_stock > 0:
+        raise ValueError(
+            "Não é possível excluir o material enquanto houver quantidade atual em estoque ou nos pontos. "
+            "Zere/remova as quantidades atuais primeiro."
+        )
+
+    allocation_rows = AlocacaoPontoMaterial.query.filter_by(material_id=material.id).all()
+    db.session.query(MovimentacaoEstoque).filter(
+        MovimentacaoEstoque.material_id == material.id
+    ).delete(synchronize_session=False)
+    for allocation in allocation_rows:
+        db.session.delete(allocation)
+    db.session.query(EstoqueMaterial).filter(
+        EstoqueMaterial.material_id == material.id
+    ).delete(synchronize_session=False)
+    db.session.delete(material)
+    db.session.flush()
 
 
 def get_legacy_migration_candidates(point_id: int | None = None) -> list[dict]:
