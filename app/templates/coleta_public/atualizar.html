@@ -65,7 +65,7 @@
               <div class="small text-muted">Estoque total: {{ '%.0f'|format(row.total_quantity) }}</div>
               <div class="small text-muted">Já alocado: {{ '%.0f'|format(row.allocated_quantity) }}</div>
               <div class="small text-muted mb-2">Disponível: {{ '%.0f'|format(row.available_quantity) }} · Máximo final neste ponto: {{ '%.0f'|format(row.max_for_point) }}</div>
-              <label class="form-label small mb-1" for="qtd_{{ row.material.id }}">Nova quantidade</label>
+              <label class="form-label small mb-1" for="qtd_{{ row.material.id }}">Quantidade atualmente em uso no ponto</label>
               <input id="qtd_{{ row.material.id }}" class="form-control form-control-lg" type="number" min="0" step="1" name="qtd_{{ row.material.id }}" value="{{ request.form.get('qtd_' ~ row.material.id, '%.0f'|format(row.current_quantity)) }}">
             </div>
           {% else %}
