@@ -84,7 +84,7 @@
   function renderMap(points, adjustBounds = true) { // NOSONAR
     markerLayer.clearLayers();
     let totalMetric = 0;
-    let metricLabel = 'Estoque total';
+    let metricLabel = 'Em condições de uso';
     const bounds = [];
     const duplicateCounts = new Map();
 
@@ -115,7 +115,7 @@
           <div class="p-1" style="min-width: 240px; max-width: 320px;">
             <div class="fw-bold mb-1">Agrupamento de pontos (${count})</div>
             <div class="small text-muted mb-2">Aproxime o zoom para ver os pontos individualmente.</div>
-            <div class="small mb-2"><strong>Em uso estimado:</strong> ${Math.round(cluster.totalInUse)}</div>
+            <div class="small mb-2"><strong>Em condições de uso:</strong> ${Math.round(cluster.totalInUse)}</div>
             <div class="small mb-2"><strong>Reposição necessária:</strong> ${Math.round(cluster.totalReplenishment)}</div>
             <div class="small">${preview}</div>
             ${extra}
@@ -159,7 +159,7 @@
         `
         : '<div class="mb-2"><strong>Materiais:</strong> <span class="text-muted">Sem estoque informado</span></div>';
       totalMetric += pointMetric;
-      metricLabel = hasMaterialFilter ? (point.metric_label || metricLabel) : 'Estoque total';
+      metricLabel = hasMaterialFilter ? (point.metric_label || metricLabel) : 'Em condições de uso';
       bounds.push([point.latitude, point.longitude]);
 
       const coordinateKey = `${point.latitude}:${point.longitude}`;
@@ -187,10 +187,10 @@
           <div class="mb-2"><strong>Reposição necessária:</strong> <span class="${pointReplenishmentNeeded > 0 ? 'text-danger fw-semibold' : ''}">${pointReplenishmentNeeded}</span></div>
           ${hasMaterialFilter ? `<div class="mb-2"><strong>${escapeHtml(point.metric_label || 'Material selecionado')}:</strong> ${pointMetric}</div>` : ''}
           ${materialSummaryHtml}
-          <div class="mb-2"><strong>Responsável:</strong> ${escapeHtml(point.responsavel_nome || '-')}</div>
+          <div class="mb-2"><strong>Responsável pelo ponto:</strong> ${escapeHtml(point.responsavel_nome || '-')}</div>
           ${point.foto ? `<div class="mb-2"><img src="/${escapeHtml(point.foto)}" alt="Foto" style="width:100%;height:140px;object-fit:cover;border-radius:12px;"></div>` : ''}
           <div class="d-grid gap-2">
-            ${point.whatsapp_url ? `<a class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer" href="${escapeHtml(point.whatsapp_url)}">💬 Falar no WhatsApp</a>` : ''}
+            ${point.whatsapp_url ? `<a class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer" href="${escapeHtml(point.whatsapp_url)}">💬 Falar com o responsável</a>` : ''}
             <a class="btn btn-outline-primary btn-sm" href="${escapeHtml(point.detail_url)}">Ver detalhes</a>
           </div>
         </div>
