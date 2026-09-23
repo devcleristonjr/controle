@@ -1,25 +1,27 @@
 (() => {
   const mapElement = document.getElementById('leaflet-map');
-  if (!mapElement || typeof L === 'undefined') {
-    return;
-  }
+  if (!mapElement || typeof L === 'undefined') return;
 
   const map = L.map('leaflet-map', {
     maxBounds: [[-18.75, -46.5], [-8.0, -37.0]],
     maxBoundsViscosity: 1.0,
     minZoom: 6,
+    zoomControl: false,
+    preferCanvas: true,
   }).setView([-12.8, -41.7], 7);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18,
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   const markerLayer = L.layerGroup().addTo(map);
-
   const totalPontosEl = document.getElementById('map-total-pontos');
   const totalMetricEl = document.getElementById('map-total-banners');
   const totalMetricLabelEl = document.getElementById('map-total-metric-label');
+  const totalReplenishmentEl = document.getElementById('map-total-replenishment');
+  const replenishmentKpiEl = document.getElementById('map-replenishment-kpi');
 
   const filters = {
     territorio_id: document.getElementById('filter-territorio'),
@@ -37,218 +39,212 @@
 
   let cachedPoints = [];
 
+  function formatNumber(value) {
+    return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(Number(value || 0));
+  }
+
   function getQueryString() {
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, element]) => {
-      if (element?.value) {
-        params.set(key, element.value);
-      }
+      if (element && element.value) params.set(key, element.value);
     });
     return params.toString();
   }
 
   function escapeHtml(value) {
-    return String(value || '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
+    return String(value ?? '')
+      .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+  }
+
+  function getPointValues(point) {
+    return {
+      totalInUse: Number(point.total_em_uso ?? point.total_estoque ?? 0),
+      replenishment: Number(point.total_reposicao_necessaria ?? 0),
+      occurrences: Number(point.occurrence_count ?? 0),
+    };
+  }
+
+  function getStatus(point) {
+    const values = getPointValues(point);
+    if (values.replenishment > 0) return { className: 'status-replenishment', label: 'Reposição necessária' };
+    if (values.totalInUse <= 0) return { className: 'status-empty', label: 'Sem material' };
+    if (values.occurrences > 0) return { className: 'status-occurrence', label: 'Com ocorrência' };
+    return { className: 'status-ok', label: 'Com material' };
+  }
+
+  function createPointIcon(point) {
+    const values = getPointValues(point);
+    const status = getStatus(point);
+    return L.divIcon({
+      className: 'map-point-icon-wrapper',
+      html: '<div class="map-point-marker ' + status.className + '" title="' + escapeHtml(status.label) + '">' +
+        '<span class="map-point-pulse"></span>' +
+        '<span class="map-point-pin"><span class="map-point-quantity">' + formatNumber(values.totalInUse) + '</span></span>' +
+        '</div>',
+      iconSize: [58, 70], iconAnchor: [29, 58], popupAnchor: [0, -58], tooltipAnchor: [0, -52],
+    });
+  }
+
+  function createClusterIcon(cluster) {
+    const count = cluster.points.length;
+    const statusClass = cluster.totalReplenishment > 0 ? 'status-replenishment' : 'status-ok';
+    const size = Math.min(68, 42 + Math.min(count, 10) * 2);
+    return L.divIcon({
+      className: 'map-cluster-icon-wrapper',
+      html: '<div class="map-cluster-marker ' + statusClass + '" style="width:' + size + 'px;height:' + size + 'px;">' +
+        '<strong>' + formatNumber(count) + '</strong><span>pontos</span></div>',
+      iconSize: [size, size], iconAnchor: [size / 2, size / 2],
+    });
+  }
+
+  function buildPopup(point) {
+    const values = getPointValues(point);
+    const hasMaterialFilter = Boolean(filters.material_id && filters.material_id.value);
+    const materialSummary = Array.isArray(point.materiais_resumo) ? point.materiais_resumo : [];
+    const visibleMaterials = materialSummary.filter((item) => Number(item.quantidade || 0) > 0).slice(0, 5);
+    const status = getStatus(point);
+    const localizadores = Array.isArray(point.localizadores) ? point.localizadores : [];
+    const materialHtml = visibleMaterials.length ? visibleMaterials.map((item) =>
+      '<div class="map-popup-material"><span>' + escapeHtml(item.nome) + '</span><strong>' + formatNumber(item.quantidade) + '</strong></div>'
+    ).join('') : '<div class="map-popup-empty">Nenhum material registrado</div>';
+
+    return '<div class="map-popup-card">' +
+      '<div class="map-popup-top"><div><span class="map-popup-kicker">' + escapeHtml(point.municipio || 'Ponto') + '</span>' +
+      '<h3>' + escapeHtml(point.nome) + '</h3></div>' +
+      '<span class="map-popup-status ' + status.className + '"><i class="bi bi-circle-fill"></i>' + escapeHtml(status.label) + '</span></div>' +
+      '<div class="map-popup-summary">' +
+        '<div><span>Em condições de uso</span><strong>' + formatNumber(values.totalInUse) + '</strong></div>' +
+        '<div class="' + (values.replenishment > 0 ? 'is-alert' : '') + '"><span>Reposição</span><strong>' + formatNumber(values.replenishment) + '</strong></div>' +
+        '<div><span>Ocorrências</span><strong>' + formatNumber(values.occurrences) + '</strong></div>' +
+      '</div>' +
+      '<div class="map-popup-section"><span class="map-popup-section-title">' + (hasMaterialFilter ? 'Material selecionado' : 'Materiais no ponto') + '</span>' +
+        (hasMaterialFilter && point.metric_label ? '<div class="map-popup-material"><span>' + escapeHtml(point.metric_label) + '</span><strong>' + formatNumber(point.metric_value) + '</strong></div>' : materialHtml) +
+      '</div>' +
+      '<div class="map-popup-meta">' +
+        '<div><i class="bi bi-person"></i><span>Responsável</span><strong>' + escapeHtml(point.responsavel_nome || 'Não informado') + '</strong></div>' +
+        (localizadores.length ? '<div><i class="bi bi-pin-map"></i><span>Localizador</span><strong>' + escapeHtml(localizadores.join(' • ')) + '</strong></div>' : '') +
+      '</div>' +
+      (point.foto ? '<img class="map-popup-photo" src="/' + escapeHtml(point.foto) + '" alt="Foto do ponto">' : '') +
+      '<div class="map-popup-actions">' +
+        (point.whatsapp_url ? '<a class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(point.whatsapp_url) + '"><i class="bi bi-whatsapp me-1"></i> Falar com o responsável</a>' : '') +
+        '<a class="btn btn-primary btn-sm" href="' + escapeHtml(point.detail_url) + '">Ver detalhes <i class="bi bi-arrow-right ms-1"></i></a>' +
+      '</div></div>';
   }
 
   function aggregateByZoom(points, zoom) {
     const clusters = new Map();
-    const precision = zoom <= 7 ? 1 : 2;
+    const precision = zoom <= 7 ? 1 : zoom <= 9 ? 2 : 3;
     const factor = 10 ** precision;
     points.forEach((point) => {
       const latKey = Math.round(Number(point.latitude) * factor) / factor;
       const lngKey = Math.round(Number(point.longitude) * factor) / factor;
-      const key = `${latKey}:${lngKey}`;
-      if (!clusters.has(key)) {
-        clusters.set(key, {
-          lat: latKey,
-          lng: lngKey,
-          points: [],
-          totalInUse: 0,
-          totalReplenishment: 0,
-        });
-      }
+      const key = latKey + ':' + lngKey;
+      if (!clusters.has(key)) clusters.set(key, { lat: latKey, lng: lngKey, points: [], totalInUse: 0, totalReplenishment: 0 });
       const cluster = clusters.get(key);
+      const values = getPointValues(point);
       cluster.points.push(point);
-      cluster.totalInUse += Number(point.total_em_uso ?? point.total_estoque ?? 0);
-      cluster.totalReplenishment += Number(point.total_reposicao_necessaria ?? 0);
+      cluster.totalInUse += values.totalInUse;
+      cluster.totalReplenishment += values.replenishment;
     });
     return Array.from(clusters.values());
   }
 
+  function updateMetrics(points) {
+    const hasMaterialFilter = Boolean(filters.material_id && filters.material_id.value);
+    const totalInUse = points.reduce((sum, point) => sum + getPointValues(point).totalInUse, 0);
+    const totalReplenishment = points.reduce((sum, point) => sum + getPointValues(point).replenishment, 0);
+    const metricTotal = hasMaterialFilter ? points.reduce((sum, point) => sum + Number(point.metric_value || 0), 0) : totalInUse;
+    const metricLabel = hasMaterialFilter ? (points[0]?.metric_label || 'Material selecionado') : 'Em condições de uso';
+    if (totalPontosEl) totalPontosEl.textContent = formatNumber(points.length);
+    if (totalMetricEl) totalMetricEl.textContent = formatNumber(metricTotal);
+    if (totalMetricLabelEl) totalMetricLabelEl.textContent = metricLabel;
+    if (totalReplenishmentEl) totalReplenishmentEl.textContent = formatNumber(totalReplenishment);
+    if (replenishmentKpiEl) replenishmentKpiEl.classList.toggle('has-alert', totalReplenishment > 0);
+  }
+
   function renderMap(points, adjustBounds = true) { // NOSONAR
     markerLayer.clearLayers();
-    let totalMetric = 0;
-    let metricLabel = 'Em condições de uso';
+    updateMetrics(points);
     const bounds = [];
     const duplicateCounts = new Map();
-
-    const hasMaterialFilter = Boolean(filters.material_id?.value);
-
     const useClusterMode = map.getZoom() <= 9;
+
     if (useClusterMode) {
-      const clusters = aggregateByZoom(points, map.getZoom());
-      clusters.forEach((cluster) => {
+      aggregateByZoom(points, map.getZoom()).forEach((cluster) => {
         const count = cluster.points.length;
         bounds.push([cluster.lat, cluster.lng]);
-        totalMetric += cluster.totalInUse;
-
-        const marker = L.circleMarker([cluster.lat, cluster.lng], {
-          radius: Math.min(26, 10 + count),
-          weight: 2,
-          color: cluster.totalReplenishment > 0 ? '#b42318' : '#155eef',
-          fillColor: cluster.totalReplenishment > 0 ? '#f04438' : '#2e90fa',
-          fillOpacity: 0.75,
-        }).addTo(markerLayer);
-
-        const preview = cluster.points.slice(0, 5)
-          .map((point) => `${escapeHtml(point.nome)} (${escapeHtml(point.municipio)})`)
-          .join('<br>');
-        const extra = cluster.points.length > 5 ? `<div class="small text-muted mt-1">+${cluster.points.length - 5} pontos</div>` : '';
-
-        marker.bindPopup(`
-          <div class="p-1" style="min-width: 240px; max-width: 320px;">
-            <div class="fw-bold mb-1">Agrupamento de pontos (${count})</div>
-            <div class="small text-muted mb-2">Aproxime o zoom para ver os pontos individualmente.</div>
-            <div class="small mb-2"><strong>Em condições de uso:</strong> ${Math.round(cluster.totalInUse)}</div>
-            <div class="small mb-2"><strong>Reposição necessária:</strong> ${Math.round(cluster.totalReplenishment)}</div>
-            <div class="small">${preview}</div>
-            ${extra}
-          </div>
-        `);
+        const marker = L.marker([cluster.lat, cluster.lng], { icon: createClusterIcon(cluster), keyboard: true }).addTo(markerLayer);
+        const preview = cluster.points.slice(0, 6).map((point) => {
+          const values = getPointValues(point);
+          return '<div class="map-cluster-preview-row"><span>' + escapeHtml(point.nome) + '</span><strong>' + formatNumber(values.totalInUse) + '</strong></div>';
+        }).join('');
+        marker.bindTooltip('<div class="map-hover-tooltip"><strong>' + formatNumber(count) + ' pontos nesta área</strong><span>' + formatNumber(cluster.totalInUse) + ' em condições de uso</span></div>', {
+          direction: 'top', offset: [0, -10], opacity: 1, className: 'map-hover-tooltip-container',
+        });
+        marker.bindPopup('<div class="map-cluster-popup"><div class="map-cluster-popup-title"><span>Agrupamento de pontos</span><strong>' + formatNumber(count) + '</strong></div>' +
+          '<div class="map-cluster-popup-subtitle">Em condições de uso: <strong>' + formatNumber(cluster.totalInUse) + '</strong></div>' +
+          '<div class="map-cluster-preview">' + preview + '</div>' +
+          (cluster.totalReplenishment > 0 ? '<div class="map-cluster-alert"><i class="bi bi-exclamation-triangle-fill"></i>' + formatNumber(cluster.totalReplenishment) + ' unidades precisam de reposição</div>' : '') +
+          '</div>');
+        marker.on('click', () => map.setView([cluster.lat, cluster.lng], Math.min(map.getZoom() + 2, 14), { animate: true }));
       });
-
-      if (totalPontosEl) totalPontosEl.textContent = String(points.length);
-      if (totalMetricEl) totalMetricEl.textContent = String(Math.round(totalMetric));
-      if (totalMetricLabelEl) totalMetricLabelEl.textContent = metricLabel;
-
-      if (adjustBounds && bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [30, 30] });
-      } else if (adjustBounds) {
-        map.setView([-12.8, -41.7], 7);
-      }
+      if (adjustBounds && bounds.length) map.fitBounds(bounds, { padding: [90, 90], maxZoom: 10 });
+      else if (adjustBounds) map.setView([-12.8, -41.7], 7);
       return;
     }
 
     points.forEach((point) => {
-      const pointTotalStock = Number(point.total_estoque ?? 0);
-      const pointAllocated = Number(point.total_alocado ?? pointTotalStock);
-      const pointInUse = Number(point.total_em_uso ?? pointTotalStock);
-      const pointReplenishmentNeeded = Number(point.total_reposicao_necessaria ?? 0);
-      const pointDamaged = Number(point.total_danificado ?? 0);
-      const occurrenceCount = Number(point.occurrence_count ?? 0);
-      const localizadores = Array.isArray(point.localizadores) ? point.localizadores : [];
-      const pointMetric = hasMaterialFilter
-        ? Number(point.metric_value ?? point.total_banners ?? 0)
-        : pointInUse;
-      const materialSummary = Array.isArray(point.materiais_resumo) ? point.materiais_resumo : [];
-      const visibleMaterials = materialSummary.filter((item) => Number(item.quantidade || 0) > 0).slice(0, 4);
-      const materialSummaryHtml = visibleMaterials.length > 0
-        ? `
-          <div class="mb-2">
-            <strong>Materiais:</strong>
-            <div class="small mt-1">
-              ${visibleMaterials.map((item) => `${escapeHtml(item.nome)}: ${Number(item.quantidade || 0)}`).join('<br>')}
-            </div>
-          </div>
-        `
-        : '<div class="mb-2"><strong>Materiais:</strong> <span class="text-muted">Nenhum material registrado</span></div>';
-      totalMetric += pointMetric;
-      metricLabel = hasMaterialFilter ? (point.metric_label || metricLabel) : 'Em condições de uso';
-      bounds.push([point.latitude, point.longitude]);
-
-      const coordinateKey = `${point.latitude}:${point.longitude}`;
+      const values = getPointValues(point);
+      const coordinateKey = point.latitude + ':' + point.longitude;
       const duplicateIndex = duplicateCounts.get(coordinateKey) || 0;
       duplicateCounts.set(coordinateKey, duplicateIndex + 1);
-
-      const markerOffset = duplicateIndex * 0.00022;
-      const lat = point.latitude + ((duplicateIndex % 2 === 0 ? 1 : -1) * markerOffset);
-      const lng = point.longitude + ((duplicateIndex % 3 === 0 ? 1 : -1) * markerOffset * 1.2);
-
-      const localizadorHtml = localizadores.length > 0
-        ? `<div class="mb-2"><strong>Localizador:</strong> ${localizadores.map((value) => escapeHtml(value)).join(' • ')}</div>`
-        : '<div class="mb-2"><strong>Localizador:</strong> <span class="text-muted">-</span></div>';
-
-      const popupHtml = `
-        <div class="p-1" style="min-width: 240px; max-width: 300px;">
-          <div class="fw-bold mb-1">${escapeHtml(point.nome)}</div>
-          <div class="small text-muted mb-2">${escapeHtml(point.municipio)} • ${escapeHtml(point.territorio)}</div>
-          ${localizadorHtml}
-          <div class="mb-2"><strong>Status dos dados:</strong> ${escapeHtml(point.status_migracao || "Operacional")}</div>
-          <div class="mb-2"><strong>Registrado no ponto:</strong> ${pointAllocated}</div>
-          <div class="mb-2"><strong>Em condições de uso:</strong> ${pointInUse}</div>
-          <div class="mb-2"><strong>Danificado:</strong> ${pointDamaged}</div>
-          <div class="mb-2"><strong>Ocorrências registradas:</strong> ${occurrenceCount}</div>
-          <div class="mb-2"><strong>Reposição necessária:</strong> <span class="${pointReplenishmentNeeded > 0 ? 'text-danger fw-semibold' : ''}">${pointReplenishmentNeeded}</span></div>
-          ${hasMaterialFilter ? `<div class="mb-2"><strong>${escapeHtml(point.metric_label || 'Material selecionado')}:</strong> ${pointMetric}</div>` : ''}
-          ${materialSummaryHtml}
-          <div class="mb-2"><strong>Responsável pelo ponto:</strong> ${escapeHtml(point.responsavel_nome || '-')}</div>
-          ${point.foto ? `<div class="mb-2"><img src="/${escapeHtml(point.foto)}" alt="Foto" style="width:100%;height:140px;object-fit:cover;border-radius:12px;"></div>` : ''}
-          <div class="d-grid gap-2">
-            ${point.whatsapp_url ? `<a class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer" href="${escapeHtml(point.whatsapp_url)}">💬 Falar com o responsável</a>` : ''}
-            <a class="btn btn-outline-primary btn-sm" href="${escapeHtml(point.detail_url)}">Ver detalhes</a>
-          </div>
-        </div>
-      `;
-      L.marker([lat, lng]).addTo(markerLayer).bindPopup(popupHtml);
+      const offset = duplicateIndex * 0.00022;
+      const lat = Number(point.latitude) + (duplicateIndex % 2 === 0 ? offset : -offset);
+      const lng = Number(point.longitude) + (duplicateIndex % 3 === 0 ? offset * 1.2 : -offset * 1.2);
+      bounds.push([lat, lng]);
+      const marker = L.marker([lat, lng], {
+        icon: createPointIcon(point), keyboard: true, riseOnHover: true, zIndexOffset: values.replenishment > 0 ? 300 : 0,
+      }).addTo(markerLayer);
+      marker.bindTooltip('<div class="map-hover-tooltip"><strong>' + escapeHtml(point.nome) + '</strong><span>' + formatNumber(values.totalInUse) + ' em condições de uso</span>' +
+        (values.replenishment > 0 ? '<em>' + formatNumber(values.replenishment) + ' para reposição</em>' : '<em>Sem necessidade de reposição</em>') + '</div>', {
+        direction: 'top', offset: [0, -12], opacity: 1, className: 'map-hover-tooltip-container',
+      });
+      marker.bindPopup(buildPopup(point), { maxWidth: 390, minWidth: 320, className: 'map-professional-popup', closeButton: true });
     });
+    if (adjustBounds && bounds.length) map.fitBounds(bounds, { padding: [100, 100], maxZoom: 14 });
+    else if (adjustBounds) map.setView([-12.8, -41.7], 7);
+  }
 
-    if (totalPontosEl) totalPontosEl.textContent = String(points.length);
-    if (totalMetricEl) totalMetricEl.textContent = String(Math.round(totalMetric));
-    if (totalMetricLabelEl) totalMetricLabelEl.textContent = metricLabel;
-
-    if (adjustBounds && bounds.length > 0) {
-      map.fitBounds(bounds, { padding: [30, 30] });
-    } else if (adjustBounds) {
-      map.setView([-12.8, -41.7], 7);
+  async function refreshMap(adjustBounds = true) {
+    try {
+      mapElement.classList.add('is-loading');
+      const response = await fetch('/api/mapa?' + getQueryString(), { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error('Falha ao carregar o mapa (' + response.status + ').');
+      cachedPoints = await response.json();
+      renderMap(cachedPoints, adjustBounds);
+    } catch (error) {
+      console.error(error);
+      mapElement.classList.add('has-error');
+    } finally {
+      mapElement.classList.remove('is-loading');
     }
   }
 
-  async function refreshMap() {
-    const response = await fetch(`/api/mapa?${getQueryString()}`, {
-      headers: { Accept: 'application/json' },
-    });
-    cachedPoints = await response.json();
-    renderMap(cachedPoints, true);
+  function clearFilters() {
+    Object.values(filters).forEach((element) => { if (element) element.value = ''; });
+    refreshMap(true);
   }
 
   Object.values(filters).forEach((element) => {
-    if (element) {
-      element.addEventListener('change', refreshMap);
-    }
+    if (element) element.addEventListener('change', () => refreshMap(true));
   });
-
-  map.on('zoomend', () => {
-    if (cachedPoints.length > 0) {
-      renderMap(cachedPoints, false);
-    }
-  });
-
+  map.on('zoomend', () => { if (cachedPoints.length) renderMap(cachedPoints, false); });
   const button = document.getElementById('map-filter-button');
-  if (button) {
-    button.addEventListener('click', refreshMap);
-  }
-
+  if (button) button.addEventListener('click', () => refreshMap(true));
   const clearButton = document.getElementById('map-clear-filters');
-  if (clearButton) {
-    clearButton.addEventListener('click', () => {
-      Object.values(filters).forEach((element) => {
-        if (element) {
-          element.value = '';
-        }
-      });
-      refreshMap().catch((error) => {
-        console.error(error);
-      });
-    });
-  }
-
-  refreshMap().catch((error) => {
-    console.error(error);
-  });
+  const clearTopButton = document.getElementById('map-clear-filters-top');
+  if (clearButton) clearButton.addEventListener('click', clearFilters);
+  if (clearTopButton) clearTopButton.addEventListener('click', clearFilters);
+  refreshMap(true);
 })();
