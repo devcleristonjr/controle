@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
@@ -19,10 +19,7 @@ from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.movimentacao_estoque import MovimentacaoEstoque
-from app.models.ocorrencia_alocacao import OcorrenciaAlocacao
 from app.models.ponto_estoque import PontoEstoque
-from app.models.reposicao_alocacao import ReposicaoAlocacao
-from app.models.territorio import Territorio
 from app.security import admin_required, role_required
 from app.services import (
     create_material_allocation,

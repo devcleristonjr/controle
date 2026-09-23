@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
-from flask_login import login_required, current_user
+from flask import Blueprint, flash, redirect, render_template, url_for
+from flask_login import login_required
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import distinct
 
