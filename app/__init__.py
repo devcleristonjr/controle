@@ -88,10 +88,11 @@ def create_app(config_object: type | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_object or get_config())
 
+    app_env = os.getenv("APP_ENV", "development").lower()
     if not app.config.get("SECRET_KEY"):
         raise RuntimeError("SECRET_KEY is required. Create a .env file based on .env.example.")
-    if not app.config.get("SQLALCHEMY_DATABASE_URI"):
-        raise RuntimeError("DATABASE_URL is required. Create a PostgreSQL database and set it in .env.")
+    if app_env == "production" and not os.getenv("DATABASE_URL"):
+        raise RuntimeError("DATABASE_URL is required when APP_ENV=production.")
 
     upload_folder = Path(app.config["UPLOAD_FOLDER"])
     upload_folder.mkdir(parents=True, exist_ok=True)
@@ -103,7 +104,9 @@ def create_app(config_object: type | None = None) -> Flask:
     csrf.init_app(app)
 
     with app.app_context():
-        db.create_all()
+        # Production databases are created and updated exclusively through Flask-Migrate.
+        if app_env != "production":
+            db.create_all()
         _ensure_reference_municipal_data()
 
     login_manager.login_view = "auth.login"
