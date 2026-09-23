@@ -794,4 +794,7 @@ def test_atualizacao_publica_migra_baseline_legado_sem_consumir_novamente_o_tota
         assert quantities == {"Banners": Decimal("500"), "Faixas": Decimal("120"), "Adesivos": Decimal("50")}
 
         snapshots = get_material_stock_snapshots([allocation.material_id for allocation in allocations])
-        assert snapshots[allocations[0].material_id]["allocated"] == Decimal("500")
+        material_ids = {allocation.material.nome: allocation.material_id for allocation in allocations}
+        assert snapshots[material_ids["Banners"]]["allocated"] == Decimal("500")
+        assert snapshots[material_ids["Faixas"]]["allocated"] == Decimal("120")
+        assert snapshots[material_ids["Adesivos"]]["allocated"] == Decimal("50")
