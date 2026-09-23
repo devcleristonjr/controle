@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from decimal import Decimal
 
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
 
 from app.extensions import db
-from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
@@ -14,7 +12,6 @@ from app.models.territorio import Territorio
 from app.services import (
     build_map_points,
     get_dashboard_metrics,
-    get_material_stock_snapshot,
     get_material_stock_snapshots,
     get_point_operational_snapshot,
     get_operational_history_entries,
