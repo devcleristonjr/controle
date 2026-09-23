@@ -163,13 +163,17 @@
 
       '<div class="map-popup-meta">' +
         '<div class="map-popup-meta-row">' +
-          '<i class="bi bi-person"></i><div><span>Responsável</span><strong>' +
-          escapeHtml(point.responsavel_nome || 'Não informado') + '</strong></div>' +
+          '<i class="bi bi-person"></i>' +
+          '<span class="map-popup-meta-label">Responsável</span>' +
+          '<strong class="map-popup-meta-value">' +
+          escapeHtml(point.responsavel_nome || 'Não informado') + '</strong>' +
         '</div>' +
         (localizadores.length
           ? '<div class="map-popup-meta-row">' +
-            '<i class="bi bi-pin-map"></i><div><span>Localizador</span><strong>' +
-            escapeHtml(localizadores.join(' • ')) + '</strong></div>' +
+            '<i class="bi bi-pin-map"></i>' +
+            '<span class="map-popup-meta-label">Localizador</span>' +
+            '<strong class="map-popup-meta-value">' +
+            escapeHtml(localizadores.join(' • ')) + '</strong>' +
             '</div>'
           : '') +
       '</div>' +
