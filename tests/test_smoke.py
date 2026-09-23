@@ -740,3 +740,76 @@ def test_material_with_loaded_legacy_stock_relationship_can_be_deleted_when_zero
     with app.app_context():
         assert db.session.get(Material, material_id) is None
         assert EstoqueMaterial.query.filter_by(material_id=material_id).count() == 0
+
+
+def test_public_user_registration_creates_operator_and_allows_login():
+    app = create_app(TestingConfig)
+    with app.app_context():
+        db.create_all()
+
+    client = app.test_client()
+    response = client.get("/cadastro")
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+    csrf_match = __import__("re").search(r'name="csrf_token" type="hidden" value="([^"]+)"', html)
+    assert csrf_match is not None
+
+    response = client.post(
+        "/cadastro",
+        data={
+            "nome": "Usuário Teste",
+            "email": "usuario@example.com",
+            "senha": "senha123",
+            "confirmar_senha": "senha123",
+            "csrf_token": csrf_match.group(1),
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/login")
+
+    with app.app_context():
+        user = Usuario.query.filter_by(email="usuario@example.com").first()
+        assert user is not None
+        assert user.perfil == "OPERADOR"
+        assert user.ativo is True
+        assert user.check_password("senha123")
+
+    login_response = client.post(
+        "/login",
+        data={"email": "usuario@example.com", "password": "senha123"},
+        follow_redirects=True,
+    )
+    assert login_response.status_code == 200
+    assert b"Dashboard" in login_response.data
+
+
+def test_public_user_registration_cannot_create_admin():
+    app = create_app(TestingConfig)
+    with app.app_context():
+        db.create_all()
+
+    client = app.test_client()
+    response = client.get("/cadastro")
+    csrf_match = __import__("re").search(r'name="csrf_token" type="hidden" value="([^"]+)"', response.get_data(as_text=True))
+    assert csrf_match is not None
+
+    response = client.post(
+        "/cadastro",
+        data={
+            "nome": "Usuário Comum",
+            "email": "comum@example.com",
+            "senha": "senha123",
+            "confirmar_senha": "senha123",
+            "perfil": "ADMIN",
+            "csrf_token": csrf_match.group(1),
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        user = Usuario.query.filter_by(email="comum@example.com").first()
+        assert user is not None
+        assert user.perfil == "OPERADOR"
