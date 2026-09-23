@@ -3,7 +3,6 @@ from __future__ import annotations
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required, login_user, logout_user
 
-from app.extensions import db
 from app.forms import LoginForm
 from app.models.usuario import Usuario
 
