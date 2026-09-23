@@ -33,15 +33,6 @@ def _format_quantity(value: Decimal) -> str:
     return format(decimal_value.normalize(), "f")
 
 
-def _sum_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
-    query = db.session.query(func.coalesce(func.sum(EstoqueMaterial.quantidade), 0)).filter(
-        EstoqueMaterial.material_id == material_id
-    )
-    if exclude_point_id is not None:
-        query = query.filter(EstoqueMaterial.ponto_estoque_id != exclude_point_id)
-    return Decimal(query.scalar() or 0)
-
-
 
 def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
     """Count current stock in use and legacy stock only where no allocation exists.
@@ -79,21 +70,6 @@ def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | Non
 
 
 
-def _sum_total_stock(material_id: int | None = None) -> Decimal:
-    query = db.session.query(func.coalesce(func.sum(Material.quantidade_total), 0))
-    if material_id is not None:
-        query = query.filter(Material.id == material_id)
-    return Decimal(query.scalar() or 0)
-
-
-def _sum_active_allocations(material_id: int, exclude_allocacao_id: int | None = None) -> Decimal:
-    query = db.session.query(func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_alocada), 0)).filter(
-        AlocacaoPontoMaterial.material_id == material_id,
-        AlocacaoPontoMaterial.ativo.is_(True),
-    )
-    if exclude_allocacao_id is not None:
-        query = query.filter(AlocacaoPontoMaterial.id != exclude_allocacao_id)
-    return Decimal(query.scalar() or 0)
 
 
 def _load_material_for_update(material_id: int) -> Material:
@@ -686,19 +662,6 @@ def _apply_point_filters(query, filters: dict):
             query = query.filter(PontoEstoque.ativo.is_(False))
     return query.distinct()
 
-
-def _aggregate_allocated_total(filters: dict) -> Decimal:
-    query = (
-        db.session.query(func.coalesce(func.sum(EstoqueMaterial.quantidade), 0))
-        .select_from(PontoEstoque)
-        .join(PontoEstoque.municipio)
-        .join(PontoEstoque.estoques)
-    )
-    query = _apply_point_filters(query, filters)
-    if material_id := filters.get("material_id"):
-        query = query.filter(EstoqueMaterial.material_id == material_id)
-    value = query.scalar() or Decimal("0")
-    return Decimal(value)
 
 
 def _apply_monitoring_filters_to_points_query(query, filters: dict):
