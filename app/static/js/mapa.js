@@ -105,31 +105,84 @@
     const visibleMaterials = materialSummary.filter((item) => Number(item.quantidade || 0) > 0).slice(0, 5);
     const status = getStatus(point);
     const localizadores = Array.isArray(point.localizadores) ? point.localizadores : [];
-    const materialHtml = visibleMaterials.length ? visibleMaterials.map((item) =>
-      '<div class="map-popup-material"><span>' + escapeHtml(item.nome) + '</span><strong>' + formatNumber(item.quantidade) + '</strong></div>'
-    ).join('') : '<div class="map-popup-empty">Nenhum material registrado</div>';
+
+    const materialHtml = visibleMaterials.length
+      ? visibleMaterials.map((item) =>
+          '<div class="map-popup-material"><span>' + escapeHtml(item.nome) + '</span><strong>' +
+          formatNumber(item.quantidade) + '</strong></div>'
+        ).join('')
+      : '<div class="map-popup-empty">Nenhum material registrado</div>';
+
+    const photoHtml = point.foto
+      ? '<div class="map-popup-photo-wrap"><img class="map-popup-photo" src="/' + escapeHtml(point.foto) +
+        '" alt="Foto do ponto"></div>'
+      : '';
+
+    const contactHtml = point.whatsapp_url
+      ? '<a class="map-popup-action map-popup-action-whatsapp" target="_blank" rel="noopener noreferrer" href="' +
+        escapeHtml(point.whatsapp_url) + '">' +
+        '<i class="bi bi-whatsapp"></i><span>Falar com o responsável</span></a>'
+      : '';
 
     return '<div class="map-popup-card">' +
-      '<div class="map-popup-top"><div><span class="map-popup-kicker">' + escapeHtml(point.municipio || 'Ponto') + '</span>' +
-      '<h3>' + escapeHtml(point.nome) + '</h3></div>' +
-      '<span class="map-popup-status ' + status.className + '"><i class="bi bi-circle-fill"></i>' + escapeHtml(status.label) + '</span></div>' +
+      '<div class="map-popup-top">' +
+        '<div class="map-popup-heading">' +
+          '<span class="map-popup-kicker"><i class="bi bi-geo-alt-fill"></i>' +
+            escapeHtml(point.municipio || 'Ponto') + '</span>' +
+          '<h3>' + escapeHtml(point.nome) + '</h3>' +
+        '</div>' +
+        '<span class="map-popup-status ' + status.className + '">' +
+          '<i class="bi bi-circle-fill"></i>' + escapeHtml(status.label) +
+        '</span>' +
+      '</div>' +
+
       '<div class="map-popup-summary">' +
-        '<div><span>Em condições de uso</span><strong>' + formatNumber(values.totalInUse) + '</strong></div>' +
-        '<div class="' + (values.replenishment > 0 ? 'is-alert' : '') + '"><span>Reposição</span><strong>' + formatNumber(values.replenishment) + '</strong></div>' +
-        '<div><span>Ocorrências</span><strong>' + formatNumber(values.occurrences) + '</strong></div>' +
+        '<div class="map-popup-summary-item map-popup-summary-use">' +
+          '<span>Em condições de uso</span><strong>' + formatNumber(values.totalInUse) + '</strong>' +
+        '</div>' +
+        '<div class="map-popup-summary-item ' + (values.replenishment > 0 ? 'is-alert' : '') + '">' +
+          '<span>Reposição</span><strong>' + formatNumber(values.replenishment) + '</strong>' +
+        '</div>' +
+        '<div class="map-popup-summary-item ' + (values.occurrences > 0 ? 'has-occurrence' : '') + '">' +
+          '<span>Ocorrências</span><strong>' + formatNumber(values.occurrences) + '</strong>' +
+        '</div>' +
       '</div>' +
-      '<div class="map-popup-section"><span class="map-popup-section-title">' + (hasMaterialFilter ? 'Material selecionado' : 'Materiais no ponto') + '</span>' +
-        (hasMaterialFilter && point.metric_label ? '<div class="map-popup-material"><span>' + escapeHtml(point.metric_label) + '</span><strong>' + formatNumber(point.metric_value) + '</strong></div>' : materialHtml) +
+
+      '<div class="map-popup-section">' +
+        '<div class="map-popup-section-heading">' +
+          '<span class="map-popup-section-title">Materiais no ponto</span>' +
+          (hasMaterialFilter ? '<span class="map-popup-filter-badge">Filtro aplicado</span>' : '') +
+        '</div>' +
+        '<div class="map-popup-material-list">' +
+          (hasMaterialFilter && point.metric_label
+            ? '<div class="map-popup-material"><span>' + escapeHtml(point.metric_label) + '</span><strong>' +
+              formatNumber(point.metric_value) + '</strong></div>'
+            : materialHtml) +
+        '</div>' +
       '</div>' +
+
       '<div class="map-popup-meta">' +
-        '<div><i class="bi bi-person"></i><span>Responsável</span><strong>' + escapeHtml(point.responsavel_nome || 'Não informado') + '</strong></div>' +
-        (localizadores.length ? '<div><i class="bi bi-pin-map"></i><span>Localizador</span><strong>' + escapeHtml(localizadores.join(' • ')) + '</strong></div>' : '') +
+        '<div class="map-popup-meta-row">' +
+          '<i class="bi bi-person"></i><div><span>Responsável</span><strong>' +
+          escapeHtml(point.responsavel_nome || 'Não informado') + '</strong></div>' +
+        '</div>' +
+        (localizadores.length
+          ? '<div class="map-popup-meta-row">' +
+            '<i class="bi bi-pin-map"></i><div><span>Localizador</span><strong>' +
+            escapeHtml(localizadores.join(' • ')) + '</strong></div>' +
+            '</div>'
+          : '') +
       '</div>' +
-      (point.foto ? '<img class="map-popup-photo" src="/' + escapeHtml(point.foto) + '" alt="Foto do ponto">' : '') +
+
+      photoHtml +
+
       '<div class="map-popup-actions">' +
-        (point.whatsapp_url ? '<a class="btn btn-success btn-sm" target="_blank" rel="noopener noreferrer" href="' + escapeHtml(point.whatsapp_url) + '"><i class="bi bi-whatsapp me-1"></i> Falar com o responsável</a>' : '') +
-        '<a class="btn btn-primary btn-sm" href="' + escapeHtml(point.detail_url) + '">Ver detalhes <i class="bi bi-arrow-right ms-1"></i></a>' +
-      '</div></div>';
+        contactHtml +
+        '<a class="map-popup-action map-popup-action-details" href="' + escapeHtml(point.detail_url) + '">' +
+          '<i class="bi bi-box-arrow-up-right"></i><span>Ver detalhes</span><i class="bi bi-arrow-right"></i>' +
+        '</a>' +
+      '</div>' +
+    '</div>';
   }
 
   function aggregateByZoom(points, zoom) {
