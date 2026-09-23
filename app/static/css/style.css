@@ -794,29 +794,6 @@ a:focus-visible {
   padding-top: 0.75rem;
 }
 
-.point-card-more summary,
-.card-soft > summary {
-  list-style: none;
-}
-
-.point-card-more summary::-webkit-details-marker,
-.card-soft > summary::-webkit-details-marker {
-  display: none;
-}
-
-.point-card-more summary::after,
-.card-soft > summary::after {
-  content: "＋";
-  float: right;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.point-card-more[open] summary::after,
-.card-soft > summary[open]::after {
-  content: "−";
-}
-
 .material-point-card {
   border: 1px solid var(--border);
   border-radius: 14px;
