@@ -42,10 +42,6 @@ def _sum_allocated_stock(material_id: int, exclude_point_id: int | None = None) 
     return Decimal(query.scalar() or 0)
 
 
-def _sum_allocated_stock_all() -> Decimal:
-    query = db.session.query(func.coalesce(func.sum(EstoqueMaterial.quantidade), 0))
-    return Decimal(query.scalar() or 0)
-
 
 def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
     """Count current stock in use and legacy stock only where no allocation exists.
@@ -81,12 +77,6 @@ def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | Non
     total += Decimal(legacy_query.scalar() or 0)
     return total
 
-
-def _sum_active_allocations_all() -> Decimal:
-    query = db.session.query(func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_alocada), 0)).filter(
-        AlocacaoPontoMaterial.ativo.is_(True)
-    )
-    return Decimal(query.scalar() or 0)
 
 
 def _sum_total_stock(material_id: int | None = None) -> Decimal:
