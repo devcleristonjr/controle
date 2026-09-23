@@ -1,125 +1,169 @@
 {% extends 'base.html' %}
 {% block title %}Mapa | Controle de Materiais{% endblock %}
+
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
 {% endblock %}
+
 {% block content %}
-<div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-  <div>
-    <h1 class="page-title h3 fw-bold mb-1"><i class="bi bi-geo-alt me-2"></i>Mapa da Bahia</h1>
-    <p class="text-muted mb-0">Marcadores focados no estado, com filtros dinâmicos.</p>
+<div class="map-page">
+  <div class="map-page-header">
+    <div>
+      <div class="map-eyebrow"><i class="bi bi-broadcast-pin me-1"></i> CONTROLE GEORREFERENCIADO</div>
+      <h1 class="page-title h3 fw-bold mb-1">Mapa dos pontos</h1>
+      <p class="text-muted mb-0">Visualize rapidamente onde estão os materiais, quanto existe em cada ponto e onde há necessidade de reposição.</p>
+    </div>
+
+    <div class="map-kpis" aria-label="Resumo do mapa">
+      <div class="map-kpi">
+        <span class="map-kpi-icon map-kpi-icon-points"><i class="bi bi-geo-alt-fill"></i></span>
+        <div><strong id="map-total-pontos">0</strong><small>Pontos</small></div>
+      </div>
+      <div class="map-kpi">
+        <span class="map-kpi-icon map-kpi-icon-use"><i class="bi bi-box-seam-fill"></i></span>
+        <div><strong id="map-total-banners">0</strong><small id="map-total-metric-label">Em condições de uso</small></div>
+      </div>
+      <div class="map-kpi map-kpi-alert" id="map-replenishment-kpi">
+        <span class="map-kpi-icon map-kpi-icon-replenishment"><i class="bi bi-exclamation-triangle-fill"></i></span>
+        <div><strong id="map-total-replenishment">0</strong><small>Reposição necessária</small></div>
+      </div>
+    </div>
   </div>
-  <div class="d-flex gap-2">
-    <div class="stat-mini px-3 py-2"><div class="small text-muted">Total de pontos</div><div class="fw-bold" id="map-total-pontos">0</div></div>
-    <div class="stat-mini px-3 py-2"><div class="small text-muted" id="map-total-metric-label">Em condições de uso</div><div class="fw-bold" id="map-total-banners">0</div></div>
+
+  <div class="map-workspace">
+    <div id="leaflet-map" class="map-container map-container-professional"></div>
+
+    <section class="map-filter-panel" aria-label="Filtros do mapa">
+      <div class="map-panel-heading">
+        <div>
+          <span class="map-panel-kicker">VISUALIZAÇÃO</span>
+          <h2>Filtros do mapa</h2>
+        </div>
+        <button id="map-clear-filters-top" class="map-clear-link" type="button">Limpar</button>
+      </div>
+
+      <div class="map-filter-grid">
+        <div>
+          <label class="form-label" for="filter-territorio">Território</label>
+          <select id="filter-territorio" class="form-select form-select-sm">
+            <option value="">Todos os territórios</option>
+            {% for territorio in territorios %}
+              <option value="{{ territorio.id }}">{{ territorio.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label" for="filter-municipio">Município</label>
+          <select id="filter-municipio" class="form-select form-select-sm">
+            <option value="">Todos os municípios</option>
+            {% for municipio in municipios %}
+              <option value="{{ municipio.id }}">{{ municipio.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label" for="filter-material">Material</label>
+          <select id="filter-material" class="form-select form-select-sm">
+            <option value="">Todos os materiais</option>
+            {% for material in materiais %}
+              <option value="{{ material.id }}">{{ material.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label" for="filter-replenishment">Reposição</label>
+          <select id="filter-replenishment" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            <option value="with">Com necessidade</option>
+            <option value="without">Sem necessidade</option>
+          </select>
+        </div>
+      </div>
+
+      <details class="map-more-filters">
+        <summary>Mais filtros</summary>
+        <div class="row g-2 pt-2">
+          <div class="col-6">
+            <label class="form-label" for="filter-status">Status</label>
+            <select id="filter-status" class="form-select form-select-sm">
+              <option value="">Todos</option>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="filter-responsavel">Responsável</label>
+            <input id="filter-responsavel" class="form-control form-control-sm" type="text" placeholder="Nome">
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="filter-localizador">Localizador</label>
+            <input id="filter-localizador" class="form-control form-control-sm" type="text" placeholder="Ex.: WHATS-001">
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="filter-occurrence-type">Ocorrência</label>
+            <select id="filter-occurrence-type" class="form-select form-select-sm">
+              <option value="">Todas</option>
+              <option value="DANIFICADO">Danificado</option>
+              <option value="PERDIDO">Perdido</option>
+              <option value="RETIRADO">Retirado</option>
+              <option value="REPOSICAO_NECESSARIA">Precisa de reposição</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="filter-with-occurrences">Ocorrências</label>
+            <select id="filter-with-occurrences" class="form-select form-select-sm">
+              <option value="">Todos</option>
+              <option value="with">Com ocorrências</option>
+              <option value="without">Sem ocorrências</option>
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="filter-period-start">Período inicial</label>
+            <input id="filter-period-start" class="form-control form-control-sm" type="date">
+          </div>
+          <div class="col-6">
+            <label class="form-label" for="filter-period-end">Período final</label>
+            <input id="filter-period-end" class="form-control form-control-sm" type="date">
+          </div>
+        </div>
+      </details>
+
+      <div class="map-filter-actions">
+        <button id="map-clear-filters" class="btn btn-outline-secondary btn-sm" type="button">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Limpar
+        </button>
+        <button id="map-filter-button" class="btn btn-primary btn-sm flex-grow-1" type="button">
+          <i class="bi bi-search me-1"></i>Aplicar filtros
+        </button>
+      </div>
+    </section>
+
+    <div class="map-legend">
+      <div class="map-legend-title">Legenda</div>
+      <div class="map-legend-items">
+        <span><i class="map-legend-dot status-ok"></i> Com material</span>
+        <span><i class="map-legend-dot status-replenishment"></i> Reposição</span>
+        <span><i class="map-legend-dot status-occurrence"></i> Ocorrência</span>
+        <span><i class="map-legend-dot status-empty"></i> Sem material</span>
+      </div>
+    </div>
+
+    <div class="map-help">
+      <i class="bi bi-cursor-fill"></i>
+      <span>Passe o mouse sobre um ponto para ver a quantidade. Clique para abrir os detalhes.</span>
+    </div>
+
+    <div class="map-scale-note">
+      <i class="bi bi-arrows-fullscreen"></i>
+      <span>Aproxime o zoom para visualizar os pontos individualmente</span>
+    </div>
   </div>
 </div>
-
-<div class="card card-soft mb-3">
-  <div class="card-body">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-      <div>
-        <div class="fw-semibold">Encontre um ponto no mapa</div>
-        <div class="small text-muted">Use os filtros principais ou abra “Mais filtros” para uma busca detalhada.</div>
-      </div>
-      <span class="badge text-bg-light">Mapa operacional</span>
-    </div>
-
-    <div class="row g-3 align-items-end">
-      <div class="col-lg-3 col-md-6">
-        <label class="form-label" for="filter-territorio">Território</label>
-        <select id="filter-territorio" class="form-select">
-          <option value="">Todos</option>
-          {% for territorio in territorios %}
-            <option value="{{ territorio.id }}">{{ territorio.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-lg-3 col-md-6">
-        <label class="form-label" for="filter-municipio">Município</label>
-        <select id="filter-municipio" class="form-select">
-          <option value="">Todos</option>
-          {% for municipio in municipios %}
-            <option value="{{ municipio.id }}">{{ municipio.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-lg-3 col-md-6">
-        <label class="form-label" for="filter-material">Material</label>
-        <select id="filter-material" class="form-select">
-          <option value="">Todos</option>
-          {% for material in materiais %}
-            <option value="{{ material.id }}">{{ material.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-lg-3 col-md-6">
-        <label class="form-label" for="filter-replenishment">Reposição</label>
-        <select id="filter-replenishment" class="form-select">
-          <option value="">Todos</option>
-          <option value="with">Com necessidade</option>
-          <option value="without">Sem necessidade</option>
-        </select>
-      </div>
-    </div>
-
-    <details class="mt-3">
-      <summary class="fw-semibold">Mais filtros</summary>
-      <div class="row g-3 align-items-end pt-3">
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label" for="filter-status">Status</label>
-          <select id="filter-status" class="form-select">
-            <option value="">Todos</option>
-            <option value="ativo">Ativo</option>
-            <option value="inativo">Inativo</option>
-          </select>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label" for="filter-responsavel">Responsável</label>
-          <input id="filter-responsavel" class="form-control" type="text" placeholder="Nome do responsável">
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label" for="filter-localizador">Rua/Localizador</label>
-          <input id="filter-localizador" class="form-control" type="text" placeholder="Ex.: WHATS-001">
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label" for="filter-occurrence-type">Ocorrência</label>
-          <select id="filter-occurrence-type" class="form-select">
-            <option value="">Todas</option>
-            <option value="DANIFICADO">Danificado</option>
-            <option value="PERDIDO">Perdido</option>
-            <option value="RETIRADO">Retirado</option>
-            <option value="REPOSICAO_NECESSARIA">Precisa de reposição</option>
-          </select>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label" for="filter-with-occurrences">Situação de ocorrência</label>
-          <select id="filter-with-occurrences" class="form-select">
-            <option value="">Todos</option>
-            <option value="with">Com ocorrências</option>
-            <option value="without">Sem ocorrências</option>
-          </select>
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label" for="filter-period-start">Período (início)</label>
-          <input id="filter-period-start" class="form-control" type="date">
-        </div>
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label" for="filter-period-end">Período (fim)</label>
-          <input id="filter-period-end" class="form-control" type="date">
-        </div>
-      </div>
-    </details>
-
-    <div class="d-flex flex-wrap justify-content-end gap-2 mt-3">
-      <button id="map-clear-filters" class="btn btn-outline-secondary" type="button">Limpar filtros</button>
-      <button id="map-filter-button" class="btn btn-primary" type="button"><i class="bi bi-search me-1"></i>Aplicar filtros</button>
-    </div>
-  </div>
-</div>
-
-<div id="leaflet-map" class="map-container card-soft"></div>
 {% endblock %}
+
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 <script src="{{ url_for('static', filename='js/mapa.js') }}"></script>
