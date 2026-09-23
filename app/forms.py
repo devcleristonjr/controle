@@ -39,6 +39,13 @@ class UsuarioForm(FlaskForm):
     senha = PasswordField("Senha", validators=[Optional(), Length(min=6, max=255)])
 
 
+class CadastroUsuarioForm(FlaskForm):
+    nome = StringField("Nome", validators=[DataRequired(), Length(max=120)])
+    email = StringField("E-mail", validators=[DataRequired(), Email(), Length(max=180)])
+    senha = PasswordField("Senha", validators=[DataRequired(), Length(min=6, max=255)])
+    confirmar_senha = PasswordField("Confirmar senha", validators=[DataRequired(), Length(min=6, max=255)])
+
+
 class TerritorioForm(FlaskForm):
     nome = StringField("Nome", validators=[DataRequired(), Length(max=180)])
     codigo = StringField("Código", validators=[Optional(), Length(max=50)])
