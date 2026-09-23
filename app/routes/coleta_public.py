@@ -17,6 +17,7 @@ from app.models.ponto_estoque import PontoEstoque
 from app.services import (
     create_material_allocation,
     get_material_stock_snapshots,
+    migrate_legacy_stock_to_allocation,
     register_allocation_occurrence,
     update_stock,
     validate_material_allocation,
@@ -104,12 +105,9 @@ def _ensure_allocation_baseline(point: PontoEstoque, materiais: list[Material]) 
         quantity = Decimal(stock.quantidade if stock is not None else 0)
         if quantity <= 0:
             continue
-        allocation = create_material_allocation(
+        allocation = migrate_legacy_stock_to_allocation(
             point=point,
             material=material,
-            quantidade_alocada=quantity,
-            responsavel_alocacao=point.responsavel_nome,
-            observacoes="Baseline migrado automaticamente da coleta/estoque legado.",
         )
         allocation_map[material.id] = [allocation]
     return allocation_map
