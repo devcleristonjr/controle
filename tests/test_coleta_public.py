@@ -15,6 +15,7 @@ from app.models.movimentacao_estoque import MovimentacaoEstoque
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
 from app.models.territorio import Territorio
+from app.services import get_material_stock_snapshots
 from config import TestingConfig
 
 
@@ -758,3 +759,39 @@ def test_atualizacao_publica_preserva_historico_operacional_da_alocacao():
         assert occurrences[0].tipo == "RETIRADO"
         assert Decimal(occurrences[0].quantidade_afetada) == Decimal("50")
         assert occurrences[0].descricao == "ajuste operacional"
+
+
+def test_atualizacao_publica_migra_baseline_legado_sem_consumir_novamente_o_total():
+    app = _build_public_app()
+    with app.app_context():
+        ponto = PontoEstoque.query.filter_by(nome="Comite Wet Eventos").first()
+        ponto_id = ponto.id
+        municipio_id = ponto.municipio_id
+
+    client = app.test_client()
+    response = client.post(
+        f"/coleta/atualizar/{ponto_id}?municipio_id={municipio_id}",
+        data={
+            "coletor_nome": "Maria Santos",
+            "observacoes": "migração de baseline",
+            "qtd_1": "500",
+            "qtd_2": "120",
+            "qtd_3": "50",
+            "confirm": "1",
+        },
+    )
+
+    assert response.status_code == 200
+
+    with app.app_context():
+        allocations = (
+            AlocacaoPontoMaterial.query
+            .filter_by(ponto_estoque_id=ponto_id, ativo=True)
+            .all()
+        )
+        assert len(allocations) == 3
+        quantities = {allocation.material.nome: Decimal(allocation.quantidade_em_uso) for allocation in allocations}
+        assert quantities == {"Banners": Decimal("500"), "Faixas": Decimal("120"), "Adesivos": Decimal("50")}
+
+        snapshots = get_material_stock_snapshots([allocation.material_id for allocation in allocations])
+        assert snapshots[allocations[0].material_id]["allocated"] == Decimal("500")
