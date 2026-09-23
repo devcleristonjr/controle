@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Atualização de Estoque{% endblock %}
+{% block title %}Atualização de materiais{% endblock %}
 
 {% block content %}
 
@@ -58,7 +58,7 @@
 
 
           <h1 class="h4 fw-bold text-uppercase mb-1">
-            Atualização de Estoque
+            Atualização de materiais
           </h1>
 
           <div class="fw-semibold">
@@ -224,17 +224,17 @@
                     </div>
 
                     <div class="small text-muted">
-                      Estoque total:
+                      Total registrado no sistema:
                       {{ '%.0f'|format(row.total_quantity) }}
                     </div>
 
                     <div class="small text-muted">
-                      Já alocado:
+                      Registrado em outros pontos:
                       {{ '%.0f'|format(row.allocated_quantity) }}
                     </div>
 
                     <div class="small text-muted">
-                      Disponível:
+                      Disponível para novos registros:
                       {{ '%.0f'|format(row.available_quantity) }}
                     </div>
 

@@ -1,16 +1,16 @@
 # 📦 Controle de Materiais
 
-Sistema web para **gestão, controle e acompanhamento de estoques**, desenvolvido em Flask e estruturado para atender operações com pontos de estoque, materiais, movimentações, territórios e coleta de informações em campo.
+Sistema web para **controle e acompanhamento de materiais distribuídos pelos pontos**, desenvolvido em Flask e estruturado para atender operações com pontos, materiais, territórios e coleta de informações em campo.
 
-O projeto está em desenvolvimento contínuo, com foco em uma interface simples, responsiva e adequada tanto para uso administrativo quanto para operações de coleta e atualização de estoque.
+O projeto está em desenvolvimento contínuo, com foco em uma interface simples, responsiva e adequada tanto para uso administrativo quanto para operações de coleta e atualização de informações dos pontos.
 
 ---
 
 ## 📌 Sobre o projeto
 
-O **Controle de Materiais** foi desenvolvido para centralizar informações relacionadas ao controle de materiais e estoques, permitindo acompanhar diferentes pontos de armazenamento e suas respectivas movimentações.
+O **Controle de Materiais** foi desenvolvido para centralizar informações sobre materiais distribuídos pelos pontos, permitindo acompanhar onde estão, quantos existem, suas condições e as ocorrências registradas.
 
-A aplicação possui uma área administrativa para gerenciamento do estoque e uma área específica de **Coleta**, destinada ao cadastro e atualização de informações diretamente relacionadas aos pontos de estoque.
+A aplicação possui uma área administrativa para acompanhamento dos materiais e dos pontos, além de uma área específica de **Coleta**, destinada ao cadastro e atualização de informações diretamente nos pontos.
 
 O projeto utiliza uma arquitetura baseada em **Flask, Blueprints, SQLAlchemy, Flask-Migrate e templates Jinja2**, permitindo a evolução gradual da aplicação sem concentrar toda a lógica em um único arquivo.
 
@@ -26,16 +26,16 @@ A estrutura principal da aplicação já está implementada e o sistema possui m
 
 * 🔐 Autenticação e controle de acesso
 * 📊 Dashboard
-* 🗺️ Mapa dos pontos de estoque
-* 📍 Pontos de estoque
+* 🗺️ Mapa dos pontos
+* 📍 Pontos
 * 📦 Cadastro e gerenciamento de materiais
-* 🔄 Movimentações de estoque
+* 🔄 Registros, ocorrências e reposições
 * 👥 Usuários
 * 🧭 Territórios
 * 🏙️ Municípios
-* 📋 Coleta de informações de estoque
+* 📋 Coleta de informações dos pontos
 * ➕ Cadastro de novos registros através da Coleta
-* ✏️ Atualização de estoque através da Coleta
+* ✏️ Atualização de materiais através da Coleta
 * 📷 Suporte a informações/fotos relacionadas à coleta
 * 📍 Captura de localização através do navegador
 * 🗄️ Banco de dados com SQLAlchemy
@@ -83,23 +83,23 @@ O banco utilizado pode variar de acordo com a configuração do ambiente.
 
 ## 📊 Dashboard
 
-Área inicial do sistema destinada à visualização geral das informações do estoque.
+Área inicial do sistema destinada à visualização geral dos materiais e pontos.
 
 ---
 
 ## 🗺️ Mapa
 
-Visualização dos pontos de estoque utilizando mapa interativo.
+Visualização dos pontos utilizando mapa interativo.
 
 A aplicação utiliza Leaflet integrado ao OpenStreetMap para apresentação das informações geográficas.
 
 ---
 
-## 📍 Pontos de estoque
+## 📍 Pontos
 
-Permite trabalhar com os locais utilizados para armazenamento e controle dos materiais.
+Permite trabalhar com os locais onde os materiais estão distribuídos e acompanhados.
 
-Os pontos de estoque são utilizados como referência para as operações realizadas pelo sistema.
+Cada ponto reúne localização, responsável, materiais, condições e registros operacionais.
 
 ---
 
@@ -117,11 +117,9 @@ Entre as operações previstas estão:
 
 ---
 
-## 🔄 Movimentações
+## 🔄 Registros operacionais
 
-Área destinada ao acompanhamento das movimentações realizadas no estoque.
-
-As movimentações permitem manter o histórico das alterações relacionadas aos materiais e seus respectivos pontos de estoque.
+Área destinada ao acompanhamento dos registros relacionados aos materiais nos pontos, incluindo ocorrências e reposições.
 
 ---
 
@@ -147,7 +145,7 @@ Cadastro e organização dos municípios relacionados aos pontos e operações d
 
 # 📋 Módulo de Coleta
 
-A aplicação possui uma área específica denominada **Coleta**, destinada à utilização operacional para cadastro e atualização de informações de estoque.
+A aplicação possui uma área específica denominada **Coleta**, destinada à utilização operacional para cadastro e atualização de informações dos pontos e materiais.
 
 A Coleta possui seu próprio conjunto de templates, mas utiliza a estrutura principal de navegação da aplicação.
 
