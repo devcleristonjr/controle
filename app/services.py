@@ -34,6 +34,13 @@ def _format_quantity(value: Decimal) -> str:
 
 
 
+def _sum_total_stock(material_id: int | None = None) -> Decimal:
+    query = db.session.query(func.coalesce(func.sum(Material.quantidade_total), 0))
+    if material_id is not None:
+        query = query.filter(Material.id == material_id)
+    return Decimal(query.scalar() or 0)
+
+
 def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
     """Count current stock in use and legacy stock only where no allocation exists.
 
