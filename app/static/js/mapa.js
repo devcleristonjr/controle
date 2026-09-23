@@ -157,7 +157,7 @@
             </div>
           </div>
         `
-        : '<div class="mb-2"><strong>Materiais:</strong> <span class="text-muted">Sem estoque informado</span></div>';
+        : '<div class="mb-2"><strong>Materiais:</strong> <span class="text-muted">Nenhum material registrado</span></div>';
       totalMetric += pointMetric;
       metricLabel = hasMaterialFilter ? (point.metric_label || metricLabel) : 'Em condições de uso';
       bounds.push([point.latitude, point.longitude]);
@@ -180,8 +180,8 @@
           <div class="small text-muted mb-2">${escapeHtml(point.municipio)} • ${escapeHtml(point.territorio)}</div>
           ${localizadorHtml}
           <div class="mb-2"><strong>Status dos dados:</strong> ${escapeHtml(point.status_migracao || "Operacional")}</div>
-          <div class="mb-2"><strong>Alocado no ponto:</strong> ${pointAllocated}</div>
-          <div class="mb-2"><strong>Em uso estimado:</strong> ${pointInUse}</div>
+          <div class="mb-2"><strong>Registrado no ponto:</strong> ${pointAllocated}</div>
+          <div class="mb-2"><strong>Em condições de uso:</strong> ${pointInUse}</div>
           <div class="mb-2"><strong>Danificado:</strong> ${pointDamaged}</div>
           <div class="mb-2"><strong>Ocorrências registradas:</strong> ${occurrenceCount}</div>
           <div class="mb-2"><strong>Reposição necessária:</strong> <span class="${pointReplenishmentNeeded > 0 ? 'text-danger fw-semibold' : ''}">${pointReplenishmentNeeded}</span></div>
