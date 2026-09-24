@@ -37,6 +37,7 @@ def login():
     if form.validate_on_submit():
         user = Usuario.query.filter_by(email=form.email.data.strip().lower(), ativo=True).first()
         if not user or not user.check_password(form.password.data):
+            form.password.errors.append("Senha incorreta. Verifique a senha e tente novamente.")
             flash("E-mail ou senha inválidos.", "danger")
         else:
             login_user(user, remember=form.remember_me.data)
