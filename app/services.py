@@ -41,6 +41,16 @@ def _sum_total_stock(material_id: int | None = None) -> Decimal:
     return Decimal(query.scalar() or 0)
 
 
+def _sum_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
+    """Sum legacy stock quantities used by the compatibility stock adjustment flow."""
+    query = db.session.query(func.coalesce(func.sum(EstoqueMaterial.quantidade), 0)).filter(
+        EstoqueMaterial.material_id == material_id
+    )
+    if exclude_point_id is not None:
+        query = query.filter(EstoqueMaterial.ponto_estoque_id != exclude_point_id)
+    return Decimal(query.scalar() or 0)
+
+
 def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
     """Count current stock in use and legacy stock only where no allocation exists.
 
