@@ -34,6 +34,7 @@ class Config:
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "")
     PASSWORD_RESET_MAX_AGE = int(os.getenv("PASSWORD_RESET_MAX_AGE", "3600"))
     APP_BASE_URL = os.getenv("APP_BASE_URL", "")
+    ADMIN_BOOTSTRAP_TOKEN = os.getenv("ADMIN_BOOTSTRAP_TOKEN", "")
 
     MAP_DEFAULT_CENTER = (-12.8, -41.7)
     MAP_DEFAULT_ZOOM = 7
