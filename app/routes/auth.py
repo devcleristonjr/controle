@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hmac
+
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import login_required, login_user, logout_user
@@ -68,6 +70,38 @@ def cadastro():
         return redirect(url_for("auth.login"))
 
     return render_template("auth/cadastro.html", form=form)
+
+
+@auth_bp.route("/recuperar-admin", methods=["GET", "POST"])
+def recuperar_admin():
+    bootstrap_token = current_app.config.get("ADMIN_BOOTSTRAP_TOKEN", "").strip()
+
+    if not bootstrap_token:
+        return render_template("auth/recuperar_admin.html", indisponivel=True)
+
+    admin_existente = Usuario.query.filter_by(perfil="ADMIN").first()
+    if admin_existente:
+        return render_template("auth/recuperar_admin.html", indisponivel=True, bloqueado=True)
+
+    if request.method == "POST":
+        token = request.form.get("token", "").strip()
+        email = request.form.get("email", "").strip().lower()
+
+        if not hmac.compare_digest(token, bootstrap_token):
+            flash("Código de recuperação inválido.", "danger")
+            return render_template("auth/recuperar_admin.html", indisponivel=False)
+
+        usuario = Usuario.query.filter_by(email=email, ativo=True).first()
+        if not usuario:
+            flash("Não encontramos uma conta ativa com esse e-mail. Primeiro crie sua conta normalmente.", "danger")
+            return render_template("auth/recuperar_admin.html", indisponivel=False)
+
+        usuario.perfil = "ADMIN"
+        db.session.commit()
+        flash("Acesso administrativo recuperado. Agora entre com seu e-mail e senha.", "success")
+        return redirect(url_for("auth.login"))
+
+    return render_template("auth/recuperar_admin.html", indisponivel=False)
 
 
 @auth_bp.route("/esqueci-senha", methods=["GET", "POST"])
