@@ -7,7 +7,7 @@ from flask_login import login_required, login_user, logout_user
 from app.extensions import db
 from app.forms import CadastroUsuarioForm, EsqueciSenhaForm, LoginForm, RedefinirSenhaForm
 from app.models.usuario import Usuario
-from app.services.email import enviar_email
+from app.email_service import enviar_email
 
 auth_bp = Blueprint("auth", __name__)
 
