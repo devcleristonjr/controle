@@ -80,7 +80,11 @@ def esqueci_senha():
         if usuario:
             try:
                 token = _gerar_token_redefinicao(usuario)
-                link = url_for("auth.redefinir_senha", token=token, _external=True)
+                base_url = current_app.config.get("APP_BASE_URL", "").rstrip("/")
+                if base_url:
+                    link = f"{base_url}{url_for('auth.redefinir_senha', token=token)}"
+                else:
+                    link = url_for("auth.redefinir_senha", token=token, _external=True)
                 corpo = (
                     f"Olá, {usuario.nome}!\n\n"
                     "Recebemos uma solicitação para redefinir a senha do Controle de Materiais.\n\n"
