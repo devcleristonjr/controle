@@ -14,16 +14,36 @@ def register_commands(app):
     @click.option("--email", prompt=True)
     @click.option("--senha", prompt=True, hide_input=True, confirmation_prompt=True)
     def create_admin(nome: str, email: str, senha: str) -> None:
-        existing = Usuario.query.filter_by(email=email.lower()).first()
+        existing = Usuario.query.filter_by(email=email.strip().lower()).first()
         if existing:
-            click.echo("Já existe um usuário com este e-mail.")
+            click.echo("Já existe um usuário com este e-mail. Use 'flask ensure-admin' para recuperar o acesso administrativo.")
             return
 
-        usuario = Usuario(nome=nome, email=email.lower(), perfil="ADMIN", ativo=True)
+        usuario = Usuario(nome=nome.strip(), email=email.strip().lower(), perfil="ADMIN", ativo=True)
         usuario.set_password(senha)
         db.session.add(usuario)
         db.session.commit()
         click.echo(f"Usuário administrador criado: {usuario.email}")
+
+    @app.cli.command("ensure-admin")
+    @click.option("--nome", prompt=True)
+    @click.option("--email", prompt=True)
+    @click.option("--senha", prompt=True, hide_input=True, confirmation_prompt=True)
+    def ensure_admin(nome: str, email: str, senha: str) -> None:
+        email = email.strip().lower()
+        usuario = Usuario.query.filter_by(email=email).first()
+
+        if usuario is None:
+            usuario = Usuario(nome=nome.strip(), email=email, perfil="ADMIN", ativo=True)
+            db.session.add(usuario)
+        else:
+            usuario.nome = nome.strip() or usuario.nome
+            usuario.perfil = "ADMIN"
+            usuario.ativo = True
+
+        usuario.set_password(senha)
+        db.session.commit()
+        click.echo(f"Acesso administrativo garantido para: {usuario.email}")
 
     @app.cli.command("zerar-estoques")
     @click.option(
@@ -36,7 +56,7 @@ def register_commands(app):
         referencia = data_referencia.date() if data_referencia is not None else None
         try:
             resultado = zerar_estoques_diariamente(data_referencia=referencia)
-        except Exception as exc:  # pragma: no cover - CLI runtime feedback
+        except Exception as exc:
             current_app.logger.exception("[ZERAMENTO DIARIO] ERRO: %s", exc)
             raise click.ClickException("Falha ao executar o zeramento diário de estoques.") from exc
 

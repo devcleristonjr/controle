@@ -67,6 +67,15 @@ class LoginForm(FlaskForm):
     remember_me = BooleanField("Lembrar-me")
 
 
+class EsqueciSenhaForm(FlaskForm):
+    email = StringField("E-mail", validators=[DataRequired(), Email(), Length(max=180)])
+
+
+class RedefinirSenhaForm(FlaskForm):
+    senha = PasswordField("Nova senha", validators=[DataRequired(), Length(min=6, max=255)])
+    confirmar_senha = PasswordField("Confirmar nova senha", validators=[DataRequired(), Length(min=6, max=255)])
+
+
 class MaterialForm(FlaskForm):
     nome = StringField("Nome", validators=[DataRequired(), Length(max=180)])
     quantidade_total = DecimalField(

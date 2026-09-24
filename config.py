@@ -25,6 +25,16 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", "5242880"))
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", str(BASE_DIR / "uploads"))
     ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+
+    MAIL_SERVER = os.getenv("MAIL_SERVER", "")
+    MAIL_PORT = int(os.getenv("MAIL_PORT", "587"))
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME", "")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", "")
+    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "true").lower() in {"1", "true", "yes", "on"}
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "")
+    PASSWORD_RESET_MAX_AGE = int(os.getenv("PASSWORD_RESET_MAX_AGE", "3600"))
+    APP_BASE_URL = os.getenv("APP_BASE_URL", "")
+
     MAP_DEFAULT_CENTER = (-12.8, -41.7)
     MAP_DEFAULT_ZOOM = 7
     BAHIA_BOUNDS = [[-18.75, -46.5], [-8.0, -37.0]]
@@ -51,9 +61,5 @@ class TestingConfig(Config):
 
 def get_config() -> type[Config]:
     env = os.getenv("APP_ENV", "development").lower()
-    mapping = {
-        "development": DevelopmentConfig,
-        "production": ProductionConfig,
-        "testing": TestingConfig,
-    }
+    mapping = {"development": DevelopmentConfig, "production": ProductionConfig, "testing": TestingConfig}
     return mapping.get(env, DevelopmentConfig)
