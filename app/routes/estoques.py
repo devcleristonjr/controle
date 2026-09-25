@@ -149,7 +149,7 @@ def detail(ponto_id: int):
 @login_required
 @role_required("ADMIN", "OPERADOR")
 def create_allocation(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     form = AlocacaoPontoMaterialForm()
     materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
     form.material_id.choices = [(material.id, material.nome) for material in materiais]
@@ -257,7 +257,7 @@ def register_replenishment(alocacao_id: int):
 @login_required
 @role_required("ADMIN", "OPERADOR")
 def remove_material(ponto_id: int, material_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     material = Material.query.get_or_404(material_id)
     try:
         removed = remove_material_from_point(point=ponto, material=material)
@@ -275,9 +275,9 @@ def remove_material(ponto_id: int, material_id: int):
 @login_required
 @role_required("ADMIN", "OPERADOR")
 def edit(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     form = PontoEstoqueForm(obj=ponto)
-    municipios = Municipio.query.filter_by(ativo=True).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
+    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
     form.municipio_id.choices = [(m.id, f"{m.nome} - {m.territorio.nome}") for m in municipios]
     if request.method == "GET":
         form.municipio_id.data = ponto.municipio_id
@@ -286,7 +286,7 @@ def edit(ponto_id: int):
         if ponto.latitude is not None and ponto.longitude is not None:
             form.coordenadas.data = f"{ponto.latitude} {ponto.longitude}"
     if form.validate_on_submit():
-        municipio = Municipio.query.get_or_404(form.municipio_id.data)
+        municipio = Municipio.query.filter(Municipio.id == form.municipio_id.data, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES), Municipio.ativo.is_(True)).first_or_404()
         if form.coordenadas.data:
             lat_value, lon_value = parse_coordinate_pair(form.coordenadas.data, form.longitude.data)
             if lat_value is None or lon_value is None:
@@ -327,7 +327,7 @@ def edit(ponto_id: int):
 @login_required
 @role_required("ADMIN", "OPERADOR")
 def deactivate(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     ponto.ativo = False
     db.session.commit()
     flash("Ponto desativado.", "info")
@@ -338,7 +338,7 @@ def deactivate(ponto_id: int):
 @login_required
 @admin_required
 def delete(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     db.session.delete(ponto)
     db.session.commit()
     flash("Ponto excluído permanentemente.", "warning")
@@ -349,7 +349,7 @@ def delete(ponto_id: int):
 @login_required
 @role_required("ADMIN", "OPERADOR")
 def update_stock_view(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     form = EstoqueMovimentacaoForm()
     materials = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
     form.material_id.choices = [(m.id, m.nome) for m in materials]
@@ -424,7 +424,7 @@ def legacy_migration():
 @login_required
 @admin_required
 def migrate_legacy(ponto_id: int, material_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     material = Material.query.get_or_404(material_id)
     try:
         migrate_legacy_stock_to_allocation(
@@ -443,7 +443,7 @@ def migrate_legacy(ponto_id: int, material_id: int):
 @estoques_bp.get("/<int:ponto_id>/historico")
 @login_required
 def history(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     movimentacoes = MovimentacaoEstoque.query.filter_by(ponto_estoque_id=ponto.id).order_by(MovimentacaoEstoque.created_at.desc()).all()
     return render_template("estoques/history.html", ponto=ponto, movimentacoes=movimentacoes)
 
@@ -451,6 +451,6 @@ def history(ponto_id: int):
 @estoques_bp.get("/<int:ponto_id>/historico-operacional")
 @login_required
 def operational_history(ponto_id: int):  # NOSONAR
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     entries = get_operational_history_entries(ponto)
     return render_template("estoques/operational_history.html", ponto=ponto, entries=entries)
