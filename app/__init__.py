@@ -5,7 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, render_template
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import OperationalError
 
 from app.extensions import csrf, db, login_manager, migrate
@@ -40,15 +40,33 @@ def load_user(user_id: str) -> Usuario | None:
 
 
 def _ensure_photo_columns() -> None:
-    """Garante as colunas de fotos mesmo quando o Render inicia via Start Command próprio."""
-    db.session.execute(text(
-        "ALTER TABLE pontos_estoque "
-        "ADD COLUMN IF NOT EXISTS foto_conteudo BYTEA"
-    ))
-    db.session.execute(text(
-        "ALTER TABLE pontos_estoque "
-        "ADD COLUMN IF NOT EXISTS foto_mime_type VARCHAR(100)"
-    ))
+    """Garante as colunas de fotos em bancos já existentes, sem quebrar SQLite."""
+    inspector = inspect(db.engine)
+    if not inspector.has_table("pontos_estoque"):
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("pontos_estoque")}
+    dialect = db.engine.dialect.name
+
+    if dialect == "sqlite":
+        if "foto_conteudo" not in columns:
+            db.session.execute(
+                text("ALTER TABLE pontos_estoque ADD COLUMN foto_conteudo BLOB")
+            )
+        if "foto_mime_type" not in columns:
+            db.session.execute(
+                text("ALTER TABLE pontos_estoque ADD COLUMN foto_mime_type VARCHAR(100)")
+            )
+    elif dialect == "postgresql":
+        if "foto_conteudo" not in columns:
+            db.session.execute(
+                text("ALTER TABLE pontos_estoque ADD COLUMN foto_conteudo BYTEA")
+            )
+        if "foto_mime_type" not in columns:
+            db.session.execute(
+                text("ALTER TABLE pontos_estoque ADD COLUMN foto_mime_type VARCHAR(100)")
+            )
+
     db.session.commit()
 
 
@@ -66,9 +84,6 @@ def _ensure_reference_municipal_data() -> None:
         else:
             territorio.ativo = True
 
-        # O código IBGE é a identidade canônica do município. Se a planilha
-        # tiver criado registros duplicados, consolidamos tudo em um único
-        # registro ativo para que os selects nunca repitam cidades.
         municipios_mesmo_nome = (
             Municipio.query
             .filter(Municipio.nome == municipio_nome)
@@ -97,8 +112,6 @@ def _ensure_reference_municipal_data() -> None:
             municipio.codigo_ibge = data["codigo_ibge"]
             municipio.ativo = True
 
-        # Consolida registros duplicados pelo nome e transfere os pontos
-        # existentes para o registro canônico antes de desativar o duplicado.
         from app.models.ponto_estoque import PontoEstoque
         duplicados = [item for item in municipios_mesmo_nome if item.id != municipio.id]
         for duplicado in duplicados:
@@ -131,12 +144,11 @@ def create_app(config_object: type | None = None) -> Flask:
     csrf.init_app(app)
 
     with app.app_context():
-        # Garante as colunas de foto antes de qualquer consulta a PontoEstoque.
-        # Isso é feito em qualquer ambiente porque o banco existente pode ter
-        # sido criado antes da adição dessas colunas.
-        _ensure_photo_columns()
+        # Em banco local novo, cria primeiro as tabelas. Em banco existente,
+        # garante depois as colunas adicionadas ao modelo.
         if app_env != "production":
             db.create_all()
+        _ensure_photo_columns()
 
         _ensure_reference_municipal_data()
 
