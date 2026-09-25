@@ -8,6 +8,7 @@ from app.forms import MunicipioForm, TerritorioForm, UsuarioForm
 from app.models.municipio import Municipio
 from app.models.territorio import Territorio
 from app.models.usuario import Usuario
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.security import admin_required
 
 
@@ -103,7 +104,7 @@ def create():
     form = TerritorioForm()
     if form.validate_on_submit():
         territorio = Territorio(
-            nome=form.nome.data.strip(),
+            nome=nome,
             codigo=form.codigo.data.strip() if form.codigo.data else None,
             ativo=form.ativo.data,
         )
@@ -145,7 +146,7 @@ def deactivate(territorio_id: int):
 @login_required
 @admin_required
 def index():
-    municipios = Municipio.query.join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
+    municipios = Municipio.query.filter(Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES), Municipio.ativo.is_(True)).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
     return render_template("administracao/municipios/index.html", municipios=municipios)
 
 
@@ -156,6 +157,10 @@ def create():
     form = MunicipioForm()
     form.territorio_id.choices = [(t.id, t.nome) for t in Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()]
     if form.validate_on_submit():
+        nome = form.nome.data.strip()
+        if nome not in ALLOWED_MUNICIPIO_NAMES:
+            form.nome.errors.append("Este município não faz parte da operação atual.")
+            return render_template("administracao/municipios/form.html", form=form, title="Novo município")
         municipio = Municipio(
             nome=form.nome.data.strip(),
             territorio_id=form.territorio_id.data,
