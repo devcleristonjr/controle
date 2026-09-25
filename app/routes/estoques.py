@@ -155,6 +155,8 @@ def create():
             responsavel_nome=form.responsavel_nome.data.strip() if form.responsavel_nome.data else None,
             responsavel_whatsapp=normalize_whatsapp_number(form.responsavel_whatsapp.data) or None,
             foto=foto_path,
+            foto_conteudo=foto_file.read(),
+            foto_mime_type=foto_file.mimetype or "application/octet-stream",
             observacoes=form.observacoes.data.strip() if form.observacoes.data else None,
             ativo=form.ativo.data,
         )
@@ -359,6 +361,9 @@ def edit(ponto_id: int):
         if foto_file and hasattr(foto_file, "filename") and foto_file.filename:
             try:
                 ponto.foto = save_uploaded_image(foto_file)
+                foto_file.stream.seek(0)
+                ponto.foto_conteudo = foto_file.read()
+                ponto.foto_mime_type = foto_file.mimetype or "application/octet-stream"
             except ValueError as exc:
                 flash(str(exc), "danger")
                 return render_template("estoques/form.html", form=form, municipios=municipios, title="Editar ponto de estoque")
