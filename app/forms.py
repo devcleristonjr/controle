@@ -90,7 +90,6 @@ class MaterialForm(FlaskForm):
 
 
 class PontoEstoqueForm(FlaskForm):
-    nome = StringField("Nome do local", validators=[DataRequired(), Length(max=180)])
     municipio_id = SelectField("Município", coerce=int, validators=[DataRequired()])
     endereco = StringField("Endereço", validators=[Optional(), Length(max=255)])
     coordenadas = StringField("Coordenadas do Google Maps", validators=[Optional()])
@@ -141,11 +140,6 @@ class ColetaEstoqueForm(FlaskForm):
 
 
 class ColetaPublicCadastroForm(FlaskForm):
-    nome_local = StringField(
-        "Nome do local",
-        validators=[DataRequired(), Length(max=180)],
-        render_kw={"required": False},
-    )
     municipio_id = SelectField(
         "Município",
         coerce=int,
