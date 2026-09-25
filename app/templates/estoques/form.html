@@ -51,10 +51,21 @@
               {{ form.responsavel_whatsapp(class_='form-control') }}
             </div>
             <div class="col-md-12">
-              {{ form.foto.label(class_='form-label') }}
-              {{ form.foto(class_='form-control', accept='.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp') }}
-              {% for error in form.foto.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-              <div class="form-text">JPG, JPEG, PNG e WEBP, com nome seguro e tamanho limitado pelo sistema.</div>
+
+<div class="photo-chooser" data-photo-chooser="estoque-photo">
+  <div class="form-label fw-semibold">Foto do local</div>
+  <div class="d-flex flex-wrap gap-2">
+    <button type="button" class="btn btn-primary photo-camera-btn" data-photo-camera>
+      <i class="bi bi-camera me-1"></i>Tirar foto
+    </button>
+    <button type="button" class="btn btn-outline-primary photo-gallery-btn" data-photo-gallery>
+      <i class="bi bi-images me-1"></i>Escolher da galeria
+    </button>
+  </div>
+  <div class="small text-muted mt-2" data-photo-name>Nenhuma foto selecionada.</div>
+  <div class="visually-hidden">{{ form.foto(class_='form-control', accept='image/*', id='foto-upload') }}</div>
+  <input type="file" accept="image/*" capture="environment" class="visually-hidden" data-photo-camera-input>
+</div>
             </div>
             <div class="col-md-12">
               {{ form.observacoes.label(class_='form-label') }}
