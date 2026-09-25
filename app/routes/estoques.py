@@ -21,6 +21,7 @@ from app.models.municipio import Municipio
 from app.models.movimentacao_estoque import MovimentacaoEstoque
 from app.models.ponto_estoque import PontoEstoque
 from app.security import admin_required, role_required
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.services import (
     create_material_allocation,
     get_operational_history_entries,
@@ -75,10 +76,10 @@ def index():
 @role_required("ADMIN", "OPERADOR")
 def create():
     form = PontoEstoqueForm()
-    municipios = Municipio.query.filter_by(ativo=True).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
+    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
     form.municipio_id.choices = [(m.id, f"{m.nome} - {m.territorio.nome}") for m in municipios]
     if form.validate_on_submit():
-        municipio = Municipio.query.get_or_404(form.municipio_id.data)
+        municipio = Municipio.query.filter(Municipio.id == form.municipio_id.data, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES), Municipio.ativo.is_(True)).first_or_404()
         lat_value, lon_value = parse_coordinate_pair(form.coordenadas.data or form.latitude.data, form.longitude.data)
         if lat_value is None and lon_value is None:
             lat_value, lon_value = parse_coordinate_pair(form.latitude.data, form.longitude.data)
