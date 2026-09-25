@@ -30,6 +30,7 @@ from app.utils import (
     normalize_whatsapp_number,
     parse_coordinate_to_decimal,
     save_uploaded_image,
+    reverse_geocode_coordinates,
 )
 
 
@@ -295,6 +296,49 @@ def _validate_quantities_against_totals(
 @coleta_public_bp.get("/coleta")
 def index():
     return render_template("coleta_public/index.html")
+
+
+@coleta_public_bp.get("/coleta/geolocalizacao")
+def geolocalizacao():
+    """Converte a localização atual em endereço e município para o cadastro público."""
+    from flask import jsonify
+
+    latitude = request.args.get("latitude", type=float)
+    longitude = request.args.get("longitude", type=float)
+    if latitude is None or longitude is None or not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+        return jsonify({"ok": False, "message": "Coordenadas inválidas."}), 400
+
+    try:
+        dados = reverse_geocode_coordinates(latitude, longitude)
+    except Exception:
+        return jsonify({
+            "ok": True,
+            "latitude": latitude,
+            "longitude": longitude,
+            "endereco": "",
+            "municipio_id": None,
+            "municipio": "",
+            "message": "Localização registrada, mas não foi possível obter o endereço automaticamente.",
+        })
+
+    municipio_nome = (dados.get("municipio") or "").strip()
+    municipio = None
+    if municipio_nome:
+        municipio = Municipio.query.filter(
+            Municipio.ativo.is_(True),
+            Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES),
+            Municipio.nome.ilike(municipio_nome),
+        ).first()
+
+    return jsonify({
+        "ok": True,
+        "latitude": latitude,
+        "longitude": longitude,
+        "endereco": dados.get("display_name") or "",
+        "municipio_id": municipio.id if municipio else None,
+        "municipio": municipio.nome if municipio else municipio_nome,
+        "message": "Localização registrada e dados preenchidos automaticamente." if municipio else "Localização registrada. Confira o município e o endereço.",
+    })
 
 
 @coleta_public_bp.route("/coleta/novo", methods=["GET", "POST"])
