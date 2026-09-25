@@ -92,6 +92,19 @@
       </section>
     {% else %}
       <section class="mb-4">
+        <h2 class="h5 fw-bold mb-2">📍 Localização no mapa</h2>
+        <p class="mb-2">Use sua localização atual para preencher automaticamente os dados do ponto e posicioná-lo no mapa.</p>
+        <input type="hidden" name="latitude" id="latitude-input" value="{{ form.latitude.data or '' }}">
+        <input type="hidden" name="longitude" id="longitude-input" value="{{ form.longitude.data or '' }}">
+        <button type="button" id="btn-localizacao" class="btn btn-outline-primary btn-lg w-100">📍 Registrar minha localização atual</button>
+        <div class="form-text mt-2">O sistema tentará preencher automaticamente município, território e endereço a partir da sua localização. Você poderá conferir e corrigir antes de continuar.</div>
+        <div id="status-localizacao" class="small fw-semibold mt-2 {{ 'text-success' if location_registered else 'text-muted' }}">
+          {{ '✅ Localização atual registrada e dados preenchidos' if location_registered else 'Localização atual não informada (opcional)' }}
+        </div>
+      </section>
+
+
+      <section class="mb-4">
         <h2 class="h5 fw-bold mb-3">Dados do ponto</h2>
         <div class="mb-3">
           {{ form.nome_local.label(class_='form-label') }}
@@ -147,18 +160,6 @@
           {{ form.coletor_nome.label(class_='form-label') }}
           {{ form.coletor_nome(class_='form-control form-control-lg', placeholder='Seu nome') }}
           {% for error in form.coletor_nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-        </div>
-      </section>
-
-      <section class="mb-4">
-        <h2 class="h5 fw-bold mb-2">📍 Localização no mapa</h2>
-        <p class="mb-2">Use sua localização atual para preencher automaticamente os dados do ponto e posicioná-lo no mapa.</p>
-        <input type="hidden" name="latitude" id="latitude-input" value="{{ form.latitude.data or '' }}">
-        <input type="hidden" name="longitude" id="longitude-input" value="{{ form.longitude.data or '' }}">
-        <button type="button" id="btn-localizacao" class="btn btn-outline-primary btn-lg w-100">📍 Registrar minha localização atual</button>
-        <div class="form-text mt-2">O sistema tentará preencher automaticamente município, território e endereço a partir da sua localização. Você poderá conferir e corrigir antes de continuar.</div>
-        <div id="status-localizacao" class="small fw-semibold mt-2 {{ 'text-success' if location_registered else 'text-muted' }}">
-          {{ '✅ Localização atual registrada e dados preenchidos' if location_registered else 'Localização atual não informada (opcional)' }}
         </div>
       </section>
 
