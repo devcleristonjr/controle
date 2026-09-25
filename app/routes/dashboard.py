@@ -6,11 +6,22 @@ from flask_login import login_required
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.territorio import Territorio
-from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES, ALLOWED_TERRITORY_NAMES
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.services import get_allocation_monitoring_rows, get_dashboard_metrics
 
 
 dashboard_bp = Blueprint("dashboard", __name__)
+
+def _allowed_territorios():
+    """Retorna somente os territórios ligados aos quatro municípios permitidos."""
+    municipios = (
+        Municipio.query
+        .filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES))
+        .join(Municipio.territorio)
+        .all()
+    )
+    territorios = {municipio.territorio.id: municipio.territorio for municipio in municipios}
+    return sorted(territorios.values(), key=lambda item: item.nome.casefold())
 
 
 @dashboard_bp.get("/")
@@ -30,7 +41,7 @@ def index():
     filters["period_start"] = request.args.get("period_start")
     filters["period_end"] = request.args.get("period_end")
     metrics = get_dashboard_metrics(filters)
-    territorios = Territorio.query.filter(Territorio.ativo.is_(True), Territorio.nome.in_(ALLOWED_TERRITORY_NAMES)).order_by(Territorio.nome.asc()).all()
+    territorios = _allowed_territorios()
     municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
     materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
     return render_template(
