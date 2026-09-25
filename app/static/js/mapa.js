@@ -114,7 +114,7 @@
       : '<div class="map-popup-empty">Nenhum material registrado</div>';
 
     const photoHtml = point.foto
-      ? '<div class="map-popup-photo-wrap"><img class="map-popup-photo" src="/' + escapeHtml(point.foto) +
+      ? '<div class="map-popup-photo-wrap"><img class="map-popup-photo" src="/uploads/ponto/' + encodeURIComponent(point.id) +
         '" alt="Foto do ponto"></div>'
       : '';
 
