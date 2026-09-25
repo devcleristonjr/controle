@@ -131,12 +131,11 @@ def create_app(config_object: type | None = None) -> Flask:
     csrf.init_app(app)
 
     with app.app_context():
-        # Em produção, o banco precisa estar migrado antes de qualquer consulta
-        # aos modelos. O serviço do Render usa gunicorn diretamente, então não
-        # podemos depender de um `flask db upgrade` separado no Start Command.
-        if app_env == "production":
-            _ensure_photo_columns()
-        else:
+        # Garante as colunas de foto antes de qualquer consulta a PontoEstoque.
+        # Isso é feito em qualquer ambiente porque o banco existente pode ter
+        # sido criado antes da adição dessas colunas.
+        _ensure_photo_columns()
+        if app_env != "production":
             db.create_all()
 
         _ensure_reference_municipal_data()
