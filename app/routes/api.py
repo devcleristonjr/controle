@@ -8,7 +8,7 @@ from app.extensions import db
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
-from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES, ALLOWED_TERRITORY_NAMES
 from app.models.territorio import Territorio
 from app.services import (
     build_map_points,
@@ -25,7 +25,7 @@ api_bp = Blueprint("api", __name__, url_prefix="/api")
 @api_bp.get("/territorios")
 @login_required
 def list_territorios():
-    territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
+    territorios = Territorio.query.filter(Territorio.ativo.is_(True), Territorio.nome.in_(ALLOWED_TERRITORY_NAMES)).order_by(Territorio.nome.asc()).all()
     return jsonify(
         [
             {"id": territorio.id, "nome": territorio.nome, "codigo": territorio.codigo, "ativo": territorio.ativo}
