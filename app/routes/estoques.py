@@ -43,12 +43,59 @@ from app.utils import (
     normalize_whatsapp_number,
     parse_coordinate_pair,
     save_uploaded_image,
+    reverse_geocode_coordinates,
 )
 
 
 estoques_bp = Blueprint("estoques", __name__, url_prefix="/estoques")
 ESTOQUES_INDEX_ENDPOINT = "estoques.index"
 ESTOQUES_DETAIL_ENDPOINT = "estoques.detail"
+
+
+@estoques_bp.get("/geolocalizacao")
+@login_required
+@role_required("ADMIN", "OPERADOR")
+def geolocalizacao():
+    """Converte a localização atual do navegador em endereço e município."""
+    from flask import jsonify
+
+    latitude = request.args.get("latitude", type=float)
+    longitude = request.args.get("longitude", type=float)
+    if latitude is None or longitude is None or not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+        return jsonify({"ok": False, "message": "Coordenadas inválidas."}), 400
+
+    try:
+        dados = reverse_geocode_coordinates(latitude, longitude)
+    except Exception:
+        return jsonify({
+            "ok": True,
+            "latitude": latitude,
+            "longitude": longitude,
+            "endereco": "",
+            "municipio_id": None,
+            "municipio": "",
+            "message": "Localização registrada, mas não foi possível obter o endereço automaticamente.",
+        })
+
+    municipio_nome = (dados.get("municipio") or "").strip()
+    municipio = None
+    if municipio_nome:
+        municipio = Municipio.query.filter(
+            Municipio.ativo.is_(True),
+            Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES),
+            Municipio.nome.ilike(municipio_nome),
+        ).first()
+
+    endereco = dados.get("display_name") or ""
+    return jsonify({
+        "ok": True,
+        "latitude": latitude,
+        "longitude": longitude,
+        "endereco": endereco,
+        "municipio_id": municipio.id if municipio else None,
+        "municipio": municipio.nome if municipio else municipio_nome,
+        "message": "Localização registrada e dados preenchidos automaticamente." if municipio else "Localização registrada. Confira o município e o endereço.",
+    })
 
 
 @estoques_bp.get("/")
