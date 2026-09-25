@@ -5,7 +5,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, render_template
-from openpyxl import load_workbook
 
 from app.extensions import csrf, db, login_manager, migrate
 from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
@@ -39,47 +38,32 @@ def load_user(user_id: str) -> Usuario | None:
 
 
 def _ensure_reference_municipal_data() -> None:
-    if Municipio.query.count() > 0:
-        return
-
-    workbook_path = Path(__file__).resolve().parent.parent / "Municipios Bahia.xlsx"
-    if not workbook_path.exists():
-        return
-
-    workbook = load_workbook(workbook_path, data_only=True)
-    worksheet = workbook.active
-    headers = {
-        str(cell.value).strip().lower().replace("\n", " "): index
-        for index, cell in enumerate(next(worksheet.iter_rows(min_row=1, max_row=1)), start=1)
-    }
-
-    def find_column(candidates):
-        for candidate in candidates:
-            if candidate in headers:
-                return headers[candidate]
-        return None
-
-    municipio_col = find_column(["municipio", "município", "nome do municipio", "nome do município"])
-    territorio_col = find_column(["territorio", "território", "territorio de identidade", "território de identidade"])
-    if municipio_col is None or territorio_col is None:
-        return
-
+    """Garante somente os quatro municípios operacionais do sistema."""
     from app.models.territorio import Territorio
+    from app.municipios_permitidos import ALLOWED_MUNICIPIOS
 
-    for row in worksheet.iter_rows(min_row=2, values_only=True):
-        municipio_nome = row[municipio_col - 1] if len(row) >= municipio_col else None
-        territorio_nome = row[territorio_col - 1] if len(row) >= territorio_col else None
-        if not municipio_nome or not territorio_nome:
-            continue
-
-        territorio = Territorio.query.filter_by(nome=str(territorio_nome).strip()).first()
+    for municipio_nome, data in ALLOWED_MUNICIPIOS.items():
+        territorio = Territorio.query.filter_by(nome=data["territorio"]).first()
         if territorio is None:
-            territorio = Territorio(nome=str(territorio_nome).strip(), ativo=True)
+            territorio = Territorio(nome=data["territorio"], ativo=True)
             db.session.add(territorio)
             db.session.flush()
+        else:
+            territorio.ativo = True
 
-        if not Municipio.query.filter_by(nome=str(municipio_nome).strip(), territorio_id=territorio.id).first():
-            db.session.add(Municipio(nome=str(municipio_nome).strip(), territorio=territorio, ativo=True))
+        municipio = Municipio.query.filter_by(codigo_ibge=data["codigo_ibge"]).first()
+        if municipio is None:
+            municipio = Municipio(
+                nome=municipio_nome,
+                territorio_id=territorio.id,
+                codigo_ibge=data["codigo_ibge"],
+                ativo=True,
+            )
+            db.session.add(municipio)
+        else:
+            municipio.nome = municipio_nome
+            municipio.territorio_id = territorio.id
+            municipio.ativo = True
 
     db.session.commit()
 

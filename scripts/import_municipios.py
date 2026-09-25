@@ -9,6 +9,7 @@ from app import create_app
 from app.extensions import db
 from app.models.municipio import Municipio
 from app.models.territorio import Territorio
+from app.municipios_permitidos import ALLOWED_MUNICIPIOS
 
 
 def normalize_header(value: str | None) -> str:
@@ -76,6 +77,8 @@ def import_workbook(workbook_path: Path) -> tuple[int, int]:
 
         territorio_nome = str(territorio_nome).strip()
         municipio_nome = str(municipio_nome).strip()
+        if municipio_nome not in ALLOWED_MUNICIPIOS:
+            continue
         territorio = Territorio.query.filter_by(nome=territorio_nome).first()
         if territorio is None:
             territorio = Territorio(
