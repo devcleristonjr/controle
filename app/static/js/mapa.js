@@ -113,9 +113,10 @@
         ).join('')
       : '<div class="map-popup-empty">Nenhum material registrado</div>';
 
-    const photoHtml = point.foto
-      ? '<div class="map-popup-photo-wrap"><img class="map-popup-photo" src="' + escapeHtml(point.foto) +
-        '" alt="Foto do ponto"></div>'
+    const photoUrl = point.foto_url || point.foto || ('/ponto/' + encodeURIComponent(point.id));
+    const photoHtml = point.tem_foto
+      ? '<div class="map-popup-photo-wrap"><img class="map-popup-photo" src="' + escapeHtml(photoUrl) +
+        '" alt="Foto do ponto" loading="lazy"></div>'
       : '';
 
     const contactHtml = point.whatsapp_url
