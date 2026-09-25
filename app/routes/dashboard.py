@@ -6,6 +6,7 @@ from flask_login import login_required
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.territorio import Territorio
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.services import get_allocation_monitoring_rows, get_dashboard_metrics
 
 
@@ -30,7 +31,7 @@ def index():
     filters["period_end"] = request.args.get("period_end")
     metrics = get_dashboard_metrics(filters)
     territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
-    municipios = Municipio.query.filter_by(ativo=True).order_by(Municipio.nome.asc()).all()
+    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
     materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
     return render_template(
         "dashboard/index.html",
