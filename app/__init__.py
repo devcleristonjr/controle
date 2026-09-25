@@ -5,6 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, render_template
+from sqlalchemy.exc import OperationalError
 
 from app.extensions import csrf, db, login_manager, migrate
 from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
@@ -119,7 +120,15 @@ def create_app(config_object: type | None = None) -> Flask:
         # Production databases are created and updated exclusively through Flask-Migrate.
         if app_env != "production":
             db.create_all()
-        _ensure_reference_municipal_data()
+        try:
+            _ensure_reference_municipal_data()
+        except OperationalError as exc:
+            # Durante `flask db upgrade`, o modelo pode já conter colunas da
+            # migration seguinte enquanto o banco ainda está na versão anterior.
+            # Nesse caso, deixe o Alembic aplicar a migration antes de consultar
+            # os modelos normalmente.
+            if "no such column" not in str(exc).lower():
+                raise
 
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Faça login para continuar."
