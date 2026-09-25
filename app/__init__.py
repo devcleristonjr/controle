@@ -117,18 +117,17 @@ def create_app(config_object: type | None = None) -> Flask:
     csrf.init_app(app)
 
     with app.app_context():
-        # Production databases are created and updated exclusively through Flask-Migrate.
-        if app_env != "production":
+        # Em produção, o banco precisa estar migrado antes de qualquer consulta
+        # aos modelos. O serviço do Render usa gunicorn diretamente, então não
+        # podemos depender de um `flask db upgrade` separado no Start Command.
+        if app_env == "production":
+            from flask_migrate import upgrade
+
+            upgrade()
+        else:
             db.create_all()
-        try:
-            _ensure_reference_municipal_data()
-        except OperationalError as exc:
-            # Durante `flask db upgrade`, o modelo pode já conter colunas da
-            # migration seguinte enquanto o banco ainda está na versão anterior.
-            # Nesse caso, deixe o Alembic aplicar a migration antes de consultar
-            # os modelos normalmente.
-            if "no such column" not in str(exc).lower():
-                raise
+
+        _ensure_reference_municipal_data()
 
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Faça login para continuar."
