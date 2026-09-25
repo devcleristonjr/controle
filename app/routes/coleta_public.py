@@ -155,7 +155,7 @@ def _find_possible_duplicates(nome: str, municipio_id: int, endereco: str | None
     normalized_endereco = _normalize_text(endereco)
     duplicates: list[PontoEstoque] = []
 
-    for ponto in PontoEstoque.query.filter_by(municipio_id=municipio_id).order_by(PontoEstoque.nome.asc()).all():
+    for ponto in PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.municipio_id == municipio_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(PontoEstoque.nome.asc()).all():
         point_name = _normalize_text(ponto.nome)
         point_address = _normalize_text(ponto.endereco)
         name_score = SequenceMatcher(None, normalized_nome, point_name).ratio()
@@ -483,7 +483,7 @@ def atualizar_busca():
     if municipio_id:
         municipio = Municipio.query.filter_by(id=municipio_id, ativo=True).first()
         if municipio is not None:
-            query = PontoEstoque.query.filter_by(municipio_id=municipio.id, ativo=True)
+            query = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.municipio_id == municipio.id, PontoEstoque.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES))
             if busca:
                 query = query.filter(PontoEstoque.nome.ilike(f"%{busca}%"))
             pontos = query.order_by(PontoEstoque.nome.asc()).limit(30).all()
