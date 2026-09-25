@@ -8,6 +8,7 @@ from app.extensions import db
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.models.territorio import Territorio
 from app.services import (
     build_map_points,
@@ -36,7 +37,7 @@ def list_territorios():
 @api_bp.get("/municipios")
 @login_required
 def list_municipios():
-    municipios = Municipio.query.filter_by(ativo=True).order_by(Municipio.nome.asc()).all()
+    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
     return jsonify(
         [
             {
@@ -77,7 +78,7 @@ def list_materiais():
 @api_bp.get("/estoques")
 @login_required
 def list_estoques():
-    pontos = PontoEstoque.query.order_by(PontoEstoque.nome.asc()).all()
+    pontos = PontoEstoque.query.join(PontoEstoque.municipio).filter(Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(PontoEstoque.nome.asc()).all()
     return jsonify(
         [
             {
@@ -95,7 +96,7 @@ def list_estoques():
 @api_bp.get("/estoques/<int:ponto_id>")
 @login_required
 def get_estoque(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     snapshot = get_point_operational_snapshot(ponto)
     material_ids = [item["material_id"] for item in snapshot["materials"]]
     legacy_snapshots = get_material_stock_snapshots(material_ids)
@@ -151,7 +152,7 @@ def create_estoque():
     if missing:
         return jsonify({"error": f"Campos obrigatórios ausentes: {', '.join(missing)}"}), 400
 
-    municipio = Municipio.query.get_or_404(int(data["municipio_id"]))
+    municipio = Municipio.query.filter(Municipio.id == int(data["municipio_id"]), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES), Municipio.ativo.is_(True)).first_or_404()
     ponto = PontoEstoque(
         nome=data["nome"],
         municipio=municipio,
