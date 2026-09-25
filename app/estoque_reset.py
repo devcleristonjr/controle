@@ -12,6 +12,8 @@ from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.estoque_material import EstoqueMaterial
 from app.models.fechamento_diario_estoque import FechamentoDiarioEstoque
 from app.models.ponto_estoque import PontoEstoque
+from app.models.municipio import Municipio
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.services import update_stock
 from app.timezone import agora_bahia, para_bahia
 
@@ -50,7 +52,7 @@ def zerar_estoques_diariamente(
                     ignorado=True,
                 )
 
-            pontos_encontrados = PontoEstoque.query.filter(PontoEstoque.ativo.is_(True)).count()
+            pontos_encontrados = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).count()
             logger.info("[ZERAMENTO DIARIO] Pontos encontrados: %s", pontos_encontrados)
 
             fechamento = FechamentoDiarioEstoque(
