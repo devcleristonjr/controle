@@ -1109,6 +1109,8 @@ def build_map_points(filters: dict | None = None) -> list[dict]:  # NOSONAR
                 "responsavel_whatsapp": point.responsavel_whatsapp,
                 "whatsapp_url": build_whatsapp_url(point.responsavel_whatsapp or point.responsavel_telefone),
                 "foto": f"/ponto/{point.id}" if (point.foto or point.foto_conteudo) else None,
+                "foto_url": f"/ponto/{point.id}" if (point.foto or point.foto_conteudo) else None,
+                "tem_foto": bool(point.foto or point.foto_conteudo),
                 "localizadores": [value for (value,) in point_localizadores if value],
                 "occurrence_count": int(occurrence_count or 0),
                 "last_occurrence_at": last_occurrence_at.isoformat() if last_occurrence_at else None,
