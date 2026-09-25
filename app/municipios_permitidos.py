@@ -18,6 +18,7 @@ ALLOWED_MUNICIPIOS = {
 }
 
 ALLOWED_MUNICIPIO_NAMES = frozenset(ALLOWED_MUNICIPIOS)
+ALLOWED_TERRITORY_NAMES = frozenset(data["territorio"] for data in ALLOWED_MUNICIPIOS.values())
 
 
 # Fonte de verdade operacional: somente estes municípios, presentes na planilha
