@@ -51,7 +51,22 @@ def _ensure_reference_municipal_data() -> None:
         else:
             territorio.ativo = True
 
-        municipio = Municipio.query.filter_by(codigo_ibge=data["codigo_ibge"]).first()
+        # O código IBGE é a identidade canônica do município. Se a planilha
+        # tiver criado registros duplicados, consolidamos tudo em um único
+        # registro ativo para que os selects nunca repitam cidades.
+        municipios_mesmo_nome = (
+            Municipio.query
+            .filter(Municipio.nome == municipio_nome)
+            .order_by(Municipio.id.asc())
+            .all()
+        )
+        municipio = next(
+            (item for item in municipios_mesmo_nome if item.codigo_ibge == data["codigo_ibge"]),
+            None,
+        )
+        if municipio is None:
+            municipio = Municipio.query.filter_by(codigo_ibge=data["codigo_ibge"]).first()
+
         if municipio is None:
             municipio = Municipio(
                 nome=municipio_nome,
@@ -60,10 +75,23 @@ def _ensure_reference_municipal_data() -> None:
                 ativo=True,
             )
             db.session.add(municipio)
+            db.session.flush()
         else:
             municipio.nome = municipio_nome
             municipio.territorio_id = territorio.id
+            municipio.codigo_ibge = data["codigo_ibge"]
             municipio.ativo = True
+
+        # Consolida registros duplicados pelo nome e transfere os pontos
+        # existentes para o registro canônico antes de desativar o duplicado.
+        from app.models.ponto_estoque import PontoEstoque
+        duplicados = [item for item in municipios_mesmo_nome if item.id != municipio.id]
+        for duplicado in duplicados:
+            PontoEstoque.query.filter_by(municipio_id=duplicado.id).update(
+                {"municipio_id": municipio.id},
+                synchronize_session=False,
+            )
+            duplicado.ativo = False
 
     db.session.commit()
 
