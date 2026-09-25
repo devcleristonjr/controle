@@ -34,7 +34,7 @@
   <div class="col-lg-5">
     <div class="card card-soft h-100">
       {% if ponto.foto %}
-        <img src="/{{ ponto.foto }}" class="card-img-top detail-photo" alt="Foto do local">
+        <img src="{{ url_for("files.ponto_photo", ponto_id=ponto.id) }}" class="card-img-top detail-photo" alt="Foto do local">
       {% endif %}
       <div class="card-body">
         <div class="mb-2"><strong>Responsável:</strong> {{ ponto.responsavel_nome or '-' }}</div>
