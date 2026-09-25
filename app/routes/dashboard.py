@@ -47,7 +47,7 @@ def index():
 @login_required
 def mapa():
     territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
-    municipios = Municipio.query.filter_by(ativo=True).order_by(Municipio.nome.asc()).all()
+    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
     materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
     return render_template(
         "mapa/index.html",
@@ -77,7 +77,7 @@ def monitoramento():
     filters["period_end"] = request.args.get("period_end")
     rows = get_allocation_monitoring_rows(filters)
     territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
-    municipios = Municipio.query.filter_by(ativo=True).order_by(Municipio.nome.asc()).all()
+    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
     materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
     totals = {
         "alocada": sum((row["alocada"] for row in rows), 0),
