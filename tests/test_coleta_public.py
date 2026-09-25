@@ -137,7 +137,7 @@ def test_formulario_publico_nao_expõe_required_html_e_nao_tem_busca_redundante(
     response = client.get("/coleta/novo")
     html = response.get_data(as_text=True)
 
-    assert 'name="nome_local"' in html
+    assert 'name="nome_local"' not in html
     assert 'name="municipio_id"' in html
     assert 'required' not in html
     assert 'Pesquisar município' not in html
@@ -183,7 +183,7 @@ def test_confirmacao_reenvia_campos_obrigatorios():
     assert preview.status_code == 200
     html = preview.get_data(as_text=True)
     assert "CONFIRME OS DADOS" in html
-    assert 'name="nome_local"' in html
+    assert 'name="nome_local"' not in html
     assert 'name="municipio_id"' in html
     assert 'name="responsavel_nome"' in html
     assert 'name="responsavel_whatsapp"' in html
@@ -288,7 +288,7 @@ def test_cadastro_novo_ponto_funciona():
     assert "Copiar link" in text
 
     with app.app_context():
-        ponto = PontoEstoque.query.filter_by(nome="Comite Feira").order_by(PontoEstoque.id.desc()).first()
+        ponto = PontoEstoque.query.filter_by(nome="Rua Central, 100").order_by(PontoEstoque.id.desc()).first()
         assert ponto is not None
         assert ponto.coleta_token
         assert ponto.municipio.nome == "Feira de Santana Teste"
@@ -369,7 +369,7 @@ def test_cadastro_duplicado_gera_aviso():
     }
     preview = client.post("/coleta/novo", data=data)
     assert preview.status_code == 200
-    assert "Já existe um ponto com nome semelhante neste município" in preview.get_data(as_text=True)
+    assert "Já existe um ponto com endereço semelhante neste município" in preview.get_data(as_text=True)
 
 
 def test_quantidade_negativa_e_rejeitada():
@@ -669,7 +669,7 @@ def test_cadastro_sem_gps_usa_endereco_para_geocodificar(monkeypatch):
     assert confirm.status_code == 200
 
     with app.app_context():
-        ponto = PontoEstoque.query.filter_by(nome="Comite Feira Sem GPS").order_by(PontoEstoque.id.desc()).first()
+        ponto = PontoEstoque.query.filter_by(nome="Rua Central, 100").order_by(PontoEstoque.id.desc()).first()
         assert ponto is not None
         assert Decimal(ponto.latitude) == Decimal("-12.260000")
         assert Decimal(ponto.longitude) == Decimal("-38.970000")
