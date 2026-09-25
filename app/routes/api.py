@@ -120,7 +120,6 @@ def get_estoque(ponto_id: int):
             "latitude": float(ponto.latitude) if ponto.latitude is not None else None,
             "longitude": float(ponto.longitude) if ponto.longitude is not None else None,
             "responsavel_nome": ponto.responsavel_nome,
-            "responsavel_telefone": ponto.responsavel_telefone,
             "responsavel_whatsapp": ponto.responsavel_whatsapp,
             "foto": ponto.foto,
             "fonte_operacional": snapshot["source"],
@@ -169,7 +168,6 @@ def create_estoque():
         latitude=data.get("latitude"),
         longitude=data.get("longitude"),
         responsavel_nome=data.get("responsavel_nome"),
-        responsavel_telefone=data.get("responsavel_telefone"),
         responsavel_whatsapp=data.get("responsavel_whatsapp"),
         foto=data.get("foto"),
         observacoes=data.get("observacoes"),
@@ -197,8 +195,6 @@ def update_estoque(ponto_id: int):
         ponto.longitude = data["longitude"]
     if "responsavel_nome" in data:
         ponto.responsavel_nome = data["responsavel_nome"]
-    if "responsavel_telefone" in data:
-        ponto.responsavel_telefone = data["responsavel_telefone"]
     if "responsavel_whatsapp" in data:
         ponto.responsavel_whatsapp = data["responsavel_whatsapp"]
     if "foto" in data:
