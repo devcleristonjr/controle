@@ -1,1 +1,1 @@
-web: python -m flask --app run:app db upgrade && gunicorn "run:app"
+web: gunicorn "app:create_app()"
