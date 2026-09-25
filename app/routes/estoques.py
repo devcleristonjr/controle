@@ -153,7 +153,6 @@ def create():
             latitude=lat_value,
             longitude=lon_value,
             responsavel_nome=form.responsavel_nome.data.strip() if form.responsavel_nome.data else None,
-            responsavel_telefone=digits_only(form.responsavel_telefone.data) or None,
             responsavel_whatsapp=normalize_whatsapp_number(form.responsavel_whatsapp.data) or None,
             foto=foto_path,
             observacoes=form.observacoes.data.strip() if form.observacoes.data else None,
@@ -188,7 +187,7 @@ def detail(ponto_id: int):
         snapshots=snapshots,
         alocacoes=alocacoes,
         operational_snapshot=operational_snapshot,
-        whatsapp_url=build_whatsapp_url(ponto.responsavel_whatsapp or ponto.responsavel_telefone),
+        whatsapp_url=build_whatsapp_url(ponto.responsavel_whatsapp),
     )
 
 
@@ -353,7 +352,6 @@ def edit(ponto_id: int):
         ponto.latitude = lat_value
         ponto.longitude = lon_value
         ponto.responsavel_nome = form.responsavel_nome.data.strip() if form.responsavel_nome.data else None
-        ponto.responsavel_telefone = digits_only(form.responsavel_telefone.data) or None
         ponto.responsavel_whatsapp = normalize_whatsapp_number(form.responsavel_whatsapp.data) or None
         ponto.observacoes = form.observacoes.data.strip() if form.observacoes.data else None
         ponto.ativo = form.ativo.data
