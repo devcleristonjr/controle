@@ -481,7 +481,7 @@ def atualizar_busca():
     pontos: list[PontoEstoque] = []
 
     if municipio_id:
-        municipio = Municipio.query.filter_by(id=municipio_id, ativo=True).first()
+        municipio = Municipio.query.filter(Municipio.id == municipio_id, Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first()
         if municipio is not None:
             query = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.municipio_id == municipio.id, PontoEstoque.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES))
             if busca:
@@ -501,7 +501,7 @@ def atualizar_busca():
 @coleta_public_bp.route("/coleta/atualizar/<int:ponto_id>", methods=["GET", "POST"])
 def atualizar_form(ponto_id: int):  # NOSONAR
     municipio_id = request.args.get("municipio_id", type=int)
-    ponto = PontoEstoque.query.filter_by(id=ponto_id, ativo=True).first_or_404()
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, PontoEstoque.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     if municipio_id and municipio_id != ponto.municipio_id:
         flash("O ponto selecionado não pertence ao município informado.", "danger")
         return redirect(url_for("coleta_public.atualizar_busca", municipio_id=municipio_id))
