@@ -43,6 +43,7 @@ from app.utils import (
     normalize_whatsapp_number,
     parse_coordinate_pair,
     save_uploaded_image,
+    generate_point_name,
     reverse_geocode_coordinates,
 )
 
@@ -153,7 +154,7 @@ def create():
                 return render_template("estoques/form.html", form=form, municipios=municipios, title="Novo ponto de estoque")
 
         ponto = PontoEstoque(
-            nome=form.nome.data.strip(),
+            nome=generate_point_name(municipio.nome, form.endereco.data, lat_value, lon_value),
             municipio=municipio,
             endereco=form.endereco.data.strip() if form.endereco.data else None,
             latitude=lat_value,
@@ -354,7 +355,6 @@ def edit(ponto_id: int):
             )
             if lat_value is not None and lon_value is not None:
                 flash("Coordenadas estimadas automaticamente pelo endereço informado.", "info")
-        ponto.nome = form.nome.data.strip()
         ponto.municipio = municipio
         ponto.endereco = form.endereco.data.strip() if form.endereco.data else None
         ponto.latitude = lat_value
