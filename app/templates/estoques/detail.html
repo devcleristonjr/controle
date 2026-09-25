@@ -33,7 +33,7 @@
 <div class="row g-4">
   <div class="col-lg-5">
     <div class="card card-soft h-100">
-      {% if ponto.foto %}
+      {% if ponto.foto or ponto.foto_conteudo %}
         <img src="{{ url_for("files.ponto_photo", ponto_id=ponto.id) }}" class="card-img-top detail-photo" alt="Foto do local">
       {% endif %}
       <div class="card-body">
