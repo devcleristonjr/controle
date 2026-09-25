@@ -10,11 +10,6 @@
           {{ form.hidden_tag() }}
           <div class="row g-3">
             <div class="col-md-6">
-              {{ form.nome.label(class_='form-label') }}
-              {{ form.nome(class_='form-control') }}
-              {% for error in form.nome.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="col-md-6">
               {{ form.municipio_id.label(class_='form-label') }}
               {{ form.municipio_id(class_='form-select', id='municipio-select') }}
               {% for error in form.municipio_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
