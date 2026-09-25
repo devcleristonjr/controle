@@ -97,7 +97,6 @@ class PontoEstoqueForm(FlaskForm):
     latitude = StringField("Latitude", validators=[Optional()])
     longitude = StringField("Longitude", validators=[Optional()])
     responsavel_nome = StringField("Nome do responsável", validators=[Optional(), Length(max=180)])
-    responsavel_telefone = StringField("Telefone", validators=[Optional(), Length(max=30)])
     responsavel_whatsapp = StringField("WhatsApp", validators=[Optional(), Length(max=30)])
     foto = FileField(
         "Foto do local",
