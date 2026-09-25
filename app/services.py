@@ -13,6 +13,7 @@ from app.models.movimentacao_estoque import MovimentacaoEstoque
 from app.models.municipio import Municipio
 from app.models.ocorrencia_alocacao import OcorrenciaAlocacao
 from app.models.ponto_estoque import PontoEstoque
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.models.reposicao_alocacao import ReposicaoAlocacao
 from app.models.territorio import Territorio
 from app.utils import build_whatsapp_url
@@ -668,6 +669,8 @@ def get_operational_history_entries(point: PontoEstoque) -> list[dict]:
 
 
 def _apply_point_filters(query, filters: dict):
+    # Regra global: nenhum ponto fora dos quatro municípios operacionais entra em filtros, mapa ou métricas.
+    query = query.filter(Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES))
     if territorio_id := filters.get("territorio_id"):
         query = query.filter(Municipio.territorio_id == territorio_id)
     if municipio_id := filters.get("municipio_id"):
