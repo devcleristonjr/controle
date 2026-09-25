@@ -13,6 +13,7 @@ from app.models.coleta_registro import ColetaRegistro
 from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.municipio import Municipio
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.models.ponto_estoque import PontoEstoque
 from app.services import (
     create_material_allocation,
@@ -41,7 +42,7 @@ SUCESSO_TEMPLATE = "coleta_public/sucesso.html"
 
 
 def _active_municipios() -> list[Municipio]:
-    return Municipio.query.filter_by(ativo=True).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
+    return Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
 
 
 def _active_materiais() -> list[Material]:
@@ -145,7 +146,7 @@ def _material_rows_for_point(point: PontoEstoque) -> list[dict]:
 def _parse_municipio(form: ColetaPublicCadastroForm) -> Municipio | None:
     if not form.municipio_id.data:
         return None
-    municipio = Municipio.query.filter_by(id=form.municipio_id.data, ativo=True).first()
+    municipio = Municipio.query.filter(Municipio.id == form.municipio_id.data, Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first()
     return municipio
 
 
