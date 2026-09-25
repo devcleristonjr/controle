@@ -26,8 +26,16 @@
             </div>
             <div class="col-md-12">
               {{ form.coordenadas.label(class_='form-label') }}
-              {{ form.coordenadas(class_='form-control', placeholder='12°55\'39.9"S 38°23\'14.8"W') }}
-              <div class="form-text">Cole exatamente como o Google Maps: 12°55'39.9"S 38°23'14.8"W. Se preferir, também pode preencher lat/long separadamente.</div>
+              <div class="d-flex flex-column flex-md-row gap-2">
+                <div class="flex-grow-1">
+                  {{ form.coordenadas(class_='form-control', placeholder='12°55\'39.9"S 38°23\'14.8"W', id='coordenadas-input') }}
+                </div>
+                <button type="button" id="btn-localizacao" class="btn btn-outline-primary text-nowrap">
+                  📍 Registrar minha localização atual
+                </button>
+              </div>
+              <div class="form-text">Use o botão para obter sua localização atual. O sistema preencherá automaticamente as coordenadas, o município e, quando disponível, o endereço.</div>
+              <div id="status-localizacao" class="small mt-2 text-muted">Localização atual não registrada.</div>
             </div>
             <div class="col-md-6">
               {{ form.latitude.label(class_='form-label') }}
@@ -98,6 +106,83 @@
   if (municipioSelect) {
     municipioSelect.addEventListener('change', updateTerritorioLabel);
     updateTerritorioLabel();
+  }
+
+  const btnLocalizacao = document.getElementById('btn-localizacao');
+  const statusLocalizacao = document.getElementById('status-localizacao');
+  const coordenadasInput = document.getElementById('coordenadas-input');
+  const latitudeInput = document.getElementById('{{ form.latitude.id }}');
+  const longitudeInput = document.getElementById('{{ form.longitude.id }}');
+  const enderecoInput = document.getElementById('{{ form.endereco.id }}');
+
+  if (btnLocalizacao) {
+    btnLocalizacao.addEventListener('click', function () {
+      if (!navigator.geolocation) {
+        statusLocalizacao.className = 'small mt-2 text-danger';
+        statusLocalizacao.textContent = 'Este navegador não oferece geolocalização.';
+        return;
+      }
+
+      btnLocalizacao.disabled = true;
+      statusLocalizacao.className = 'small mt-2 text-muted';
+      statusLocalizacao.textContent = 'Obtendo sua localização atual...';
+
+      navigator.geolocation.getCurrentPosition(
+        async function (position) {
+          const latitude = position.coords.latitude.toFixed(6);
+          const longitude = position.coords.longitude.toFixed(6);
+
+          latitudeInput.value = latitude;
+          longitudeInput.value = longitude;
+          coordenadasInput.value = latitude + ', ' + longitude;
+
+          try {
+            const response = await fetch(
+              '{{ url_for("estoques.geolocalizacao") }}?latitude=' +
+              encodeURIComponent(latitude) + '&longitude=' +
+              encodeURIComponent(longitude),
+              { headers: { 'Accept': 'application/json' } }
+            );
+            const data = await response.json();
+
+            if (data.ok) {
+              if (data.endereco && enderecoInput) {
+                enderecoInput.value = data.endereco;
+              }
+
+              if (data.municipio_id) {
+                municipioSelect.value = String(data.municipio_id);
+                updateTerritorioLabel();
+              }
+
+              statusLocalizacao.className = 'small mt-2 text-success';
+              statusLocalizacao.textContent = data.message || 'Localização registrada e campos preenchidos automaticamente.';
+            } else {
+              statusLocalizacao.className = 'small mt-2 text-warning';
+              statusLocalizacao.textContent = data.message || 'Localização registrada. Confira os dados preenchidos.';
+            }
+          } catch (error) {
+            statusLocalizacao.className = 'small mt-2 text-warning';
+            statusLocalizacao.textContent = 'Localização registrada. Não foi possível preencher o endereço automaticamente.';
+          } finally {
+            btnLocalizacao.disabled = false;
+          }
+        },
+        function (error) {
+          btnLocalizacao.disabled = false;
+          statusLocalizacao.className = 'small mt-2 text-danger';
+          statusLocalizacao.textContent =
+            error.code === 1
+              ? 'Permissão de localização negada. Autorize a localização no navegador para usar esta função.'
+              : 'Não foi possível obter sua localização atual. Tente novamente.';
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        }
+      );
+    });
   }
 </script>
 {% endblock %}
