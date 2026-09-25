@@ -22,6 +22,8 @@ class PontoEstoque(TimestampMixin, db.Model):
     responsavel_whatsapp = db.Column(db.String(30), nullable=True)
     coleta_token = db.Column(db.String(64), nullable=False, unique=True, index=True, default=generate_coleta_token)
     foto = db.Column(db.String(255), nullable=True)
+    foto_conteudo = db.Column(db.LargeBinary, nullable=True)
+    foto_mime_type = db.Column(db.String(100), nullable=True)
     observacoes = db.Column(db.Text, nullable=True)
     ativo = db.Column(db.Boolean, nullable=False, default=True)
 
