@@ -138,6 +138,43 @@ def _nominatim_search(query: str) -> tuple[Decimal | None, Decimal | None]:
     return (latitude, longitude)
 
 
+def reverse_geocode_coordinates(latitude: str | Decimal | float, longitude: str | Decimal | float) -> dict:
+    """Obtém endereço e município aproximados a partir das coordenadas."""
+    params = urlencode({
+        "lat": str(latitude),
+        "lon": str(longitude),
+        "format": "jsonv2",
+        "addressdetails": 1,
+        "zoom": 18,
+    })
+    url = f"https://nominatim.openstreetmap.org/reverse?{params}"
+    request = Request(
+        url,
+        headers={
+            "User-Agent": "estoque-bahia/1.0 (contato@localhost)",
+            "Accept": "application/json",
+        },
+    )
+    with urlopen(request, timeout=5) as response:
+        payload = response.read().decode("utf-8")
+    data = json.loads(payload)
+    address = data.get("address") or {}
+    municipio = (
+        address.get("city")
+        or address.get("town")
+        or address.get("municipality")
+        or address.get("village")
+        or ""
+    )
+    return {
+        "display_name": data.get("display_name") or "",
+        "municipio": municipio,
+        "bairro": address.get("suburb") or address.get("neighbourhood") or "",
+        "logradouro": address.get("road") or "",
+        "numero": address.get("house_number") or "",
+    }
+
+
 def geocode_address_coordinates(endereco: str | None, municipio: str | None) -> tuple[Decimal | None, Decimal | None]:
     if not municipio:
         return (None, None)
