@@ -66,7 +66,7 @@ def index():
     )
     banner_totals = dict(banner_totals_query)
     pontos = (
-        PontoEstoque.query.join(PontoEstoque.municipio).join(Municipio.territorio).order_by(PontoEstoque.nome.asc()).all()
+        PontoEstoque.query.join(PontoEstoque.municipio).filter(Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).join(Municipio.territorio).order_by(PontoEstoque.nome.asc()).all()
     )
     return render_template("estoques/index.html", pontos=pontos, banner_totals=banner_totals)
 
@@ -122,7 +122,7 @@ def create():
 @estoques_bp.get("/<int:ponto_id>")
 @login_required
 def detail(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     estoque = (
         EstoqueMaterial.query.filter_by(ponto_estoque_id=ponto.id).join(EstoqueMaterial.material).order_by(Material.nome.asc()).all()
     )
