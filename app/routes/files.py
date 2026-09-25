@@ -22,7 +22,10 @@ def ponto_photo(ponto_id: int):
     if ponto.foto_conteudo:
         return Response(ponto.foto_conteudo, mimetype=ponto.foto_mime_type or 'image/jpeg')
     if ponto.foto:
-        file_path = Path(current_app.config['UPLOAD_FOLDER']) / ponto.foto
+        stored_path = ponto.foto
+        if stored_path.startswith('uploads/'):
+            stored_path = stored_path[len('uploads/'):]
+        file_path = Path(current_app.config['UPLOAD_FOLDER']) / stored_path
         if file_path.is_file():
             return send_from_directory(file_path.parent, file_path.name)
     abort(404)
