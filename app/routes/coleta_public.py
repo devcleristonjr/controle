@@ -30,6 +30,7 @@ from app.utils import (
     normalize_whatsapp_number,
     parse_coordinate_to_decimal,
     save_uploaded_image,
+    generate_point_name,
     reverse_geocode_coordinates,
 )
 
@@ -463,7 +464,7 @@ def novo():  # NOSONAR
         }
         for material in materiais
     ]
-    duplicate_points = _find_possible_duplicates(form.nome_local.data, municipio.id, form.endereco.data)
+    duplicate_points = _find_possible_duplicates(form.endereco.data, municipio.id, form.endereco.data)
     can_continue = request.form.get("duplicate_ack") == "1" or not duplicate_points
     if request.form.get("confirm") != "1" or not can_continue:
         return render_template(
@@ -485,7 +486,7 @@ def novo():  # NOSONAR
     foto_conteudo, _ = _photo_bytes_from_path(foto_path)
     foto_mime_type = foto_file.mimetype if foto_file and foto_file.filename else None
     ponto = PontoEstoque(
-        nome=form.nome_local.data.strip(),
+        nome=generate_point_name(municipio.nome, form.endereco.data, latitude, longitude),
         municipio=municipio,
         endereco=form.endereco.data.strip() if form.endereco.data else None,
         latitude=latitude,
