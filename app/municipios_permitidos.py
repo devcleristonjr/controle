@@ -5,7 +5,7 @@ ALLOWED_MUNICIPIOS = {
     },
     "Vitória da Conquista": {
         "codigo_ibge": "2933307",
-        "territorio": "Vitória da Conquista",
+        "territorio": "Sudoeste Baiano",
     },
     "Lauro de Freitas": {
         "codigo_ibge": "2919207",
