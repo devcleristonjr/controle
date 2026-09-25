@@ -180,7 +180,7 @@ def create():
 @login_required
 @admin_required
 def edit(municipio_id: int):
-    municipio = Municipio.query.get_or_404(municipio_id)
+    municipio = Municipio.query.filter(Municipio.id == municipio_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     form = MunicipioForm(obj=municipio)
     form.territorio_id.choices = [(t.id, t.nome) for t in Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()]
     if request.method == "GET":
