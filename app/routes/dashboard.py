@@ -57,7 +57,7 @@ def index():
 @dashboard_bp.get("/mapa")
 @login_required
 def mapa():
-    territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
+    territorios = _allowed_territorios()
     municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
     materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
     return render_template(
