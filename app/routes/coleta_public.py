@@ -42,6 +42,17 @@ ATUALIZAR_TEMPLATE = "coleta_public/atualizar.html"
 SUCESSO_TEMPLATE = "coleta_public/sucesso.html"
 
 
+def _photo_bytes_from_path(foto_path: str | None) -> tuple[bytes | None, str | None]:
+    if not foto_path:
+        return None, None
+    from pathlib import Path
+    from flask import current_app
+    file_path = Path(current_app.config['UPLOAD_FOLDER']) / foto_path
+    if not file_path.is_file():
+        return None, None
+    return file_path.read_bytes(), None
+
+
 def _active_municipios() -> list[Municipio]:
     return Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
 
@@ -471,6 +482,8 @@ def novo():  # NOSONAR
             duplicate_ack=can_continue,
         )
 
+    foto_conteudo, _ = _photo_bytes_from_path(foto_path)
+    foto_mime_type = foto_file.mimetype if foto_file and foto_file.filename else None
     ponto = PontoEstoque(
         nome=form.nome_local.data.strip(),
         municipio=municipio,
@@ -481,6 +494,8 @@ def novo():  # NOSONAR
         responsavel_telefone=digits_only(form.responsavel_whatsapp.data) or None,
         responsavel_whatsapp=normalize_whatsapp_number(form.responsavel_whatsapp.data) or None,
         foto=foto_path,
+        foto_conteudo=foto_conteudo,
+        foto_mime_type=foto_mime_type,
         observacoes=form.observacoes.data.strip() if form.observacoes.data else None,
         ativo=True,
     )
@@ -639,6 +654,11 @@ def atualizar_form(ponto_id: int):  # NOSONAR
 
     if foto_path:
         ponto.foto = foto_path
+        foto_conteudo, _ = _photo_bytes_from_path(foto_path)
+        if foto_conteudo:
+            ponto.foto_conteudo = foto_conteudo
+            if foto_file and foto_file.mimetype:
+                ponto.foto_mime_type = foto_file.mimetype
 
     coleta_registro = ColetaRegistro(
         ponto_estoque=ponto,
