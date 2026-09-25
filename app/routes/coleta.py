@@ -10,6 +10,8 @@ from app.models.coleta_registro import ColetaRegistro
 from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.ponto_estoque import PontoEstoque
+from app.models.municipio import Municipio
+from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
 from app.services import get_material_stock_snapshots, update_stock, validate_material_allocation
 from app.timezone import agora_bahia
 from app.utils import parse_coordinate_to_decimal, save_uploaded_image
@@ -41,7 +43,7 @@ def _build_stock_rows(estoque_items: list[EstoqueMaterial]) -> list[dict]:
 
 @coleta_bp.route("/coleta/<token>", methods=["GET", "POST"])
 def coleta_form(token: str):
-    ponto = PontoEstoque.query.filter_by(coleta_token=token).first()
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.coleta_token == token, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first()
     if ponto is None or not ponto.ativo:
         return (
             render_template(
