@@ -157,7 +157,7 @@
 
       <section class="mb-4">
         <h2 class="h5 fw-bold mb-3">📷 Foto do local</h2>
-        {{ form.foto(class_='form-control form-control-lg', accept='image/jpeg,image/jpg,image/png,image/webp') }}
+        {{ form.foto(class_='form-control form-control-lg', accept='image/*') }}
         <div class="form-text">JPG, JPEG, PNG ou WEBP. Limite de 5 MB.</div>
         <input type="hidden" name="foto_path" value="{{ form.foto_path.data or '' }}">
       </section>
