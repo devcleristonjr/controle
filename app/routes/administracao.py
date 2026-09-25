@@ -186,7 +186,11 @@ def edit(municipio_id: int):
     if request.method == "GET":
         form.territorio_id.data = municipio.territorio_id
     if form.validate_on_submit():
-        municipio.nome = form.nome.data.strip()
+        nome = form.nome.data.strip()
+        if nome not in ALLOWED_MUNICIPIO_NAMES:
+            form.nome.errors.append("Este município não faz parte da operação atual.")
+            return render_template("administracao/municipios/form.html", form=form, title="Editar município")
+        municipio.nome = nome
         municipio.territorio_id = form.territorio_id.data
         municipio.codigo_ibge = form.codigo_ibge.data.strip() if form.codigo_ibge.data else None
         municipio.latitude = form.latitude.data
