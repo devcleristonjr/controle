@@ -8,6 +8,7 @@ from decimal import Decimal
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
+from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.estoque_material import EstoqueMaterial
 from app.models.fechamento_diario_estoque import FechamentoDiarioEstoque
 from app.models.ponto_estoque import PontoEstoque
@@ -91,6 +92,31 @@ def zerar_estoques_diariamente(
 
             fechamento.estoques_zerados = estoques_zerados
             fechamento.movimentacoes_registradas = movimentacoes_registradas
+
+            # O fechamento diário encerra a operação dos pontos. O histórico
+            # permanece no banco, mas pontos e alocações deixam de ser ativos,
+            # liberando os materiais para uma nova alocação no dia seguinte.
+            alocacoes_ativas = (
+                AlocacaoPontoMaterial.query
+                .join(AlocacaoPontoMaterial.ponto_estoque)
+                .filter(
+                    PontoEstoque.ativo.is_(True),
+                    AlocacaoPontoMaterial.ativo.is_(True),
+                )
+                .all()
+            )
+            for alocacao in alocacoes_ativas:
+                alocacao.ativo = False
+
+            pontos_ativos = PontoEstoque.query.filter(PontoEstoque.ativo.is_(True)).all()
+            for ponto in pontos_ativos:
+                ponto.ativo = False
+
+            logger.info(
+                "[ZERAMENTO DIARIO] Pontos encerrados: %s; alocações encerradas: %s",
+                len(pontos_ativos),
+                len(alocacoes_ativas),
+            )
 
         logger.info("[ZERAMENTO DIARIO] Estoques zerados: %s", estoques_zerados)
         logger.info("[ZERAMENTO DIARIO] Movimentações registradas: %s", movimentacoes_registradas)
