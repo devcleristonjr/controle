@@ -5,6 +5,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask, render_template
+from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 from app.extensions import csrf, db, login_manager, migrate
@@ -36,6 +37,19 @@ def load_user(user_id: str) -> Usuario | None:
     if not user_id:
         return None
     return db.session.get(Usuario, int(user_id))
+
+
+def _ensure_photo_columns() -> None:
+    """Garante as colunas de fotos mesmo quando o Render inicia via Start Command próprio."""
+    db.session.execute(text(
+        "ALTER TABLE pontos_estoque "
+        "ADD COLUMN IF NOT EXISTS foto_conteudo BYTEA"
+    ))
+    db.session.execute(text(
+        "ALTER TABLE pontos_estoque "
+        "ADD COLUMN IF NOT EXISTS foto_mime_type VARCHAR(100)"
+    ))
+    db.session.commit()
 
 
 def _ensure_reference_municipal_data() -> None:
@@ -121,9 +135,7 @@ def create_app(config_object: type | None = None) -> Flask:
         # aos modelos. O serviço do Render usa gunicorn diretamente, então não
         # podemos depender de um `flask db upgrade` separado no Start Command.
         if app_env == "production":
-            from flask_migrate import upgrade
-
-            upgrade()
+            _ensure_photo_columns()
         else:
             db.create_all()
 
