@@ -19,7 +19,6 @@
     {{ form.hidden_tag() }}
     {% if preview %}<input type="hidden" name="confirm" value="1">{% endif %}
     {% if preview %}
-      <input type="hidden" name="nome_local" value="{{ form.nome_local.data or '' }}">
       <input type="hidden" name="municipio_id" value="{{ form.municipio_id.data or '' }}">
       <input type="hidden" name="endereco" value="{{ form.endereco.data or '' }}">
       <input type="hidden" name="responsavel_nome" value="{{ form.responsavel_nome.data or '' }}">
@@ -41,7 +40,7 @@
         <h2 class="h5 fw-bold mb-3"># CONFIRME OS DADOS</h2>
         {% if duplicate_points %}
           <div class="alert alert-warning border-0 mb-3">
-            <div class="fw-bold mb-1">⚠️ Já existe um ponto com nome semelhante neste município.</div>
+            <div class="fw-bold mb-1">⚠️ Já existe um ponto com endereço semelhante neste município.</div>
             <div class="small mb-2">Verifique antes de continuar. Você ainda pode prosseguir se tiver certeza.</div>
             <div class="vstack gap-2">
               {% for point in duplicate_points %}
@@ -55,7 +54,6 @@
         {% endif %}
 
         <div class="vstack gap-2 mb-3">
-          <div class="material-row"><span class="soft-label d-block">Local</span><strong>{{ form.nome_local.data }}</strong></div>
           <div class="material-row"><span class="soft-label d-block">Município</span><strong>{{ municipio.nome }} — {{ municipio.territorio.nome }}</strong></div>
           <div class="material-row"><span class="soft-label d-block">Território</span><strong>{{ municipio.territorio.nome }}</strong></div>
           <div class="material-row"><span class="soft-label d-block">Responsável</span><strong>{{ form.responsavel_nome.data }}</strong></div>
@@ -106,12 +104,6 @@
 
       <section class="mb-4">
         <h2 class="h5 fw-bold mb-3">Dados do ponto</h2>
-        <div class="mb-3">
-          {{ form.nome_local.label(class_='form-label') }}
-          {{ form.nome_local(class_='form-control form-control-lg', placeholder='Nome do local') }}
-          {% for error in form.nome_local.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-        </div>
-
         <div class="mb-3">
           <label class="form-label" for="municipio-select">Município</label>
           <select id="municipio-select" name="municipio_id" class="form-select form-select-lg">
