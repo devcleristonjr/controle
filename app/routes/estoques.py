@@ -155,8 +155,8 @@ def create():
             responsavel_nome=form.responsavel_nome.data.strip() if form.responsavel_nome.data else None,
             responsavel_whatsapp=normalize_whatsapp_number(form.responsavel_whatsapp.data) or None,
             foto=foto_path,
-            foto_conteudo=foto_file.read(),
-            foto_mime_type=foto_file.mimetype or "application/octet-stream",
+            foto_conteudo=(foto_file.stream.seek(0) or foto_file.read()) if foto_file and foto_path else None,
+            foto_mime_type=(foto_file.mimetype or "application/octet-stream") if foto_file and foto_path else None,
             observacoes=form.observacoes.data.strip() if form.observacoes.data else None,
             ativo=form.ativo.data,
         )
