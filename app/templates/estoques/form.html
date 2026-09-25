@@ -141,22 +141,52 @@
             );
             const data = await response.json();
 
-            if (data.ok) {
-              if (data.endereco && enderecoInput) {
-                enderecoInput.value = data.endereco;
-              }
-
-              if (data.municipio_id) {
-                municipioSelect.value = String(data.municipio_id);
-                updateTerritorioLabel();
-              }
-
-              statusLocalizacao.className = 'small mt-2 text-success';
-              statusLocalizacao.textContent = data.message || 'Localização registrada e campos preenchidos automaticamente.';
-            } else {
-              statusLocalizacao.className = 'small mt-2 text-warning';
-              statusLocalizacao.textContent = data.message || 'Localização registrada. Confira os dados preenchidos.';
+            if (data.endereco && enderecoInput) {
+              enderecoInput.value = data.endereco;
             }
+
+            if (data.municipio_id) {
+              municipioSelect.value = String(data.municipio_id);
+              updateTerritorioLabel();
+            }
+
+            // Fallback direto no navegador: no Render, o servidor pode não conseguir
+            // acessar o serviço externo de geocodificação.
+            if (!data.endereco || !data.municipio_id) {
+              try {
+                const reverseResponse = await fetch(
+                  'https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=' +
+                  encodeURIComponent(latitude) + '&lon=' + encodeURIComponent(longitude),
+                  { headers: { 'Accept': 'application/json' } }
+                );
+                if (reverseResponse.ok) {
+                  const reverseData = await reverseResponse.json();
+                  const address = reverseData.address || {};
+                  const municipioNome = address.city || address.town || address.municipality || address.village || '';
+                  if (reverseData.display_name && enderecoInput) {
+                    enderecoInput.value = reverseData.display_name;
+                  }
+                  if (municipioNome && municipioSelect) {
+                    const option = Array.from(municipioSelect.options).find(
+                      item => item.textContent.trim().toLowerCase().startsWith(municipioNome.trim().toLowerCase())
+                    );
+                    if (option) {
+                      municipioSelect.value = option.value;
+                      updateTerritorioLabel();
+                      data.municipio_id = option.value;
+                    }
+                  }
+                  data.endereco = reverseData.display_name || data.endereco;
+                }
+              } catch (fallbackError) {
+                console.warn('Geocodificação reversa direta indisponível', fallbackError);
+              }
+            }
+
+            statusLocalizacao.className = 'small mt-2 ' + (data.endereco ? 'text-success' : 'text-warning');
+            statusLocalizacao.textContent = data.endereco
+              ? 'Localização registrada e endereço preenchido automaticamente.'
+              : 'Localização registrada. Confira o município e o endereço.';
           } catch (error) {
             statusLocalizacao.className = 'small mt-2 text-warning';
             statusLocalizacao.textContent = 'Localização registrada. Não foi possível preencher o endereço automaticamente.';
