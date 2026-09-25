@@ -139,8 +139,14 @@ def create():
                 flash("Coordenadas estimadas automaticamente pelo endereço informado.", "info")
         foto_path = None
         foto_file = form.foto.data
+        foto_conteudo = None
+        foto_mime_type = None
         if foto_file and hasattr(foto_file, "filename") and foto_file.filename:
             try:
+                foto_file.stream.seek(0)
+                foto_conteudo = foto_file.read()
+                foto_mime_type = foto_file.mimetype or "application/octet-stream"
+                foto_file.stream.seek(0)
                 foto_path = save_uploaded_image(foto_file)
             except ValueError as exc:
                 flash(str(exc), "danger")
@@ -155,8 +161,8 @@ def create():
             responsavel_nome=form.responsavel_nome.data.strip() if form.responsavel_nome.data else None,
             responsavel_whatsapp=normalize_whatsapp_number(form.responsavel_whatsapp.data) or None,
             foto=foto_path,
-            foto_conteudo=(foto_file.stream.seek(0) or foto_file.read()) if foto_file and foto_path else None,
-            foto_mime_type=(foto_file.mimetype or "application/octet-stream") if foto_file and foto_path else None,
+            foto_conteudo=foto_conteudo,
+            foto_mime_type=foto_mime_type,
             observacoes=form.observacoes.data.strip() if form.observacoes.data else None,
             ativo=form.ativo.data,
         )
@@ -360,10 +366,13 @@ def edit(ponto_id: int):
         foto_file = form.foto.data
         if foto_file and hasattr(foto_file, "filename") and foto_file.filename:
             try:
-                ponto.foto = save_uploaded_image(foto_file)
                 foto_file.stream.seek(0)
-                ponto.foto_conteudo = foto_file.read()
-                ponto.foto_mime_type = foto_file.mimetype or "application/octet-stream"
+                foto_conteudo = foto_file.read()
+                foto_mime_type = foto_file.mimetype or "application/octet-stream"
+                foto_file.stream.seek(0)
+                ponto.foto = save_uploaded_image(foto_file)
+                ponto.foto_conteudo = foto_conteudo
+                ponto.foto_mime_type = foto_mime_type
             except ValueError as exc:
                 flash(str(exc), "danger")
                 return render_template("estoques/form.html", form=form, municipios=municipios, title="Editar ponto de estoque")
