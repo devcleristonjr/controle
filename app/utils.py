@@ -218,6 +218,16 @@ def save_uploaded_image(file_storage, category: str = "estoque") -> str:
     return (relative_dir / unique_name).as_posix()
 
 
+
+def generate_point_name(municipio_nome: str, endereco: str | None = None, latitude=None, longitude=None) -> str:
+    """Gera um nome interno para o ponto sem exigir que o usuário o informe."""
+    endereco_limpo = (endereco or "").strip()
+    if endereco_limpo:
+        return endereco_limpo[:180]
+    if latitude is not None and longitude is not None:
+        return f"Ponto - {municipio_nome} ({latitude}, {longitude})"[:180]
+    return f"Ponto - {municipio_nome}"[:180]
+
 def generate_coleta_token(length: int = 32) -> str:
     """Generate a URL-safe random token for public stock collection links."""
     return secrets.token_urlsafe(length)[:length]
