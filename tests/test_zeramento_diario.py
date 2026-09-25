@@ -65,7 +65,12 @@ def test_zeramento_diario_zera_apenas_estoques_ativos_com_saldo():
         assert resultado.movimentacoes_registradas == 2
 
         ponto_ativo = PontoEstoque.query.filter_by(nome="Ponto Ativo").first()
+        ponto_ativo_zero = PontoEstoque.query.filter_by(nome="Ponto Ativo Zero").first()
         ponto_inativo = PontoEstoque.query.filter_by(nome="Ponto Inativo").first()
+
+        assert ponto_ativo.ativo is False
+        assert ponto_ativo_zero.ativo is False
+        assert ponto_inativo.ativo is False
 
         saldos_ativo = EstoqueMaterial.query.filter_by(ponto_estoque_id=ponto_ativo.id).all()
         assert all(Decimal(item.quantidade) == 0 for item in saldos_ativo)
