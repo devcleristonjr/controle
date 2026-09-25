@@ -21,10 +21,6 @@
               <div class="form-text mt-2" id="territorio-auto">Território: escolha um município.</div>
             </div>
             <div class="col-md-12">
-              {{ form.endereco.label(class_='form-label') }}
-              {{ form.endereco(class_='form-control') }}
-            </div>
-            <div class="col-md-12">
               {{ form.coordenadas.label(class_='form-label') }}
               <div class="d-flex flex-column flex-md-row gap-2">
                 <div class="flex-grow-1">
@@ -36,6 +32,10 @@
               </div>
               <div class="form-text">Use o botão para obter sua localização atual. O sistema preencherá automaticamente as coordenadas, o município e, quando disponível, o endereço.</div>
               <div id="status-localizacao" class="small mt-2 text-muted">Localização atual não registrada.</div>
+            </div>
+            <div class="col-md-12">
+              {{ form.endereco.label(class_='form-label') }}
+              {{ form.endereco(class_='form-control') }}
             </div>
             <div class="col-md-6">
               {{ form.latitude.label(class_='form-label') }}
@@ -50,10 +50,6 @@
             <div class="col-md-6">
               {{ form.responsavel_nome.label(class_='form-label') }}
               {{ form.responsavel_nome(class_='form-control') }}
-            </div>
-            <div class="col-md-3">
-              {{ form.responsavel_telefone.label(class_='form-label') }}
-              {{ form.responsavel_telefone(class_='form-control') }}
             </div>
             <div class="col-md-3">
               {{ form.responsavel_whatsapp.label(class_='form-label') }}
