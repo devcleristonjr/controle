@@ -174,12 +174,12 @@ def create_estoque():
 @api_bp.put("/estoques/<int:ponto_id>")
 @login_required
 def update_estoque(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     data = request.get_json(silent=True) or {}
     if "nome" in data:
         ponto.nome = data["nome"]
     if "municipio_id" in data:
-        ponto.municipio = Municipio.query.get_or_404(int(data["municipio_id"]))
+        ponto.municipio = Municipio.query.filter(Municipio.id == int(data["municipio_id"]), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES), Municipio.ativo.is_(True)).first_or_404()
     if "endereco" in data:
         ponto.endereco = data["endereco"]
     if "latitude" in data:
@@ -277,7 +277,7 @@ def mapa_data():
 @api_bp.get("/estoques/<int:ponto_id>/historico-operacional")
 @login_required
 def operational_history_data(ponto_id: int):
-    ponto = PontoEstoque.query.get_or_404(ponto_id)
+    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     entries = get_operational_history_entries(ponto)
     return jsonify(
         {
