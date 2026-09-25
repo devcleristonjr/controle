@@ -262,8 +262,43 @@
               syncTerritorio();
             }
 
-            status.className = "small fw-semibold mt-2 " + (data.municipio_id ? "text-success" : "text-warning");
-            status.textContent = data.message || "Localização registrada e campos preenchidos automaticamente.";
+            // Fallback direto no navegador caso o servidor do Render não consiga
+            // acessar o serviço de geocodificação.
+            if (!data.endereco || !data.municipio_id) {
+              try {
+                const reverseResponse = await fetch(
+                  'https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=' +
+                  encodeURIComponent(latitude) + '&lon=' + encodeURIComponent(longitude),
+                  { headers: { 'Accept': 'application/json' } }
+                );
+                if (reverseResponse.ok) {
+                  const reverseData = await reverseResponse.json();
+                  const address = reverseData.address || {};
+                  const municipioNome = address.city || address.town || address.municipality || address.village || '';
+                  if (reverseData.display_name && enderecoInput) {
+                    enderecoInput.value = reverseData.display_name;
+                  }
+                  if (select && municipioNome) {
+                    const option = Array.from(select.options).find(
+                      item => item.textContent.trim().toLowerCase().startsWith(municipioNome.trim().toLowerCase())
+                    );
+                    if (option) {
+                      select.value = option.value;
+                      syncTerritorio();
+                      data.municipio_id = option.value;
+                    }
+                  }
+                  data.endereco = reverseData.display_name || data.endereco;
+                }
+              } catch (fallbackError) {
+                console.warn('Geocodificação reversa direta indisponível', fallbackError);
+              }
+            }
+
+            status.className = "small fw-semibold mt-2 " + (data.endereco ? "text-success" : "text-warning");
+            status.textContent = data.endereco
+              ? "Localização registrada e endereço preenchido automaticamente."
+              : "Localização registrada. Confira o município e o endereço.";
           } catch (error) {
             status.className = "small fw-semibold mt-2 text-warning";
             status.textContent = "Localização registrada. Não foi possível preencher o endereço automaticamente.";
