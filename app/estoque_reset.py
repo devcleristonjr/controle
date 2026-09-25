@@ -110,7 +110,7 @@ def zerar_estoques_diariamente(
             for alocacao in alocacoes_ativas:
                 alocacao.ativo = False
 
-            pontos_ativos = PontoEstoque.query.filter(PontoEstoque.ativo.is_(True)).all()
+            pontos_ativos = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).all()
             for ponto in pontos_ativos:
                 ponto.ativo = False
 
