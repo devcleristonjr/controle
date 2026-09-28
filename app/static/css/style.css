@@ -4600,3 +4600,21 @@ a:hover {
     margin-bottom: -14px;
   }
 }
+
+
+/* Mapa: separar a legenda operacional dos créditos do Leaflet */
+.map-page-monocode .map-legend {
+  bottom: 42px;
+}
+
+.map-page-monocode .leaflet-control-attribution {
+  margin: 0 10px 7px 0 !important;
+  z-index: 600;
+  opacity: .72;
+}
+
+@media (max-width: 767.98px) {
+  .map-page-monocode .map-legend {
+    bottom: 42px;
+  }
+}
