@@ -4618,3 +4618,62 @@ a:hover {
     bottom: 42px;
   }
 }
+
+
+/* Mapa mobile: legenda compacta e separada do painel de filtros */
+@media (max-width: 767.98px) {
+  .map-page-monocode .map-legend {
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    width: auto;
+    min-height: 0;
+    padding: 7px 10px;
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+
+  .map-page-monocode .map-legend-title {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 8px 0 0;
+    font-size: .58rem;
+  }
+
+  .map-page-monocode .map-legend-items {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px 9px;
+    max-width: calc(100% - 62px);
+    overflow-x: auto;
+    vertical-align: middle;
+    scrollbar-width: none;
+  }
+
+  .map-page-monocode .map-legend-items::-webkit-scrollbar {
+    display: none;
+  }
+
+  .map-page-monocode .map-legend-items span {
+    flex: 0 0 auto;
+    gap: 4px;
+    font-size: .54rem;
+    white-space: nowrap;
+  }
+
+  .map-page-monocode .map-legend-dot {
+    width: 6px;
+    height: 6px;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  .map-page-monocode .map-filter-panel {
+    bottom: 76px;
+    max-height: 42vh;
+  }
+
+  .map-page-monocode .map-filter-actions {
+    min-height: 45px;
+  }
+}
