@@ -4221,3 +4221,49 @@ a:hover {
     display: none;
   }
 }
+
+
+/* Mapa: evitar painéis sobrepostos e caixas esticadas */
+.map-page-monocode .map-scale-note {
+  top: 106px;
+  bottom: auto;
+  right: 16px;
+  left: auto;
+  width: fit-content;
+  max-width: min(320px, calc(100% - 32px));
+  min-height: 0;
+  height: auto;
+}
+
+.map-page-monocode .map-legend {
+  left: auto;
+  right: 16px;
+  bottom: 16px;
+  width: min(260px, calc(100% - 32px));
+}
+
+.map-page-monocode .map-help {
+  left: auto;
+  right: 16px;
+  bottom: 116px;
+  max-width: min(320px, calc(100% - 32px));
+}
+
+@media (max-width: 767.98px) {
+  .map-page-monocode .map-scale-note {
+    top: 112px;
+    right: 10px;
+    max-width: calc(100% - 20px);
+  }
+
+  .map-page-monocode .map-legend {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    width: auto;
+  }
+
+  .map-page-monocode .map-help {
+    display: none;
+  }
+}
