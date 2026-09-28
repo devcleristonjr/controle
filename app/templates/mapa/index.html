@@ -6,32 +6,35 @@
 {% endblock %}
 
 {% block content %}
-<div class="map-page">
-  <div class="map-page-header">
-    <div>
-      <div class="map-eyebrow"><i class="bi bi-broadcast-pin me-1"></i> CONTROLE GEORREFERENCIADO</div>
-      <h1 class="page-title h3 fw-bold mb-1">Mapa dos pontos</h1>
-      <p class="text-muted mb-0">Visualize rapidamente onde estão os materiais, quanto existe em cada ponto e onde há necessidade de reposição.</p>
-    </div>
-
-    <div class="map-kpis" aria-label="Resumo do mapa">
-      <div class="map-kpi">
-        <span class="map-kpi-icon map-kpi-icon-points"><i class="bi bi-geo-alt-fill"></i></span>
-        <div><strong id="map-total-pontos">0</strong><small>Pontos</small></div>
-      </div>
-      <div class="map-kpi">
-        <span class="map-kpi-icon map-kpi-icon-use"><i class="bi bi-box-seam-fill"></i></span>
-        <div><strong id="map-total-banners">0</strong><small id="map-total-metric-label">Em condições de uso</small></div>
-      </div>
-      <div class="map-kpi map-kpi-alert" id="map-replenishment-kpi">
-        <span class="map-kpi-icon map-kpi-icon-replenishment"><i class="bi bi-exclamation-triangle-fill"></i></span>
-        <div><strong id="map-total-replenishment">0</strong><small>Reposição necessária</small></div>
-      </div>
-    </div>
-  </div>
-
+<div class="map-page map-page-monocode">
   <div class="map-workspace">
     <div id="leaflet-map" class="map-container map-container-professional"></div>
+
+    <header class="map-floating-header">
+      <div class="map-floating-title">
+        <span class="map-floating-icon"><i class="bi bi-broadcast-pin"></i></span>
+        <div>
+          <span class="map-eyebrow">CONTROLE GEORREFERENCIADO</span>
+          <h1>Mapa dos pontos</h1>
+          <p>Visualização operacional em tempo real.</p>
+        </div>
+      </div>
+
+      <div class="map-kpis" aria-label="Resumo do mapa">
+        <div class="map-kpi">
+          <span class="map-kpi-icon map-kpi-icon-points"><i class="bi bi-geo-alt-fill"></i></span>
+          <div><strong id="map-total-pontos">0</strong><small>Pontos</small></div>
+        </div>
+        <div class="map-kpi">
+          <span class="map-kpi-icon map-kpi-icon-use"><i class="bi bi-box-seam-fill"></i></span>
+          <div><strong id="map-total-banners">0</strong><small id="map-total-metric-label">Em condições de uso</small></div>
+        </div>
+        <div class="map-kpi map-kpi-alert" id="map-replenishment-kpi">
+          <span class="map-kpi-icon map-kpi-icon-replenishment"><i class="bi bi-exclamation-triangle-fill"></i></span>
+          <div><strong id="map-total-replenishment">0</strong><small>Reposição necessária</small></div>
+        </div>
+      </div>
+    </header>
 
     <section class="map-filter-panel" aria-label="Filtros do mapa">
       <div class="map-panel-heading">
@@ -52,7 +55,6 @@
             {% endfor %}
           </select>
         </div>
-
         <div>
           <label class="form-label" for="filter-municipio">Município</label>
           <select id="filter-municipio" class="form-select form-select-sm">
@@ -62,7 +64,6 @@
             {% endfor %}
           </select>
         </div>
-
         <div>
           <label class="form-label" for="filter-material">Material</label>
           <select id="filter-material" class="form-select form-select-sm">
@@ -72,7 +73,6 @@
             {% endfor %}
           </select>
         </div>
-
         <div>
           <label class="form-label" for="filter-replenishment">Reposição</label>
           <select id="filter-replenishment" class="form-select form-select-sm">
@@ -89,9 +89,7 @@
           <div class="col-6">
             <label class="form-label" for="filter-status">Status</label>
             <select id="filter-status" class="form-select form-select-sm">
-              <option value="">Todos</option>
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
+              <option value="">Todos</option><option value="ativo">Ativo</option><option value="inativo">Inativo</option>
             </select>
           </div>
           <div class="col-6">
@@ -105,19 +103,13 @@
           <div class="col-6">
             <label class="form-label" for="filter-occurrence-type">Ocorrência</label>
             <select id="filter-occurrence-type" class="form-select form-select-sm">
-              <option value="">Todas</option>
-              <option value="DANIFICADO">Danificado</option>
-              <option value="PERDIDO">Perdido</option>
-              <option value="RETIRADO">Retirado</option>
-              <option value="REPOSICAO_NECESSARIA">Precisa de reposição</option>
+              <option value="">Todas</option><option value="DANIFICADO">Danificado</option><option value="PERDIDO">Perdido</option><option value="RETIRADO">Retirado</option><option value="REPOSICAO_NECESSARIA">Precisa de reposição</option>
             </select>
           </div>
           <div class="col-6">
             <label class="form-label" for="filter-with-occurrences">Ocorrências</label>
             <select id="filter-with-occurrences" class="form-select form-select-sm">
-              <option value="">Todos</option>
-              <option value="with">Com ocorrências</option>
-              <option value="without">Sem ocorrências</option>
+              <option value="">Todos</option><option value="with">Com ocorrências</option><option value="without">Sem ocorrências</option>
             </select>
           </div>
           <div class="col-6">
@@ -132,17 +124,13 @@
       </details>
 
       <div class="map-filter-actions">
-        <button id="map-clear-filters" class="btn btn-outline-secondary btn-sm" type="button">
-          <i class="bi bi-arrow-counterclockwise me-1"></i>Limpar
-        </button>
-        <button id="map-filter-button" class="btn btn-primary btn-sm flex-grow-1" type="button">
-          <i class="bi bi-search me-1"></i>Aplicar filtros
-        </button>
+        <button id="map-clear-filters" class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-arrow-counterclockwise me-1"></i>Limpar</button>
+        <button id="map-filter-button" class="btn btn-primary btn-sm flex-grow-1" type="button"><i class="bi bi-search me-1"></i>Aplicar filtros</button>
       </div>
     </section>
 
     <div class="map-legend">
-      <div class="map-legend-title">Legenda</div>
+      <div class="map-legend-title"><i class="bi bi-layers me-1"></i>Legenda</div>
       <div class="map-legend-items">
         <span><i class="map-legend-dot status-ok"></i> Com material</span>
         <span><i class="map-legend-dot status-replenishment"></i> Reposição</span>
@@ -165,6 +153,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-<script src="{{ url_for('static', filename='js/mapa.js', v='20260925-photo1') }}"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20NxB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='js/mapa.js', v='20260928-monocode1') }}"></script>
 {% endblock %}
