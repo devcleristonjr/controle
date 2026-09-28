@@ -4546,3 +4546,57 @@ a:hover {
     -webkit-line-clamp: 4;
   }
 }
+
+
+/* Filtros do mapa: painel rolável quando "Mais filtros" é aberto */
+.map-page-monocode .map-filter-panel {
+  max-height: calc(100% - 122px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(137, 190, 214, .35) transparent;
+  overscroll-behavior: contain;
+}
+
+.map-page-monocode .map-filter-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.map-page-monocode .map-filter-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.map-page-monocode .map-filter-panel::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(137, 190, 214, .30);
+}
+
+.map-page-monocode .map-filter-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(137, 190, 214, .48);
+}
+
+/* Mantém os botões acessíveis ao final do painel */
+.map-page-monocode .map-filter-actions {
+  position: sticky;
+  bottom: -14px;
+  margin-left: -14px;
+  margin-right: -14px;
+  margin-bottom: -14px;
+  padding: 10px 14px 14px;
+  background: linear-gradient(to bottom, rgba(16, 34, 44, .70), rgba(12, 29, 39, .96));
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+@media (max-width: 767.98px) {
+  .map-page-monocode .map-filter-panel {
+    max-height: 46vh;
+  }
+
+  .map-page-monocode .map-filter-actions {
+    bottom: -10px;
+    margin-left: -14px;
+    margin-right: -14px;
+    margin-bottom: -14px;
+  }
+}
