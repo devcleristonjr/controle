@@ -4391,3 +4391,158 @@ a:hover {
     -webkit-line-clamp: 4;
   }
 }
+
+
+/* Popup de ponto — compacto e legível */
+.map-page-monocode .map-professional-popup .leaflet-popup-content-wrapper {
+  width: 330px !important;
+  max-width: min(330px, calc(100vw - 28px)) !important;
+  max-height: min(460px, calc(100vh - 110px));
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(20, 39, 50, .97), rgba(8, 22, 31, .96)) !important;
+  border: 1px solid rgba(185, 219, 232, .18);
+  box-shadow: 0 24px 65px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.07);
+  -webkit-backdrop-filter: blur(22px) saturate(130%);
+  backdrop-filter: blur(22px) saturate(130%);
+}
+
+.map-page-monocode .map-professional-popup .leaflet-popup-content {
+  width: auto !important;
+  max-height: min(440px, calc(100vh - 130px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.map-page-monocode .map-professional-popup .leaflet-popup-tip {
+  background: #102a38 !important;
+  border-color: rgba(185, 219, 232, .16);
+}
+
+.map-page-monocode .map-popup-card {
+  border-radius: 0;
+}
+
+.map-page-monocode .map-popup-top {
+  gap: 8px;
+  padding: 14px 15px 10px;
+}
+
+.map-page-monocode .map-popup-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.map-page-monocode .map-popup-kicker {
+  margin-bottom: 4px;
+  color: #83b7cc;
+  font-size: .57rem;
+  letter-spacing: .11em;
+}
+
+.map-page-monocode .map-popup-top h3 {
+  display: -webkit-box;
+  max-width: 220px;
+  margin: 0;
+  color: #eef6f9;
+  font-size: .84rem;
+  line-height: 1.28;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.map-page-monocode .map-popup-status {
+  padding: 4px 6px;
+  font-size: .53rem;
+  white-space: nowrap;
+}
+
+.map-page-monocode .map-popup-summary {
+  margin: 0 15px 9px;
+  border-radius: 10px;
+}
+
+.map-page-monocode .map-popup-summary > div {
+  padding: 7px 4px;
+}
+
+.map-page-monocode .map-popup-summary span {
+  font-size: .51rem;
+  line-height: 1.2;
+}
+
+.map-page-monocode .map-popup-summary strong {
+  margin-top: 3px;
+  font-size: .78rem;
+}
+
+.map-page-monocode .map-popup-section {
+  padding: 0 15px 9px;
+}
+
+.map-page-monocode .map-popup-section-title {
+  margin-bottom: 4px;
+  font-size: .55rem;
+  letter-spacing: .08em;
+}
+
+.map-page-monocode .map-popup-material {
+  padding: 4px 0;
+}
+
+.map-page-monocode .map-popup-material span {
+  font-size: .62rem;
+}
+
+.map-page-monocode .map-popup-material strong {
+  font-size: .65rem;
+}
+
+.map-page-monocode .map-popup-empty {
+  font-size: .62rem;
+}
+
+.map-page-monocode .map-popup-meta {
+  gap: 5px;
+  padding: 8px 15px;
+}
+
+.map-page-monocode .map-popup-meta div {
+  grid-template-columns: 16px 68px 1fr;
+}
+
+.map-page-monocode .map-popup-meta span,
+.map-page-monocode .map-popup-meta strong {
+  font-size: .59rem;
+}
+
+.map-page-monocode .map-popup-photo {
+  max-height: 110px;
+}
+
+.map-page-monocode .map-popup-actions {
+  gap: 6px;
+  padding: 9px 15px 12px;
+}
+
+.map-page-monocode .map-popup-actions .btn,
+.map-page-monocode .map-popup-action {
+  min-height: 32px;
+  font-size: .61rem;
+}
+
+@media (max-width: 767.98px) {
+  .map-page-monocode .map-professional-popup .leaflet-popup-content-wrapper {
+    width: 300px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .map-page-monocode .map-popup-top h3 {
+    max-width: 190px;
+    font-size: .8rem;
+    -webkit-line-clamp: 4;
+  }
+}
