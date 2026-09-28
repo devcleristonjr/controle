@@ -3296,3 +3296,167 @@ a:hover {
   color: #edf5ff;
 }
 
+
+
+/* =========================================================
+   GLASS UI 2 — APP-LIKE / MONOCODE
+   ========================================================= */
+
+:root {
+  --glass-panel: rgba(15, 32, 52, 0.58);
+  --glass-panel-soft: rgba(255,255,255,0.055);
+  --glass-line: rgba(255,255,255,0.12);
+  --glass-line-bright: rgba(255,255,255,0.20);
+  --glass-glow: rgba(79,145,255,0.18);
+}
+
+.card-soft,
+.stat-card,
+.material-metric-card,
+.material-point-card,
+.public-card,
+.coleta-card,
+.option-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.card-soft::before,
+.stat-card::before,
+.material-metric-card::before,
+.material-point-card::before,
+.public-card::before,
+.coleta-card::before,
+.option-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.055), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(96,165,250,0.08), transparent 25%);
+}
+
+.page-header {
+  padding: 0.35rem 0.15rem 1.1rem;
+}
+
+.page-header .page-title {
+  font-size: clamp(1.55rem, 2vw, 2rem);
+  font-weight: 750;
+}
+
+.sidebar {
+  margin: 0.65rem;
+  min-height: calc(100vh - 1.3rem);
+  height: calc(100vh - 1.3rem);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 22px;
+  padding: 1rem !important;
+  position: sticky;
+  top: 0.65rem;
+}
+
+.sidebar .nav-link {
+  min-height: 42px;
+  font-size: 0.91rem;
+  border-radius: 12px;
+}
+
+.app-main > .container-fluid {
+  padding-left: clamp(1rem, 2vw, 2rem) !important;
+  padding-right: clamp(1rem, 2vw, 2rem) !important;
+}
+
+.stat-card {
+  min-height: 130px;
+}
+
+.stat-card .display-6 {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  color: #f7fbff;
+}
+
+.btn {
+  border-radius: 11px;
+  border-width: 1px;
+}
+
+.btn-primary,
+.btn-accent {
+  background: linear-gradient(135deg, #2878ed, #155eef);
+  border-color: rgba(130,190,255,0.35);
+}
+
+.btn-primary:hover,
+.btn-accent:hover {
+  background: linear-gradient(135deg, #3b89f5, #1d68dc);
+}
+
+.btn-outline-primary {
+  color: #a9d0ff;
+  border-color: rgba(120,180,255,0.28);
+  background: rgba(80,145,255,0.055);
+}
+
+.btn-outline-primary:hover {
+  color: #fff;
+  background: rgba(80,145,255,0.16);
+  border-color: rgba(140,195,255,0.42);
+}
+
+.form-control,
+.form-select {
+  min-height: 43px;
+  border-radius: 11px;
+}
+
+.point-card-photo-wrap,
+.detail-photo {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.map-container {
+  border-radius: 20px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(130,180,240,0.34) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(130,180,240,0.28);
+  border-radius: 999px;
+}
+
+@media (max-width: 767.98px) {
+  .sidebar {
+    margin: 0;
+    min-height: auto;
+    height: auto;
+    border-radius: 0;
+    position: relative;
+  }
+
+  .card-soft,
+  .stat-card,
+  .material-metric-card,
+  .material-point-card,
+  .public-card,
+  .coleta-card {
+    border-radius: 15px;
+  }
+}
