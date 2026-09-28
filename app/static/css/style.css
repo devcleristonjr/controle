@@ -4334,3 +4334,60 @@ a:hover {
     max-width: 220px !important;
   }
 }
+
+
+/* Pontos: endereço longo como informação estruturada, não como título */
+.point-card .point-card-location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+  color: rgba(190, 211, 220, .68);
+  font-size: .68rem;
+  line-height: 1.25;
+}
+
+.point-card .point-card-separator {
+  color: rgba(150, 190, 207, .35);
+}
+
+.point-card .point-card-address {
+  min-width: 0;
+  padding-right: 0;
+}
+
+.point-card .point-card-address-label {
+  display: block;
+  margin-bottom: 4px;
+  color: #7faec1;
+  font-size: .56rem;
+  font-weight: 800;
+  letter-spacing: .11em;
+}
+
+.point-card .point-card-address-value {
+  display: -webkit-box;
+  max-width: 100%;
+  margin: 0;
+  color: #edf5f8;
+  font-size: .92rem;
+  font-weight: 720;
+  line-height: 1.35;
+  letter-spacing: -.01em;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.point-card .point-card-summary {
+  margin-top: 15px !important;
+}
+
+@media (max-width: 575.98px) {
+  .point-card .point-card-address-value {
+    font-size: .88rem;
+    -webkit-line-clamp: 4;
+  }
+}
