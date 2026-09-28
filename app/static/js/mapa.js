@@ -268,7 +268,7 @@
         (values.replenishment > 0 ? '<em>' + formatNumber(values.replenishment) + ' para reposição</em>' : '<em>Sem necessidade de reposição</em>') + '</div>', {
         direction: 'top', offset: [0, -12], opacity: 1, className: 'map-hover-tooltip-container',
       });
-      marker.bindPopup(buildPopup(point), { maxWidth: 390, minWidth: 320, className: 'map-professional-popup', closeButton: true });
+      marker.bindPopup(buildPopup(point), { maxWidth: 330, minWidth: 0, className: 'map-professional-popup', closeButton: true, autoPanPadding: [70, 70] });
     });
     if (adjustBounds && bounds.length) map.fitBounds(bounds, { padding: [100, 100], maxZoom: 14 });
     else if (adjustBounds) map.setView([-12.8, -41.7], 7);
