@@ -38,8 +38,15 @@
                      loading="lazy">
               </div>
             {% endif %}
-            <div class="small text-muted mb-1">{{ ponto.municipio.nome }} • {{ ponto.municipio.territorio.nome }}</div>
-            <h2 class="h5 fw-bold mb-0 text-truncate">{{ ponto.nome }}</h2>
+            <div class="point-card-location">
+              <span>{{ ponto.municipio.nome }}</span>
+              <span class="point-card-separator">•</span>
+              <span>{{ ponto.municipio.territorio.nome }}</span>
+            </div>
+            <div class="point-card-address">
+              <span class="point-card-address-label">ENDEREÇO DO PONTO</span>
+              <h2 class="point-card-address-value">{{ ponto.nome }}</h2>
+            </div>
           </div>
           {% if ponto.ativo %}
             <span class="badge text-bg-success rounded-pill">Ativo</span>
