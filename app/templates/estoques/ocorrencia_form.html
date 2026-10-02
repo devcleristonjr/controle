@@ -5,8 +5,14 @@
   <div class="col-lg-8">
     <div class="card card-soft">
       <div class="card-body p-4 p-lg-5">
-        <h1 class="h4 fw-bold mb-1">O que aconteceu com este material?</h1>
-        <p class="text-muted mb-4">{{ ponto.nome }} • {{ alocacao.material.nome }}</p>
+        <h1 class="h4 fw-bold mb-1">Registrar ocorrência</h1>
+        <p class="text-muted mb-4">Informe o que aconteceu com o material neste ponto.</p>
+
+        <div class="border rounded p-3 mb-3">
+          <div class="small text-muted">Material afetado</div>
+          <div class="fw-bold">{{ alocacao.material.nome }}</div>
+          <div class="small text-muted mt-1">Ponto: {{ ponto.nome }}</div>
+        </div>
 
         <div class="alert alert-dark border small">
           <div>Registrado no ponto: <strong>{{ '%.0f'|format(alocacao.quantidade_alocada) }}</strong></div>
@@ -20,15 +26,24 @@
             <div class="col-md-6">
               {{ form.tipo.label(class_='form-label') }}
               {{ form.tipo(class_='form-select', id='occurrence-type') }}
+              {% for error in form.tipo.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
             </div>
             <div class="col-md-6">
               {{ form.quantidade_afetada.label(class_='form-label') }}
               {{ form.quantidade_afetada(class_='form-control', id='occurrence-quantity', min='0.01', step='0.01') }}
               <div class="form-text">Informe quantas unidades foram afetadas.</div>
+              {% for error in form.quantidade_afetada.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
             </div>
             <div class="col-12">
               {{ form.descricao.label(class_='form-label') }}
               {{ form.descricao(class_='form-control', rows=4, placeholder='Conte brevemente o que aconteceu, se necessário.') }}
+              {% for error in form.descricao.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
             </div>
           </div>
 

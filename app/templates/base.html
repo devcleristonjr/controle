@@ -81,21 +81,25 @@
             </a>
           </li>
 
-          <!-- Coleta -->
+          {% if current_user.is_operador %}
+          <!-- Novo Ponto -->
           <li class="nav-item">
-            <a
-              class="nav-link {% if request.endpoint and request.endpoint.startswith('coleta_public.') %}active{% endif %}"
-              href="{{ url_for('coleta_public.index') }}"
-            >
-              <i class="bi bi-clipboard-check me-2"></i>
-              Coleta
+            <a class="nav-link fw-semibold text-success" href="{{ url_for('estoques.create') }}">
+              <i class="bi bi-plus-circle me-2"></i>+ Novo Ponto
             </a>
           </li>
+          {% endif %}
 
           <!-- Pontos -->
           <li class="nav-item">
             <a class="nav-link {% if request.endpoint and request.endpoint.startswith('estoques.') %}active{% endif %}" href="{{ url_for('estoques.index') }}">
               <i class="bi bi-box-seam me-2"></i>Pontos
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link {% if request.endpoint and request.endpoint.startswith('daily_history.') %}active{% endif %}" href="{{ url_for('daily_history.index') }}">
+              <i class="bi bi-clock-history me-2"></i>Histórico diário
             </a>
           </li>
 
@@ -185,18 +189,18 @@
           </a>
 
 
-          <!-- Coleta -->
-          <a
-            class="nav-link {% if request.endpoint and request.endpoint.startswith('coleta_public.') %}active{% endif %}"
-            href="{{ url_for('coleta_public.index') }}"
-          >
-            <i class="bi bi-clipboard-check me-2"></i>
-            Coleta
+          {% if current_user.is_operador %}
+          <!-- Novo Ponto -->
+          <a class="nav-link fw-semibold text-success" href="{{ url_for('estoques.create') }}">
+            <i class="bi bi-plus-circle me-2"></i>+ Novo Ponto
           </a>
+          {% endif %}
 
 
           <!-- Pontos -->
           <a class="nav-link {% if request.endpoint and request.endpoint.startswith('estoques.') %}active{% endif %}" href="{{ url_for('estoques.index') }}"><i class="bi bi-box-seam me-2"></i>Pontos</a>
+
+          <a class="nav-link {% if request.endpoint and request.endpoint.startswith('daily_history.') %}active{% endif %}" href="{{ url_for('daily_history.index') }}"><i class="bi bi-clock-history me-2"></i>Histórico diário</a>
 
 
           <!-- Monitoramento operacional -->

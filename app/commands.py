@@ -1,14 +1,31 @@
 from __future__ import annotations
 
 import click
-from flask import current_app
 
-from app.estoque_reset import zerar_estoques_diariamente
 from app.extensions import db
+from app.daily_history import create_daily_history_snapshot
+from app.estoque_reset import zerar_estoques_diariamente
 from app.models.usuario import Usuario
 
 
 def register_commands(app):
+    @app.cli.command("create-daily-history")
+    def create_daily_history() -> None:
+        result = create_daily_history_snapshot()
+        status = "criado" if result.criado else "já existia"
+        click.echo(
+            f"Histórico diário {status}: {result.historico.data_referencia.isoformat()} "
+            f"(id={result.historico.id})."
+        )
+
+    @app.cli.command("close-daily-stock")
+    def close_daily_stock() -> None:
+        result = zerar_estoques_diariamente()
+        if result.ignorado:
+            click.echo(f"Fechamento já processado para {result.data_referencia.isoformat()}.")
+            return
+        click.echo(f"Fechamento concluído para {result.data_referencia.isoformat()}.")
+
     @app.cli.command("create-admin")
     @click.option("--nome", prompt=True)
     @click.option("--email", prompt=True)
@@ -44,33 +61,3 @@ def register_commands(app):
         usuario.set_password(senha)
         db.session.commit()
         click.echo(f"Acesso administrativo garantido para: {usuario.email}")
-
-    @app.cli.command("zerar-estoques")
-    @click.option(
-        "--data-referencia",
-        type=click.DateTime(formats=["%Y-%m-%d"]),
-        default=None,
-        help="Data de referência do fechamento (YYYY-MM-DD). Padrão: data local da Bahia.",
-    )
-    def reset_daily_stock(data_referencia):
-        referencia = data_referencia.date() if data_referencia is not None else None
-        try:
-            resultado = zerar_estoques_diariamente(data_referencia=referencia)
-        except Exception as exc:
-            current_app.logger.exception("[ZERAMENTO DIARIO] ERRO: %s", exc)
-            raise click.ClickException("Falha ao executar o zeramento diário de estoques.") from exc
-
-        if resultado.ignorado:
-            click.echo(
-                "[ZERAMENTO DIARIO] Fechamento já processado para "
-                f"{resultado.data_referencia}. Nenhuma nova movimentação criada."
-            )
-            return
-
-        click.echo(
-            "[ZERAMENTO DIARIO] Concluído para "
-            f"{resultado.data_referencia}: "
-            f"pontos={resultado.pontos_encontrados}, "
-            f"estoques_zerados={resultado.estoques_zerados}, "
-            f"movimentacoes={resultado.movimentacoes_registradas}."
-        )

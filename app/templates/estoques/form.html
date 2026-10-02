@@ -42,13 +42,25 @@
               {{ form.longitude(class_='form-control', placeholder="38°23'14.8\"W") }}
               <div class="form-text">Aceita decimal ou DMS, como 38°23'14.8"W.</div>
             </div>
+            <div class="col-12 mt-4">
+              <h2 class="h6 fw-bold mb-0">Responsáveis</h2>
+              <div class="form-text">Todos os dados dos responsáveis são opcionais.</div>
+            </div>
             <div class="col-md-6">
               {{ form.responsavel_nome.label(class_='form-label') }}
               {{ form.responsavel_nome(class_='form-control') }}
+              <div class="form-text">Opcional</div>
+            </div>
+            <div class="col-md-3">
+              {{ form.quantidade_responsaveis.label(class_='form-label') }}
+              {{ form.quantidade_responsaveis(class_='form-control', min='0', step='1') }}
+              <div class="form-text">Opcional</div>
+              {% for error in form.quantidade_responsaveis.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
             </div>
             <div class="col-md-3">
               {{ form.responsavel_whatsapp.label(class_='form-label') }}
               {{ form.responsavel_whatsapp(class_='form-control') }}
+              <div class="form-text">Opcional</div>
             </div>
             <div class="col-md-12">
 
@@ -76,6 +88,32 @@
               {{ form.ativo.label(class_='form-check-label') }}
             </div>
           </div>
+
+          {% if materiais is defined %}
+          <hr class="my-4">
+          <h2 class="h5 fw-bold mb-1">Materiais</h2>
+          <p class="text-muted small mb-3">Selecione os materiais já cadastrados e informe a quantidade que será vinculada a este ponto. Deixe em branco ou com 0 os materiais que não se aplicam.</p>
+          <div class="vstack gap-2">
+            {% for material in materiais %}
+              {% set snapshot = snapshots.get(material.id, {}) %}
+              <div class="row g-2 align-items-center material-row">
+                <div class="col-7 col-md-8">
+                  <div class="form-check">
+                    <input class="form-check-input material-checkbox" type="checkbox" id="chk_{{ material.id }}" data-target="qtd_{{ material.id }}">
+                    <label class="form-check-label fw-semibold" for="chk_{{ material.id }}">{{ material.nome }}</label>
+                  </div>
+                  <div class="small text-muted">Disponível: {{ '%.0f'|format(snapshot.get('available', 0)) }}</div>
+                </div>
+                <div class="col-5 col-md-4">
+                  <input type="number" min="0" step="1" class="form-control" id="qtd_{{ material.id }}" name="qtd_{{ material.id }}" placeholder="Quantidade" value="{{ request.form.get('qtd_' ~ material.id, '') }}">
+                </div>
+              </div>
+            {% else %}
+              <div class="alert alert-warning mb-0">Nenhum material ativo cadastrado no sistema.</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
           <div class="d-flex gap-2 mt-4">
             <button class="btn btn-primary" type="submit">Salvar</button>
             <a href="{{ url_for('estoques.index') }}" class="btn btn-outline-secondary">Cancelar</a>
@@ -216,6 +254,18 @@
       );
     });
   }
+
+  document.querySelectorAll('.material-checkbox').forEach(function (checkbox) {
+    const targetInput = document.getElementById(checkbox.dataset.target);
+    if (!targetInput) return;
+    if (Number(targetInput.value) > 0) checkbox.checked = true;
+    checkbox.addEventListener('change', function () {
+      if (!checkbox.checked) targetInput.value = '';
+    });
+    targetInput.addEventListener('input', function () {
+      checkbox.checked = Number(targetInput.value) > 0;
+    });
+  });
 </script>
 <script src="{{ url_for('static', filename='js/photo_chooser.js', v='20260925-camera-gallery') }}"></script>
 {% endblock %}

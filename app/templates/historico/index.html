@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico diário | Controle de Materiais{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+      <div class="text-uppercase small text-muted fw-semibold">Consulta</div>
+      <h1 class="h3 mb-1">Histórico diário</h1>
+      <p class="text-muted mb-0">Snapshots imutáveis do estado dos pontos antes do fechamento diário.</p>
+    </div>
+    <form class="d-flex flex-wrap align-items-end gap-2" method="get" action="{{ url_for('daily_history.index') }}">
+      <div>
+        <label class="form-label mb-1" for="data_referencia">Selecionar data</label>
+        <input class="form-control" id="data_referencia" name="data_referencia" type="date" required>
+      </div>
+      <button class="btn btn-primary" type="submit">Ver relatório</button>
+    </form>
+  </div>
+
+  {% if histories %}
+  <div class="row g-3">
+    {% for history in histories %}
+    <div class="col-12 col-md-6 col-xl-4">
+      <a class="card h-100 text-decoration-none shadow-sm" href="{{ url_for('daily_history.report', data_referencia=history.data_referencia.isoformat()) }}">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <h2 class="h5 text-body mb-3">{{ history.data_referencia.strftime("%d/%m/%Y") }}</h2>
+            <i class="bi bi-arrow-up-right text-primary" aria-hidden="true"></i>
+          </div>
+          <div class="small text-muted">
+            {{ history.snapshot["resumo"]["total_pontos"] }} pontos ·
+            {{ history.snapshot["resumo"]["total_ocorrencias"] }} ocorrências
+          </div>
+          <div class="small text-muted mt-2">Snapshot criado em {{ history.created_at|datahora_bahia }}</div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-light border" role="status">
+    Ainda não há snapshots diários. Eles aparecerão aqui após a geração manual ou o próximo fechamento.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

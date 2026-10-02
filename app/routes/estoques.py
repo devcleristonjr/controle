@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -9,7 +9,6 @@ from sqlalchemy import func
 from app.extensions import db
 from app.forms import (
     AlocacaoPontoMaterialForm,
-    EstoqueMovimentacaoForm,
     OcorrenciaAlocacaoForm,
     PontoEstoqueForm,
     ReposicaoAlocacaoForm,
@@ -18,7 +17,6 @@ from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.estoque_material import EstoqueMaterial
 from app.models.material import Material
 from app.models.municipio import Municipio
-from app.models.movimentacao_estoque import MovimentacaoEstoque
 from app.models.ponto_estoque import PontoEstoque
 from app.security import admin_required, role_required
 from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
@@ -34,7 +32,6 @@ from app.services import (
     remove_material_from_point,
     register_allocation_occurrence,
     register_allocation_replenishment,
-    update_stock,
 )
 from app.utils import (
     build_whatsapp_url,
@@ -126,6 +123,8 @@ def create():
     form = PontoEstoqueForm()
     municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).join(Municipio.territorio).order_by(Municipio.nome.asc()).all()
     form.municipio_id.choices = [(m.id, f"{m.nome} - {m.territorio.nome}") for m in municipios]
+    materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
+    snapshots = get_material_stock_snapshots([material.id for material in materiais])
     if form.validate_on_submit():
         municipio = Municipio.query.filter(Municipio.id == form.municipio_id.data, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES), Municipio.ativo.is_(True)).first_or_404()
         lat_value, lon_value = parse_coordinate_pair(form.coordenadas.data or form.latitude.data, form.longitude.data)
@@ -151,7 +150,21 @@ def create():
                 foto_path = save_uploaded_image(foto_file)
             except ValueError as exc:
                 flash(str(exc), "danger")
-                return render_template("estoques/form.html", form=form, municipios=municipios, title="Novo ponto de estoque")
+                return render_template("estoques/form.html", form=form, municipios=municipios, materiais=materiais, snapshots=snapshots, title="Novo ponto de estoque")
+
+        materiais_selecionados: list[tuple[Material, Decimal]] = []
+        for material in materiais:
+            raw_value = request.form.get(f"qtd_{material.id}", "").strip()
+            if not raw_value:
+                continue
+            try:
+                quantidade = Decimal(raw_value.replace(",", "."))
+            except (InvalidOperation, ValueError):
+                flash(f"Quantidade inválida para {material.nome}.", "danger")
+                return render_template("estoques/form.html", form=form, municipios=municipios, materiais=materiais, snapshots=snapshots, title="Novo ponto de estoque")
+            if quantidade <= 0:
+                continue
+            materiais_selecionados.append((material, quantidade))
 
         ponto = PontoEstoque(
             nome=generate_point_name(municipio.nome, form.endereco.data, lat_value, lon_value),
@@ -160,6 +173,7 @@ def create():
             latitude=lat_value,
             longitude=lon_value,
             responsavel_nome=form.responsavel_nome.data.strip() if form.responsavel_nome.data else None,
+            quantidade_responsaveis=form.quantidade_responsaveis.data,
             responsavel_whatsapp=normalize_whatsapp_number(form.responsavel_whatsapp.data) or None,
             foto=foto_path,
             foto_conteudo=foto_conteudo,
@@ -168,10 +182,25 @@ def create():
             ativo=form.ativo.data,
         )
         db.session.add(ponto)
-        db.session.commit()
+        db.session.flush()
+
+        try:
+            for material, quantidade in materiais_selecionados:
+                create_material_allocation(
+                    point=ponto,
+                    material=material,
+                    quantidade_alocada=quantidade,
+                    responsavel_alocacao=ponto.responsavel_nome,
+                )
+            db.session.commit()
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+            return render_template("estoques/form.html", form=form, municipios=municipios, materiais=materiais, snapshots=snapshots, title="Novo ponto de estoque")
+
         flash("Ponto de estoque cadastrado.", "success")
         return redirect(url_for(ESTOQUES_DETAIL_ENDPOINT, ponto_id=ponto.id))
-    return render_template("estoques/form.html", form=form, municipios=municipios, title="Novo ponto de estoque")
+    return render_template("estoques/form.html", form=form, municipios=municipios, materiais=materiais, snapshots=snapshots, title="Novo ponto de estoque")
 
 
 @estoques_bp.get("/<int:ponto_id>")
@@ -196,7 +225,7 @@ def detail(ponto_id: int):
         snapshots=snapshots,
         alocacoes=alocacoes,
         operational_snapshot=operational_snapshot,
-        whatsapp_url=build_whatsapp_url(ponto.responsavel_whatsapp),
+        whatsapp_url=build_whatsapp_url(ponto.responsavel_whatsapp or ponto.responsavel_telefone),
     )
 
 
@@ -360,6 +389,7 @@ def edit(ponto_id: int):
         ponto.latitude = lat_value
         ponto.longitude = lon_value
         ponto.responsavel_nome = form.responsavel_nome.data.strip() if form.responsavel_nome.data else None
+        ponto.quantidade_responsaveis = form.quantidade_responsaveis.data
         ponto.responsavel_whatsapp = normalize_whatsapp_number(form.responsavel_whatsapp.data) or None
         ponto.observacoes = form.observacoes.data.strip() if form.observacoes.data else None
         ponto.ativo = form.ativo.data
@@ -404,58 +434,6 @@ def delete(ponto_id: int):
     return redirect(url_for(ESTOQUES_INDEX_ENDPOINT))
 
 
-@estoques_bp.route("/<int:ponto_id>/estoque", methods=["GET", "POST"])
-@login_required
-@role_required("ADMIN", "OPERADOR")
-def update_stock_view(ponto_id: int):
-    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
-    form = EstoqueMovimentacaoForm()
-    materials = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
-    form.material_id.choices = [(m.id, m.nome) for m in materials]
-    snapshots = get_material_stock_snapshots([material.id for material in materials])
-    point_stock_map = {
-        item.material_id: Decimal(item.quantidade or 0)
-        for item in EstoqueMaterial.query.filter_by(ponto_estoque_id=ponto.id).all()
-    }
-    material_stats = {
-        material.id: {
-            "total": float(snapshots.get(material.id, {}).get("total", Decimal("0"))),
-            "allocated": float(snapshots.get(material.id, {}).get("allocated", Decimal("0"))),
-            "available": float(snapshots.get(material.id, {}).get("available", Decimal("0"))),
-            "point_current": float(point_stock_map.get(material.id, Decimal("0"))),
-            "max_for_point": float(
-                snapshots.get(material.id, {}).get("available", Decimal("0")) + point_stock_map.get(material.id, Decimal("0"))
-            ),
-        }
-        for material in materials
-    }
-    if form.validate_on_submit():
-        material = Material.query.get_or_404(form.material_id.data)
-        try:
-            update_stock(
-                point=ponto,
-                material=material,
-                tipo=form.tipo.data,
-                quantidade=Decimal(form.quantidade.data),
-                usuario=current_user,
-                observacao=form.observacao.data.strip() if form.observacao.data else None,
-            )
-            db.session.commit()
-            flash("Estoque atualizado e movimentação registrada.", "success")
-            return redirect(url_for("estoques.detail", ponto_id=ponto.id))
-        except ValueError as exc:
-            db.session.rollback()
-            flash(str(exc), "danger")
-    selected_material_id = form.material_id.data or (materials[0].id if materials else None)
-    return render_template(
-        "estoques/stock_form.html",
-        form=form,
-        ponto=ponto,
-        material_stats=material_stats,
-        selected_material_id=selected_material_id,
-    )
-
-
 @estoques_bp.get("/auditoria-legado")
 @login_required
 @admin_required
@@ -497,14 +475,6 @@ def migrate_legacy(ponto_id: int, material_id: int):
         db.session.rollback()
         flash(str(exc), "danger")
     return redirect(url_for("estoques.legacy_migration"))
-
-
-@estoques_bp.get("/<int:ponto_id>/historico")
-@login_required
-def history(ponto_id: int):
-    ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
-    movimentacoes = MovimentacaoEstoque.query.filter_by(ponto_estoque_id=ponto.id).order_by(MovimentacaoEstoque.created_at.desc()).all()
-    return render_template("estoques/history.html", ponto=ponto, movimentacoes=movimentacoes)
 
 
 @estoques_bp.get("/<int:ponto_id>/historico-operacional")

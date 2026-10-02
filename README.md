@@ -1,16 +1,16 @@
 # 📦 Controle de Materiais
 
-Sistema web para **controle e acompanhamento de materiais distribuídos pelos pontos**, desenvolvido em Flask e estruturado para atender operações com pontos, materiais, territórios e coleta de informações em campo.
+Sistema web para **controle e acompanhamento de materiais alocados nos pontos**, desenvolvido em Flask e estruturado para atender operações com pontos, materiais e territórios.
 
-O projeto está em desenvolvimento contínuo, com foco em uma interface simples, responsiva e adequada tanto para uso administrativo quanto para operações de coleta e atualização de informações dos pontos.
+O projeto está em desenvolvimento contínuo, com foco em uma interface simples, responsiva e adequada para cadastro de pontos, alocação de materiais e acompanhamento de ocorrências.
 
 ---
 
 ## 📌 Sobre o projeto
 
-O **Controle de Materiais** foi desenvolvido para centralizar informações sobre materiais distribuídos pelos pontos, permitindo acompanhar onde estão, quantos existem, suas condições e as ocorrências registradas.
+O **Controle de Materiais** centraliza informações sobre materiais alocados nos pontos, suas condições e as ocorrências registradas. O sistema não opera com entrada, saída ou zeramento diário dos materiais.
 
-A aplicação possui uma área administrativa para acompanhamento dos materiais e dos pontos, além de uma área específica de **Coleta**, destinada ao cadastro e atualização de informações diretamente nos pontos.
+A aplicação possui uma área administrativa para acompanhamento dos materiais e dos pontos, com acesso rápido pelo menu ("+ Novo Ponto") para cadastrar um ponto e já alocar materiais existentes no mesmo formulário.
 
 O projeto utiliza uma arquitetura baseada em **Flask, Blueprints, SQLAlchemy, Flask-Migrate e templates Jinja2**, permitindo a evolução gradual da aplicação sem concentrar toda a lógica em um único arquivo.
 
@@ -20,23 +20,21 @@ O projeto utiliza uma arquitetura baseada em **Flask, Blueprints, SQLAlchemy, Fl
 
 **Em desenvolvimento ativo.**
 
-A estrutura principal da aplicação já está implementada e o sistema possui módulos funcionais para diferentes etapas do gerenciamento de estoque.
+A estrutura principal da aplicação já está implementada e o sistema possui módulos para acompanhar pontos, alocações de materiais e ocorrências.
 
 ### Atualmente estruturado
 
 * 🔐 Autenticação e controle de acesso
 * 📊 Dashboard
 * 🗺️ Mapa dos pontos
-* 📍 Pontos
-* 📦 Cadastro e gerenciamento de materiais
-* 🔄 Registros, ocorrências e reposições
+* 📍 Pontos e responsáveis opcionais
+* 📦 Cadastro e alocação de materiais
+* 🔄 Ocorrências e reposições das alocações
 * 👥 Usuários
 * 🧭 Territórios
 * 🏙️ Municípios
-* 📋 Coleta de informações dos pontos
-* ➕ Cadastro de novos registros através da Coleta
-* ✏️ Atualização de materiais através da Coleta
-* 📷 Suporte a informações/fotos relacionadas à coleta
+* ➕ Cadastro rápido de pontos já com materiais vinculados
+* 📷 Suporte a informações/fotos relacionadas aos pontos
 * 📍 Captura de localização através do navegador
 * 🗄️ Banco de dados com SQLAlchemy
 * 🔄 Controle de alterações do banco através de Flask-Migrate
@@ -99,7 +97,7 @@ A aplicação utiliza Leaflet integrado ao OpenStreetMap para apresentação das
 
 Permite trabalhar com os locais onde os materiais estão distribuídos e acompanhados.
 
-Cada ponto reúne localização, responsável, materiais, condições e registros operacionais.
+Cada ponto reúne localização, responsáveis opcionais e materiais alocados, com ocorrências e reposições acompanhadas para cada alocação. Não há fluxo de entrada e saída de materiais.
 
 ---
 
@@ -113,13 +111,13 @@ Entre as operações previstas estão:
 * consulta;
 * atualização;
 * organização dos materiais;
-* utilização dos materiais nas operações de estoque.
+* alocação de materiais aos pontos e acompanhamento de suas ocorrências.
 
 ---
 
 ## 🔄 Registros operacionais
 
-Área destinada ao acompanhamento dos registros relacionados aos materiais nos pontos, incluindo ocorrências e reposições.
+Área destinada ao acompanhamento dos materiais alocados nos pontos, incluindo ocorrências e reposições.
 
 ---
 
@@ -143,49 +141,15 @@ Cadastro e organização dos municípios relacionados aos pontos e operações d
 
 ---
 
-# 📋 Módulo de Coleta
+# ➕ Cadastro rápido de ponto com materiais
 
-A aplicação possui uma área específica denominada **Coleta**, destinada à utilização operacional para cadastro e atualização de informações dos pontos e materiais.
-
-A Coleta possui seu próprio conjunto de templates, mas utiliza a estrutura principal de navegação da aplicação.
-
-### Fluxos principais
-
-### Coleta
+O menu principal possui o atalho **"+ Novo Ponto"**, disponível para usuários com permissão de cadastro, que leva diretamente ao formulário de criação de ponto.
 
 ```text
-/coleta
+/estoques/novo
 ```
 
-Página inicial do módulo de Coleta.
-
-### Novo registro
-
-```text
-/coleta/novo
-```
-
-Permite realizar o cadastro de informações relacionadas ao estoque.
-
-### Atualização
-
-```text
-/coleta/atualizar
-```
-
-Permite localizar um ponto de estoque para atualização.
-
-### Atualização de um ponto específico
-
-```text
-/coleta/atualizar/<ponto_id>
-```
-
-Permite realizar a atualização das informações de um ponto de estoque específico.
-
-### Resultado da operação
-
-Após determinadas operações, o sistema apresenta uma página de sucesso/resultado da coleta.
+O mesmo formulário já inclui a seção **Materiais**, com todos os materiais ativos cadastrados no sistema. O usuário pode marcar os materiais desejados e informar a quantidade; ao salvar, o ponto e os vínculos de materiais são criados na mesma transação (se algum material falhar na validação, nada é salvo).
 
 ---
 
@@ -208,7 +172,7 @@ Flask Application
 │
 ├── Pontos de estoque
 │
-├── Movimentações
+├── Alocações e ocorrências
 │
 ├── Usuários
 │
@@ -216,31 +180,10 @@ Flask Application
 │
 ├── Municípios
 │
-└── Coleta
-    ├── Início
-    ├── Novo
-    ├── Atualização
-    ├── Atualização por ponto
-    └── Sucesso
+└── Pontos de estoque (cadastro inclui vinculação de materiais)
 ```
 
-A camada visual utiliza templates Jinja2 com herança de templates.
-
-A estrutura principal segue o conceito:
-
-```text
-base.html
-    │
-    └── coleta_public/base.html
-            │
-            ├── index.html
-            ├── novo.html
-            ├── atualizar.html
-            ├── atualizar_busca.html
-            └── sucesso.html
-```
-
-Dessa forma, o menu lateral e a navegação principal permanecem centralizados no layout principal da aplicação.
+A camada visual utiliza templates Jinja2 com herança de templates, centralizados em `base.html`.
 
 ---
 
@@ -257,13 +200,7 @@ estoque-bahia/
 │   ├── forms/
 │   ├── templates/
 │   │   ├── base.html
-│   │   └── coleta_public/
-│   │       ├── base.html
-│   │       ├── index.html
-│   │       ├── novo.html
-│   │       ├── atualizar.html
-│   │       ├── atualizar_busca.html
-│   │       └── sucesso.html
+│   │   └── estoques/
 │   │
 │   └── static/
 │       ├── css/
@@ -423,6 +360,34 @@ Antes de aplicar migrations em produção, recomenda-se revisar o arquivo gerado
 
 ---
 
+# 🗓️ Histórico diário
+
+O histórico é salvo como um snapshot independente antes do fechamento dos pontos. A migration `0012_daily_history` deve ser aplicada em produção:
+
+```bash
+flask db upgrade
+```
+
+Para gerar e consultar um snapshot manualmente:
+
+```bash
+flask create-daily-history
+```
+
+Para executar o fluxo completo (snapshot seguido do fechamento já existente):
+
+```bash
+flask close-daily-stock
+```
+
+O processo de fechamento usa o fuso `America/Bahia` (com fallback para `America/Sao_Paulo`) e falha sem limpar os pontos se não conseguir gravar o snapshot. Se um snapshot manual tiver sido criado e os pontos mudarem depois, o fechamento também é cancelado para evitar limpar dados que o snapshot não contém.
+
+O arquivo [`render.yaml`](./render.yaml) define o Cron Job de produção para **02:00 UTC**, equivalente a **23:00 na Bahia (UTC−3)**. Ao criar/sincronizar esse serviço no Render, configure `DATABASE_URL` e `SECRET_KEY` com os mesmos valores do serviço web e use a mesma região do banco/aplicação. Antes do primeiro fechamento, aplique a migration com `flask db upgrade`. O comando também pode ser disparado manualmente pelo painel do Render para validar a integração.
+
+Usuários autenticados podem consultar os snapshots em **Histórico diário** no menu. Eles são somente leitura e há no máximo um por data.
+
+---
+
 # 🧪 Testes
 
 Os testes ficam organizados no diretório:
@@ -443,23 +408,10 @@ A cobertura de testes deve continuar sendo ampliada principalmente nas áreas re
 
 * autenticação;
 * materiais;
-* estoque;
-* movimentações;
-* coleta;
+* materiais alocados;
+* ocorrências;
 * permissões;
-* regras de atualização de estoque.
-
----
-
-# 🕐 Operações programadas
-
-Operações que precisam ser executadas diariamente ou em horários específicos devem ser realizadas por mecanismos externos ao processo principal do Flask, como:
-
-* Cron no Linux;
-* Agendador de Tarefas do Windows;
-* serviços de agendamento do ambiente de produção.
-
-Isso evita manter processos contínuos dentro das requisições da aplicação web.
+* responsáveis dos pontos.
 
 ---
 
@@ -472,7 +424,7 @@ A interface utiliza Bootstrap e foi estruturada para funcionar em:
 * tablets;
 * smartphones.
 
-A área de Coleta possui atenção especial ao uso em dispositivos móveis, considerando que sua finalidade inclui operações realizadas diretamente nos pontos de estoque.
+O cadastro de pontos possui atenção especial ao uso em dispositivos móveis, considerando que o cadastro pode ser feito diretamente em campo.
 
 ---
 
@@ -493,7 +445,7 @@ Informações como senhas, chaves secretas e credenciais de banco de dados não 
 
 # 🗺️ Geolocalização
 
-A área de Coleta pode utilizar a API de geolocalização disponível no navegador para obter a localização do usuário durante uma operação.
+O cadastro de pontos pode utilizar a API de geolocalização disponível no navegador para obter a localização do usuário durante o preenchimento do formulário.
 
 O funcionamento depende da autorização do usuário para compartilhamento da localização pelo navegador.
 
@@ -520,8 +472,8 @@ O projeto continuará sendo desenvolvido de forma incremental.
 Entre as áreas que podem receber evolução estão:
 
 * aprimoramento da interface;
-* refinamento do fluxo de edição de estoque;
-* histórico detalhado de movimentações;
+* refinamento da edição de pontos e responsáveis;
+* histórico detalhado de ocorrências e reposições das alocações;
 * aprimoramento dos módulos administrativos;
 * gerenciamento de usuários;
 * gerenciamento de territórios;

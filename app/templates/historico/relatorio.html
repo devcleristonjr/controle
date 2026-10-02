@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Relatório de {{ history.data_referencia.strftime("%d/%m/%Y") }} | Controle de Materiais{% endblock %}
+
+{% block content %}
+{% set snapshot = history.snapshot %}
+{% set summary = snapshot["resumo"] %}
+<div class="container-fluid px-0">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <a class="small text-decoration-none" href="{{ url_for('daily_history.index') }}">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Todos os históricos
+      </a>
+      <div class="text-uppercase small text-muted fw-semibold mt-3">Relatório diário</div>
+      <h1 class="h2 mb-1">{{ history.data_referencia.strftime("%d/%m/%Y") }}</h1>
+      <div class="text-muted small">Snapshot criado em {{ history.created_at|datahora_bahia }}</div>
+    </div>
+  </div>
+
+  <section class="row g-3 mb-4" aria-label="Resumo do dia">
+    <div class="col-6 col-xl">
+      <div class="card h-100"><div class="card-body">
+        <div class="small text-muted">Pontos</div><div class="fs-3 fw-semibold">{{ summary["total_pontos"] }}</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-xl">
+      <div class="card h-100"><div class="card-body">
+        <div class="small text-muted">Responsáveis</div><div class="fs-3 fw-semibold">{{ summary["total_responsaveis"] }}</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-xl">
+      <div class="card h-100"><div class="card-body">
+        <div class="small text-muted">Materiais alocados</div><div class="fs-3 fw-semibold">{{ summary["total_materiais_alocados"] }}</div>
+      </div></div>
+    </div>
+    <div class="col-6 col-xl">
+      <div class="card h-100"><div class="card-body">
+        <div class="small text-muted">Ocorrências</div><div class="fs-3 fw-semibold">{{ summary["total_ocorrencias"] }}</div>
+      </div></div>
+    </div>
+    <div class="col-12 col-xl">
+      <div class="card h-100"><div class="card-body">
+        <div class="small text-muted">Quantidade afetada</div><div class="fs-3 fw-semibold">{{ summary["total_quantidade_afetada"] }}</div>
+      </div></div>
+    </div>
+  </section>
+
+  <h2 class="h4 mb-3">Pontos registrados</h2>
+  {% for point in snapshot["pontos"] %}
+  <article class="card mb-3">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between gap-2 mb-3">
+        <div>
+          <h3 class="h5 mb-1"><i class="bi bi-geo-alt me-1 text-primary" aria-hidden="true"></i>{{ point["nome"] }}</h3>
+          <div class="text-muted">{{ point["municipio"]["nome"] }}{% if point["municipio"]["territorio"]["nome"] %} · {{ point["municipio"]["territorio"]["nome"] }}{% endif %}</div>
+          {% if point["endereco"] %}<div class="small text-muted">{{ point["endereco"] }}</div>{% endif %}
+          {% if point["latitude"] and point["longitude"] %}<div class="small text-muted">Coordenadas: {{ point["latitude"] }}, {{ point["longitude"] }}</div>{% endif %}
+        </div>
+        <span class="badge {{ 'text-bg-success' if point['ativo'] else 'text-bg-secondary' }}">
+          {{ "Ativo" if point["ativo"] else "Inativo" }}
+        </span>
+      </div>
+
+      <div class="row g-2 mb-3">
+        <div class="col-12 col-md-4"><strong>Responsáveis:</strong> {{ point["quantidade_responsaveis"] if point["quantidade_responsaveis"] is not none else (1 if point["responsavel_nome"] else 0) }}</div>
+        <div class="col-12 col-md-4"><strong>Nome:</strong> {{ point["responsavel_nome"] or "—" }}</div>
+        <div class="col-12 col-md-4"><strong>WhatsApp:</strong> {{ point["responsavel_whatsapp"] or "—" }}</div>
+      </div>
+      {% if point["observacoes"] %}<p class="small mb-3"><strong>Observações:</strong> {{ point["observacoes"] }}</p>{% endif %}
+
+      {% if point["alocacoes"] or point["estoque_legado"] %}
+      <h4 class="h6">Materiais</h4>
+      <ul class="mb-3">
+        {% for allocation in point["alocacoes"] %}
+        <li>
+          {{ allocation["material"]["nome"] }}:
+          {{ allocation["quantidade_alocada"] }} {{ allocation["material"]["unidade"] or "" }}
+          ({{ allocation["quantidade_em_uso"] }} em uso)
+          {% if not allocation["ativo"] %}<span class="text-muted">(alocação encerrada)</span>{% endif %}
+          {% if allocation["localizador"] %}<span class="text-muted">· {{ allocation["localizador"] }}</span>{% endif %}
+          <div class="small text-muted">
+            Danificados: {{ allocation["quantidade_danificada_total"] }} ·
+            Perdidos: {{ allocation["quantidade_perdida_total"] }} ·
+            Retirados: {{ allocation["quantidade_retirada_total"] }} ·
+            Reposição pendente: {{ allocation["quantidade_reposicao_pendente"] }}
+          </div>
+          {% if allocation["observacoes"] %}<div class="small text-muted">{{ allocation["observacoes"] }}</div>{% endif %}
+          {% for replenishment in allocation["reposicoes"] %}
+          <div class="small text-muted">
+            Reposição no dia: {{ replenishment["quantidade_reposta"] }}
+            {% if replenishment["observacao"] %}· {{ replenishment["observacao"] }}{% endif %}
+          </div>
+          {% endfor %}
+        </li>
+        {% endfor %}
+        {% for stock in point["estoque_legado"] %}
+        <li>{{ stock["material"]["nome"] }}: {{ stock["quantidade"] }} {{ stock["material"]["unidade"] or "" }} <span class="text-muted">(estoque legado)</span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% set occurrence_count = namespace(value=0) %}
+      {% for allocation in point["alocacoes"] %}
+        {% set occurrence_count.value = occurrence_count.value + allocation["ocorrencias"]|length %}
+      {% endfor %}
+      {% if occurrence_count.value %}
+      <h4 class="h6">Ocorrências do dia</h4>
+      <ul class="mb-0">
+        {% for allocation in point["alocacoes"] %}
+          {% for occurrence in allocation["ocorrencias"] %}
+          <li>
+            {{ occurrence["tipo"] }} — {{ occurrence["quantidade_afetada"] }}
+            {{ allocation["material"]["unidade"] or "" }} de {{ allocation["material"]["nome"] }}
+            · {{ occurrence["ocorrido_em"]|replace("T", " ") }}
+            {% if occurrence["descricao"] %}<div class="small text-muted">{{ occurrence["descricao"] }}</div>{% endif %}
+            {% if occurrence["responsavel_registro"] %}<div class="small text-muted">Registrado por: {{ occurrence["responsavel_registro"] }}</div>{% endif %}
+          </li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="small text-muted">Nenhuma ocorrência registrada neste ponto nesse dia.</div>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+  <div class="alert alert-light border">Não havia pontos ativos neste snapshot.</div>
+  {% endfor %}
+</div>
+{% endblock %}

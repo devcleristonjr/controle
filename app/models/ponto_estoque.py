@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from app.extensions import db
 from app.models.base import TimestampMixin
-from app.utils import generate_coleta_token
 
 
 CASCADE_DELETE_ORPHAN = "all, delete-orphan"
@@ -18,9 +17,9 @@ class PontoEstoque(TimestampMixin, db.Model):
     latitude = db.Column(db.Numeric(9, 6), nullable=True)
     longitude = db.Column(db.Numeric(9, 6), nullable=True)
     responsavel_nome = db.Column(db.String(180), nullable=True)
+    quantidade_responsaveis = db.Column(db.Integer, nullable=True)
     responsavel_telefone = db.Column(db.String(30), nullable=True)
     responsavel_whatsapp = db.Column(db.String(30), nullable=True)
-    coleta_token = db.Column(db.String(64), nullable=False, unique=True, index=True, default=generate_coleta_token)
     foto = db.Column(db.String(255), nullable=True)
     foto_conteudo = db.Column(db.LargeBinary, nullable=True)
     foto_mime_type = db.Column(db.String(100), nullable=True)
@@ -36,12 +35,6 @@ class PontoEstoque(TimestampMixin, db.Model):
     )
     movimentacoes = db.relationship(
         "MovimentacaoEstoque",
-        back_populates="ponto_estoque",
-        cascade=CASCADE_DELETE_ORPHAN,
-        lazy="selectin",
-    )
-    coletas = db.relationship(
-        "ColetaRegistro",
         back_populates="ponto_estoque",
         cascade=CASCADE_DELETE_ORPHAN,
         lazy="selectin",

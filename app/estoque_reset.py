@@ -7,14 +7,15 @@ from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
 
+from app.daily_history import create_daily_history_snapshot, snapshot_matches_current_state
 from app.extensions import db
 from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.estoque_material import EstoqueMaterial
 from app.models.fechamento_diario_estoque import FechamentoDiarioEstoque
-from app.models.ponto_estoque import PontoEstoque
+from app.models.movimentacao_estoque import MovimentacaoEstoque
 from app.models.municipio import Municipio
+from app.models.ponto_estoque import PontoEstoque
 from app.municipios_permitidos import ALLOWED_MUNICIPIO_NAMES
-from app.services import update_stock
 from app.timezone import agora_bahia, para_bahia
 
 
@@ -34,16 +35,47 @@ def zerar_estoques_diariamente(
     data_referencia: date | None = None,
     momento_execucao: datetime | None = None,
 ) -> ResultadoZeramento:
-    inicio = para_bahia(momento_execucao) if momento_execucao else agora_bahia()
+    inicio = (para_bahia(momento_execucao) if momento_execucao else None) or agora_bahia()
     referencia = data_referencia or inicio.date()
 
     logger.info("[ZERAMENTO DIARIO] Início do fechamento: %s", inicio.strftime("%Y-%m-%d %H:%M:%S %z"))
 
+    fechamento_existente = FechamentoDiarioEstoque.query.filter_by(data_referencia=referencia).first()
+    if fechamento_existente is not None:
+        db.session.rollback()
+        logger.info("[ZERAMENTO DIARIO] Fechamento já processado para %s. Operação ignorada.", referencia)
+        return ResultadoZeramento(
+            data_referencia=referencia,
+            pontos_encontrados=fechamento_existente.pontos_encontrados,
+            estoques_zerados=fechamento_existente.estoques_zerados,
+            movimentacoes_registradas=fechamento_existente.movimentacoes_registradas,
+            ignorado=True,
+        )
+    db.session.rollback()
+
+    try:
+        resultado_historico = create_daily_history_snapshot(referencia, inicio)
+        logger.info(
+            "[ZERAMENTO DIARIO] Snapshot %s para %s (id=%s).",
+            "criado" if resultado_historico.criado else "já existente",
+            referencia,
+            resultado_historico.historico.id,
+        )
+        db.session.rollback()
+    except Exception:
+        db.session.rollback()
+        logger.exception(
+            "[ZERAMENTO DIARIO] Falha ao criar histórico de %s; o fechamento não será executado.",
+            referencia,
+        )
+        raise
+
     try:
         with db.session.begin():
-            fechamento_existente = FechamentoDiarioEstoque.query.filter_by(data_referencia=referencia).first()
+            fechamento_existente = FechamentoDiarioEstoque.query.filter_by(
+                data_referencia=referencia
+            ).first()
             if fechamento_existente is not None:
-                logger.info("[ZERAMENTO DIARIO] Fechamento já processado para %s. Operação ignorada.", referencia)
                 return ResultadoZeramento(
                     data_referencia=referencia,
                     pontos_encontrados=fechamento_existente.pontos_encontrados,
@@ -52,9 +84,20 @@ def zerar_estoques_diariamente(
                     ignorado=True,
                 )
 
-            pontos_encontrados = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).count()
-            logger.info("[ZERAMENTO DIARIO] Pontos encontrados: %s", pontos_encontrados)
+            if not snapshot_matches_current_state(resultado_historico.historico, inicio):
+                raise RuntimeError(
+                    f"O estado dos pontos mudou após o snapshot de {referencia}; "
+                    "o fechamento foi cancelado para preservar os dados."
+                )
 
+            pontos_encontrados = (
+                PontoEstoque.query.join(PontoEstoque.municipio)
+                .filter(
+                    PontoEstoque.ativo.is_(True),
+                    Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES),
+                )
+                .count()
+            )
             fechamento = FechamentoDiarioEstoque(
                 data_referencia=referencia,
                 pontos_encontrados=pontos_encontrados,
@@ -64,43 +107,36 @@ def zerar_estoques_diariamente(
             db.session.add(fechamento)
             db.session.flush()
 
-            estoques_zerados = 0
-            movimentacoes_registradas = 0
             estoques_ativos = (
                 EstoqueMaterial.query.join(EstoqueMaterial.ponto_estoque)
-                .filter(PontoEstoque.ativo.is_(True), EstoqueMaterial.quantidade != 0)
+                .filter(
+                    PontoEstoque.ativo.is_(True),
+                    EstoqueMaterial.quantidade != 0,
+                )
+                .with_for_update()
                 .all()
             )
-
+            movimentacoes_registradas = 0
             for estoque in estoques_ativos:
                 quantidade_anterior = Decimal(estoque.quantidade or 0)
-                if quantidade_anterior == 0:
-                    continue
-
-                movimento = update_stock(
-                    point=estoque.ponto_estoque,
+                movimento = MovimentacaoEstoque(
+                    ponto_estoque=estoque.ponto_estoque,
                     material=estoque.material,
                     tipo="ZERAMENTO_DIARIO",
-                    quantidade=Decimal("0"),
-                    usuario=None,
+                    quantidade=abs(quantidade_anterior),
+                    quantidade_anterior=quantidade_anterior,
+                    quantidade_posterior=Decimal("0"),
                     observacao=f"Fechamento diário de estoque ({referencia.isoformat()})",
                     origem="ROTINA_DIARIA",
                 )
                 movimento.created_at = inicio
                 movimento.updated_at = inicio
-
-                estoques_zerados += 1
+                estoque.quantidade = Decimal("0")
+                db.session.add(movimento)
                 movimentacoes_registradas += 1
 
-            fechamento.estoques_zerados = estoques_zerados
-            fechamento.movimentacoes_registradas = movimentacoes_registradas
-
-            # O fechamento diário encerra a operação dos pontos. O histórico
-            # permanece no banco, mas pontos e alocações deixam de ser ativos,
-            # liberando os materiais para uma nova alocação no dia seguinte.
             alocacoes_ativas = (
-                AlocacaoPontoMaterial.query
-                .join(AlocacaoPontoMaterial.ponto_estoque)
+                AlocacaoPontoMaterial.query.join(AlocacaoPontoMaterial.ponto_estoque)
                 .filter(
                     PontoEstoque.ativo.is_(True),
                     AlocacaoPontoMaterial.ativo.is_(True),
@@ -110,34 +146,49 @@ def zerar_estoques_diariamente(
             for alocacao in alocacoes_ativas:
                 alocacao.ativo = False
 
-            pontos_ativos = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).all()
+            pontos_ativos = (
+                PontoEstoque.query.join(PontoEstoque.municipio)
+                .filter(
+                    PontoEstoque.ativo.is_(True),
+                    Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES),
+                )
+                .all()
+            )
             for ponto in pontos_ativos:
                 ponto.ativo = False
 
-            logger.info(
-                "[ZERAMENTO DIARIO] Pontos encerrados: %s; alocações encerradas: %s",
-                len(pontos_ativos),
-                len(alocacoes_ativas),
-            )
+            fechamento.estoques_zerados = movimentacoes_registradas
+            fechamento.movimentacoes_registradas = movimentacoes_registradas
 
-        logger.info("[ZERAMENTO DIARIO] Estoques zerados: %s", estoques_zerados)
-        logger.info("[ZERAMENTO DIARIO] Movimentações registradas: %s", movimentacoes_registradas)
-        logger.info("[ZERAMENTO DIARIO] Fechamento concluído.")
+        logger.info(
+            "[ZERAMENTO DIARIO] Fechamento concluído para %s: pontos encontrados=%s, estoques zerados=%s, "
+            "movimentações registradas=%s.",
+            referencia,
+            pontos_encontrados,
+            movimentacoes_registradas,
+            movimentacoes_registradas,
+        )
         return ResultadoZeramento(
             data_referencia=referencia,
             pontos_encontrados=pontos_encontrados,
-            estoques_zerados=estoques_zerados,
+            estoques_zerados=movimentacoes_registradas,
             movimentacoes_registradas=movimentacoes_registradas,
         )
     except IntegrityError:
         db.session.rollback()
-        logger.info("[ZERAMENTO DIARIO] Fechamento já processado para %s (concorrência). Operação ignorada.", referencia)
-        fechamento = FechamentoDiarioEstoque.query.filter_by(data_referencia=referencia).first()
+        fechamento_existente = FechamentoDiarioEstoque.query.filter_by(
+            data_referencia=referencia
+        ).first()
+        if fechamento_existente is None:
+            logger.exception("[ZERAMENTO DIARIO] Falha de integridade no fechamento de %s.", referencia)
+            raise
+        db.session.rollback()
+        logger.info("[ZERAMENTO DIARIO] Fechamento concorrente já processou %s.", referencia)
         return ResultadoZeramento(
             data_referencia=referencia,
-            pontos_encontrados=fechamento.pontos_encontrados if fechamento else 0,
-            estoques_zerados=fechamento.estoques_zerados if fechamento else 0,
-            movimentacoes_registradas=fechamento.movimentacoes_registradas if fechamento else 0,
+            pontos_encontrados=fechamento_existente.pontos_encontrados,
+            estoques_zerados=fechamento_existente.estoques_zerados,
+            movimentacoes_registradas=fechamento_existente.movimentacoes_registradas,
             ignorado=True,
         )
     except Exception:

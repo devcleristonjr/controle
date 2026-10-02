@@ -11,18 +11,18 @@ from sqlalchemy.exc import OperationalError
 from app.extensions import csrf, db, login_manager, migrate
 from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
 from app.models.fechamento_diario_estoque import FechamentoDiarioEstoque
+from app.models.historico_diario import HistoricoDiario
 from app.models.municipio import Municipio
 from app.models.ocorrencia_alocacao import OcorrenciaAlocacao
 from app.models.reposicao_alocacao import ReposicaoAlocacao
 from app.models.usuario import Usuario
 from app.routes.administracao import municipios_bp, territorios_bp, usuarios_bp
 from app.routes.api import api_bp
-from app.routes.coleta import coleta_bp
-from app.routes.coleta_public import coleta_public_bp
 from app.routes.auth import auth_bp
 from app.routes.dashboard import dashboard_bp
 from app.routes.estoques import estoques_bp
 from app.routes.files import files_bp
+from app.routes.daily_history import daily_history_bp
 from app.routes.materiais import materiais_bp
 from app.commands import register_commands
 from app.timezone import formatar_datahora_bahia
@@ -57,6 +57,10 @@ def _ensure_photo_columns() -> None:
             db.session.execute(
                 text("ALTER TABLE pontos_estoque ADD COLUMN foto_mime_type VARCHAR(100)")
             )
+        if "quantidade_responsaveis" not in columns:
+            db.session.execute(
+                text("ALTER TABLE pontos_estoque ADD COLUMN quantidade_responsaveis INTEGER")
+            )
     elif dialect == "postgresql":
         if "foto_conteudo" not in columns:
             db.session.execute(
@@ -65,6 +69,10 @@ def _ensure_photo_columns() -> None:
         if "foto_mime_type" not in columns:
             db.session.execute(
                 text("ALTER TABLE pontos_estoque ADD COLUMN foto_mime_type VARCHAR(100)")
+            )
+        if "quantidade_responsaveis" not in columns:
+            db.session.execute(
+                text("ALTER TABLE pontos_estoque ADD COLUMN quantidade_responsaveis INTEGER")
             )
 
     db.session.commit()
@@ -163,13 +171,12 @@ def create_app(config_object: type | None = None) -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(estoques_bp)
-    app.register_blueprint(coleta_bp)
-    app.register_blueprint(coleta_public_bp)
     app.register_blueprint(materiais_bp)
     app.register_blueprint(usuarios_bp)
     app.register_blueprint(territorios_bp)
     app.register_blueprint(municipios_bp)
     app.register_blueprint(files_bp)
+    app.register_blueprint(daily_history_bp)
     app.register_blueprint(api_bp)
 
     register_commands(app)

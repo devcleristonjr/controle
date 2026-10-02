@@ -17,9 +17,25 @@ from app.services import (
     get_point_operational_snapshot,
     get_operational_history_entries,
 )
+from app.utils import normalize_whatsapp_number
 
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
+
+
+def _parse_optional_responsible_count(value):
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError("A quantidade de responsáveis deve ser um número inteiro.")
+    try:
+        quantity = int(value)
+    except ValueError as exc:
+        raise ValueError("A quantidade de responsáveis deve ser um número inteiro.") from exc
+    if quantity < 0:
+        raise ValueError("A quantidade de responsáveis não pode ser negativa.")
+    return quantity
+
 
 def _allowed_territorios():
     municipios = (
@@ -120,6 +136,7 @@ def get_estoque(ponto_id: int):
             "latitude": float(ponto.latitude) if ponto.latitude is not None else None,
             "longitude": float(ponto.longitude) if ponto.longitude is not None else None,
             "responsavel_nome": ponto.responsavel_nome,
+            "quantidade_responsaveis": ponto.quantidade_responsaveis,
             "responsavel_whatsapp": ponto.responsavel_whatsapp,
             "foto": ponto.foto,
             "fonte_operacional": snapshot["source"],
@@ -160,6 +177,11 @@ def create_estoque():
     if missing:
         return jsonify({"error": f"Campos obrigatórios ausentes: {', '.join(missing)}"}), 400
 
+    try:
+        quantidade_responsaveis = _parse_optional_responsible_count(data.get("quantidade_responsaveis"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
     municipio = Municipio.query.filter(Municipio.id == int(data["municipio_id"]), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES), Municipio.ativo.is_(True)).first_or_404()
     ponto = PontoEstoque(
         nome=data["nome"],
@@ -167,8 +189,9 @@ def create_estoque():
         endereco=data.get("endereco"),
         latitude=data.get("latitude"),
         longitude=data.get("longitude"),
-        responsavel_nome=data.get("responsavel_nome"),
-        responsavel_whatsapp=data.get("responsavel_whatsapp"),
+        responsavel_nome=(data.get("responsavel_nome") or "").strip() or None,
+        quantidade_responsaveis=quantidade_responsaveis,
+        responsavel_whatsapp=normalize_whatsapp_number(data.get("responsavel_whatsapp")) or None,
         foto=data.get("foto"),
         observacoes=data.get("observacoes"),
         ativo=bool(data.get("ativo", True)),
@@ -183,6 +206,11 @@ def create_estoque():
 def update_estoque(ponto_id: int):
     ponto = PontoEstoque.query.join(PontoEstoque.municipio).filter(PontoEstoque.id == ponto_id, Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).first_or_404()
     data = request.get_json(silent=True) or {}
+    if "quantidade_responsaveis" in data:
+        try:
+            ponto.quantidade_responsaveis = _parse_optional_responsible_count(data["quantidade_responsaveis"])
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
     if "nome" in data:
         ponto.nome = data["nome"]
     if "municipio_id" in data:
@@ -194,9 +222,9 @@ def update_estoque(ponto_id: int):
     if "longitude" in data:
         ponto.longitude = data["longitude"]
     if "responsavel_nome" in data:
-        ponto.responsavel_nome = data["responsavel_nome"]
+        ponto.responsavel_nome = (data["responsavel_nome"] or "").strip() or None
     if "responsavel_whatsapp" in data:
-        ponto.responsavel_whatsapp = data["responsavel_whatsapp"]
+        ponto.responsavel_whatsapp = normalize_whatsapp_number(data["responsavel_whatsapp"]) or None
     if "foto" in data:
         ponto.foto = data["foto"]
     if "observacoes" in data:

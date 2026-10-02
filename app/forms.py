@@ -4,13 +4,11 @@ from decimal import Decimal
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField
-from wtforms import BooleanField, DecimalField, HiddenField, PasswordField, SelectField, StringField, TextAreaField
+from wtforms import BooleanField, DecimalField, HiddenField, IntegerField, PasswordField, SelectField, StringField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional
 
 
-PUBLIC_IMAGE_FIELD_LABEL = "Foto do local"
 PUBLIC_OBSERVACOES_LABEL = "Observ" + "ações"
-PUBLIC_IMAGE_VALIDATION_MESSAGE = "Formato de imagem inválido. Use JPG, JPEG, PNG ou WEBP."
 MATERIAL_UNIT_CHOICES = [
     ("unidade", "Unidade"),
     ("pacote", "Pacote"),
@@ -96,6 +94,10 @@ class PontoEstoqueForm(FlaskForm):
     latitude = StringField("Latitude", validators=[Optional()])
     longitude = StringField("Longitude", validators=[Optional()])
     responsavel_nome = StringField("Nome do responsável", validators=[Optional(), Length(max=180)])
+    quantidade_responsaveis = IntegerField(
+        "Quantidade de responsáveis",
+        validators=[Optional(), NumberRange(min=0)],
+    )
     responsavel_whatsapp = StringField("WhatsApp", validators=[Optional(), Length(max=30)])
     foto = FileField(
         "Foto do local",
@@ -106,90 +108,6 @@ class PontoEstoqueForm(FlaskForm):
     )
     observacoes = TextAreaField(PUBLIC_OBSERVACOES_LABEL, validators=[Optional(), Length(max=4000)])
     ativo = BooleanField("Ativo", default=True)
-
-
-class EstoqueMovimentacaoForm(FlaskForm):
-    material_id = SelectField("Material", coerce=int, validators=[DataRequired()])
-    tipo = SelectField(
-        "Tipo",
-        choices=[("ENTRADA", "Entrada"), ("SAIDA", "Saída"), ("AJUSTE", "Ajuste")],
-        validators=[DataRequired()],
-    )
-    quantidade = DecimalField(
-        "Quantidade",
-        places=2,
-        rounding=None,
-        validators=[DataRequired(), NumberRange(min=Decimal("0.01"))],
-    )
-    observacao = TextAreaField("Observação", validators=[Optional(), Length(max=4000)])
-
-
-class ColetaEstoqueForm(FlaskForm):
-    step = HiddenField(default="input")
-    foto_path = HiddenField(validators=[Optional()])
-    observacoes = TextAreaField(PUBLIC_OBSERVACOES_LABEL, validators=[Optional(), Length(max=4000)])
-    latitude = HiddenField(validators=[Optional()])
-    longitude = HiddenField(validators=[Optional()])
-    foto = FileField(
-        "Foto do estoque",
-        validators=[
-            Optional(),
-            FileAllowed(["jpg", "jpeg", "png", "webp"], "Formato de imagem inválido. Use JPG, JPEG, PNG ou WEBP."),
-        ],
-    )
-
-
-class ColetaPublicCadastroForm(FlaskForm):
-    municipio_id = SelectField(
-        "Município",
-        coerce=int,
-        validators=[DataRequired()],
-        render_kw={"required": False},
-    )
-    endereco = StringField("Endereço", validators=[Optional(), Length(max=255)])
-    responsavel_nome = StringField(
-        "Nome do responsável",
-        validators=[DataRequired(), Length(max=180)],
-        render_kw={"required": False},
-    )
-    responsavel_whatsapp = StringField(
-        "WhatsApp",
-        validators=[DataRequired(), Length(max=30)],
-        render_kw={"required": False},
-    )
-    coletor_nome = StringField(
-        "Nome de quem está enviando o formulário",
-        validators=[DataRequired(), Length(max=180)],
-        render_kw={"required": False},
-    )
-    observacoes = TextAreaField(PUBLIC_OBSERVACOES_LABEL, validators=[Optional(), Length(max=4000)])
-    latitude = HiddenField(validators=[Optional()])
-    longitude = HiddenField(validators=[Optional()])
-    foto_path = HiddenField(validators=[Optional()])
-    foto = FileField(
-        PUBLIC_IMAGE_FIELD_LABEL,
-        validators=[
-            Optional(),
-            FileAllowed(["jpg", "jpeg", "png", "webp"], PUBLIC_IMAGE_VALIDATION_MESSAGE),
-        ],
-    )
-
-
-class ColetaPublicAtualizacaoForm(FlaskForm):
-    coletor_nome = StringField(
-        "Nome de quem está realizando esta atualização",
-        validators=[DataRequired(), Length(max=180)],
-        render_kw={"required": False},
-    )
-    observacoes = TextAreaField(PUBLIC_OBSERVACOES_LABEL, validators=[Optional(), Length(max=4000)])
-    foto_path = HiddenField(validators=[Optional()])
-    foto = FileField(
-        PUBLIC_IMAGE_FIELD_LABEL,
-        validators=[
-            Optional(),
-            FileAllowed(["jpg", "jpeg", "png", "webp"], PUBLIC_IMAGE_VALIDATION_MESSAGE),
-        ],
-    )
 
 
 class AlocacaoPontoMaterialForm(FlaskForm):

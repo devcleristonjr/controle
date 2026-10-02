@@ -42,16 +42,6 @@ def _sum_total_stock(material_id: int | None = None) -> Decimal:
     return Decimal(query.scalar() or 0)
 
 
-def _sum_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
-    """Sum legacy stock quantities used by the compatibility stock adjustment flow."""
-    query = db.session.query(func.coalesce(func.sum(EstoqueMaterial.quantidade), 0)).filter(
-        EstoqueMaterial.material_id == material_id
-    )
-    if exclude_point_id is not None:
-        query = query.filter(EstoqueMaterial.ponto_estoque_id != exclude_point_id)
-    return Decimal(query.scalar() or 0)
-
-
 def _sum_effective_allocated_stock(material_id: int, exclude_point_id: int | None = None) -> Decimal:
     """Count current stock in use and legacy stock only where no allocation exists.
 
@@ -645,25 +635,6 @@ def get_operational_history_entries(point: PontoEstoque) -> list[dict]:
                 }
             )
 
-    legacy_movements = (
-        MovimentacaoEstoque.query.filter_by(ponto_estoque_id=point.id)
-        .order_by(MovimentacaoEstoque.created_at.desc())
-        .all()
-    )
-    for movement in legacy_movements:
-        entries.append(
-            {
-                "event_type": "MOVIMENTACAO_LEGADA",
-                "event_at": movement.created_at,
-                "material": movement.material.nome,
-                "quantity": movement.quantidade,
-                "label": f"Movimentação legada: {movement.tipo}",
-                "detail": movement.observacao,
-                "responsible": movement.usuario.nome if movement.usuario else None,
-                "source": movement.origem,
-            }
-        )
-
     entries.sort(key=lambda item: item["event_at"], reverse=True)
     return entries
 
@@ -863,7 +834,6 @@ def get_dashboard_metrics(filters: dict | None = None) -> dict:
             "recent_points": [],
             "top_stock_points": [],
             "top_banner_points": [],
-            "recent_movements": [],
             "total_in_use": Decimal("0"),
             "total_damaged": Decimal("0"),
             "total_lost": Decimal("0"),
@@ -928,15 +898,6 @@ def get_dashboard_metrics(filters: dict | None = None) -> dict:
         reverse=True,
     )[:5]
 
-    recent_movements = (
-        db.session.query(MovimentacaoEstoque)
-        .join(MovimentacaoEstoque.ponto_estoque)
-        .filter(PontoEstoque.ativo.is_(True), PontoEstoque.id.in_(point_ids))
-        .order_by(MovimentacaoEstoque.created_at.desc())
-        .limit(5)
-        .all()
-    )
-
     if filters.get("material_id"):
         stock_allocated = _sum_effective_allocated_stock(filters["material_id"])
     else:
@@ -963,7 +924,6 @@ def get_dashboard_metrics(filters: dict | None = None) -> dict:
         "recent_points": recent_points,
         "top_stock_points": point_stock_rows[:5],
         "top_banner_points": point_stock_rows[:5],
-        "recent_movements": recent_movements,
         "total_in_use": total_in_use,
         "total_damaged": total_damaged,
         "total_lost": total_lost,
@@ -1129,68 +1089,6 @@ def build_map_points(filters: dict | None = None) -> list[dict]:  # NOSONAR
             }
         )
     return points
-
-def update_stock(
-    point: PontoEstoque,
-    material: Material,
-    tipo: str,
-    quantidade: Decimal,
-    usuario=None,
-    observacao: str | None = None,
-    origem: str = "PAINEL",
-    validate_total: bool = True,
-) -> MovimentacaoEstoque:
-    material = _load_material_for_update(material.id)
-
-    stock_query = EstoqueMaterial.query.filter_by(ponto_estoque_id=point.id, material_id=material.id)
-    if _supports_row_locking():
-        stock_query = stock_query.with_for_update()
-    stock = stock_query.first()
-    if stock is None:
-        stock = EstoqueMaterial(ponto_estoque=point, material=material, quantidade=Decimal("0"))
-        db.session.add(stock)
-        db.session.flush()
-
-    quantidade_anterior = Decimal(stock.quantidade or 0)
-    if tipo == "ENTRADA":
-        quantidade_posterior = quantidade_anterior + quantidade
-        movimento_quantidade = quantidade
-    elif tipo == "SAIDA":
-        quantidade_posterior = quantidade_anterior - quantidade
-        movimento_quantidade = quantidade
-        if quantidade_posterior < 0:
-            raise ValueError("A saída não pode deixar o estoque negativo.")
-    else:
-        quantidade_posterior = quantidade
-        movimento_quantidade = abs(quantidade_posterior - quantidade_anterior)
-
-    if validate_total:
-        allocated_before = _sum_allocated_stock(material.id)
-        allocated_after = allocated_before - quantidade_anterior + quantidade_posterior
-        if allocated_after > Decimal(material.quantidade_total or 0):
-            available_for_point = Decimal(material.quantidade_total or 0) - (allocated_before - quantidade_anterior)
-            raise ValueError(
-                "Quantidade indisponível. Existem apenas "
-                f"{_format_quantity(max(available_for_point, Decimal('0')))} unidades disponíveis para alocação."
-            )
-
-    stock.quantidade = quantidade_posterior
-    movimento = MovimentacaoEstoque(
-        ponto_estoque=point,
-        material=material,
-        tipo=tipo,
-        quantidade=movimento_quantidade,
-        quantidade_anterior=quantidade_anterior,
-        quantidade_posterior=quantidade_posterior,
-        observacao=observacao,
-        origem=origem,
-        usuario=usuario,
-    )
-    db.session.add(movimento)
-    db.session.flush()
-    return movimento
-
-
 
 def get_point_operational_snapshot(point: PontoEstoque) -> dict:
     """Return the operational stock state for a point, with legacy fallback."""
@@ -1425,4 +1323,3 @@ def get_allocation_monitoring_rows(filters: dict | None = None) -> list[dict]:
 
     rows.sort(key=lambda row: (-row["reposicao_pendente"], row["ponto"], row["material"]))
     return rows
-

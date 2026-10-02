@@ -7,7 +7,6 @@ from app.extensions import db
 from app.models.material import Material
 from app.models.municipio import Municipio
 from app.models.ponto_estoque import PontoEstoque
-from app.models.territorio import Territorio
 from app.models.usuario import Usuario
 from app.services import create_material_allocation, register_allocation_occurrence, register_allocation_replenishment
 from config import TestingConfig
@@ -22,13 +21,7 @@ def test_operational_history_route_shows_allocation_occurrence_and_replenishment
         admin.set_password("123456")
         db.session.add(admin)
 
-        territorio = Territorio(nome="Metropolitana", codigo="MTR", ativo=True)
-        db.session.add(territorio)
-        db.session.flush()
-
-        municipio = Municipio(nome="Salvador", territorio_id=territorio.id, codigo_ibge="2927408", ativo=True)
-        db.session.add(municipio)
-        db.session.flush()
+        municipio = Municipio.query.filter_by(codigo_ibge="2927408").one()
 
         ponto = PontoEstoque(
             nome="Rua X",

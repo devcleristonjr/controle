@@ -107,20 +107,5 @@
     </div>
   </div>
 
-  <div class="col-12">
-    <details class="card card-soft">
-      <summary class="card-body fw-semibold" style="cursor:pointer;">Últimos registros</summary>
-      <div class="card-body pt-0 table-responsive">
-        <table class="table table-modern align-middle mb-0">
-          <thead><tr><th>Data</th><th>Usuário</th><th>Local</th><th>Material</th><th>Tipo</th><th>Qtd.</th><th>Antes</th><th>Depois</th></tr></thead>
-          <tbody>
-            {% for mov in metrics.recent_movements %}
-              <tr><td>{{ mov.created_at|datahora_bahia('%d/%m/%Y %H:%M') }}</td><td>{{ mov.usuario.nome }}</td><td>{{ mov.ponto_estoque.nome }}</td><td>{{ mov.material.nome }}</td><td>{{ mov.tipo }}</td><td>{{ '%.0f'|format(mov.quantidade) }}</td><td>{{ '%.0f'|format(mov.quantidade_anterior) }}</td><td>{{ '%.0f'|format(mov.quantidade_posterior) }}</td></tr>
-            {% else %}<tr><td colspan="8" class="text-muted">Nenhum registro anterior.</td></tr>{% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </details>
-  </div>
 </div>
 {% endblock %}

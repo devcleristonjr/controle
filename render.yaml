@@ -1,0 +1,14 @@
+services:
+  - type: cron
+    name: controle-daily-stock-close
+    runtime: python
+    schedule: "0 2 * * *"
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m flask --app run close-daily-stock
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false

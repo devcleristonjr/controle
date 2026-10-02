@@ -11,8 +11,13 @@
     <a class="btn btn-primary" href="{{ url_for('estoques.create_allocation', ponto_id=ponto.id) }}"><i class="bi bi-plus-lg me-1"></i>Adicionar material</a>
     {% if whatsapp_url %}
       <a class="btn btn-success" target="_blank" rel="noopener noreferrer" href="{{ whatsapp_url }}">💬 Falar com o responsável</a>
+    {% else %}
+      <button class="btn btn-success" type="button" id="contact-responsible">💬 Falar com o responsável</button>
     {% endif %}
   </div>
+</div>
+<div class="alert alert-warning d-none" id="missing-responsible-whatsapp" role="alert">
+  Não há número de WhatsApp cadastrado.
 </div>
 
 <details class="card card-soft mb-4">
@@ -20,9 +25,8 @@
   <div class="card-body pt-0 d-flex gap-2 flex-wrap">
     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('estoques.edit', ponto_id=ponto.id) }}">Editar ponto</a>
     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('estoques.operational_history', ponto_id=ponto.id) }}">Histórico de ocorrências</a>
-    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('estoques.update_stock_view', ponto_id=ponto.id) }}">Ajuste de compatibilidade</a>
     {% if current_user.is_admin %}
-      <form method="post" action="{{ url_for('estoques.delete', ponto_id=ponto.id) }}" onsubmit="return confirm('Excluir este ponto permanentemente? Esta ação também remove histórico, coletas e estoques vinculados.');">
+      <form method="post" action="{{ url_for('estoques.delete', ponto_id=ponto.id) }}" onsubmit="return confirm('Excluir este ponto permanentemente? Esta ação também remove histórico e estoques vinculados.');">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button class="btn btn-sm btn-outline-danger" type="submit">Excluir ponto</button>
       </form>
@@ -37,17 +41,11 @@
         <img src="{{ url_for("files.ponto_photo", ponto_id=ponto.id) }}" class="card-img-top detail-photo" alt="Foto do local">
       {% endif %}
       <div class="card-body">
-        <div class="mb-2"><strong>Responsável:</strong> {{ ponto.responsavel_nome or '-' }}</div>
-        <div class="mb-2"><strong>WhatsApp:</strong> {{ ponto.responsavel_whatsapp or '-' }}</div>
+        <h2 class="h6 fw-bold mb-3">Responsáveis</h2>
+        <div class="mb-2"><strong>Nome:</strong> {{ ponto.responsavel_nome or 'Não informado' }}</div>
+        <div class="mb-2"><strong>Quantidade de responsáveis:</strong> {{ ponto.quantidade_responsaveis if ponto.quantidade_responsaveis is not none else 'Não informado' }}</div>
+        <div class="mb-2"><strong>WhatsApp:</strong> {{ ponto.responsavel_whatsapp or ponto.responsavel_telefone or 'Não cadastrado' }}</div>
         <div class="mb-2"><strong>Endereço:</strong> {{ ponto.endereco or '-' }}</div>
-        <div class="mb-2">
-          <strong>Link de coleta:</strong>
-          <label for="coleta-link" class="visually-hidden">Link de coleta</label>
-          <div class="input-group input-group-sm mt-1">
-            <input id="coleta-link" type="text" class="form-control" readonly title="Link de coleta" placeholder="Link de coleta" value="{{ url_for('coleta.coleta_form', token=ponto.coleta_token, _external=True) }}">
-            <button id="copiar-coleta-link" class="btn btn-outline-secondary" type="button">Copiar link</button>
-          </div>
-        </div>
         <div class="mb-2"><strong>Atualizado em:</strong> {{ ponto.updated_at|datahora_bahia('%d/%m/%Y %H:%M') }}</div>
         <div class="mb-0"><strong>Observações:</strong> {{ ponto.observacoes or '-' }}</div>
       </div>
@@ -95,14 +93,13 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap gap-2">
+            <div class="d-grid d-sm-flex flex-wrap gap-2">
               {% if alocacao_material %}
-                <a class="btn btn-sm btn-warning" href="{{ url_for('estoques.register_occurrence', alocacao_id=alocacao_material.id, tipo='REPOSICAO_NECESSARIA') }}">
-                  <i class="bi bi-arrow-repeat me-1"></i>Precisa reposição
-                </a>
-                <a class="btn btn-sm btn-outline-danger" href="{{ url_for('estoques.register_occurrence', alocacao_id=alocacao_material.id) }}">
-                  <i class="bi bi-exclamation-triangle me-1"></i>Ocorrência
-                </a>
+                {% if current_user.is_operador %}
+                  <a class="btn btn-sm btn-warning fw-semibold" aria-label="Registrar ocorrência para {{ material.material }}" href="{{ url_for('estoques.register_occurrence', alocacao_id=alocacao_material.id) }}">
+                    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>Registrar ocorrência
+                  </a>
+                {% endif %}
                 <a class="btn btn-sm btn-outline-success" href="{{ url_for('estoques.register_replenishment', alocacao_id=alocacao_material.id) }}">
                   <i class="bi bi-box-arrow-in-down me-1"></i>Repor
                 </a>
@@ -219,31 +216,13 @@
   </div>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script>
-  (function () {
-    const btn = document.getElementById("copiar-coleta-link");
-    const input = document.getElementById("coleta-link");
-    if (!btn || !input) return;
-
-    btn.addEventListener("click", async function () {
-      try {
-        await navigator.clipboard.writeText(input.value);
-        btn.textContent = "Copiado";
-        setTimeout(function () { btn.textContent = "Copiar link"; }, 1200);
-      } catch (error) {
-        // Fallback for browsers without clipboard API permissions.
-        try {
-          input.select();
-          document.execCommand("copy");
-          btn.textContent = "Copiado";
-          setTimeout(function () { btn.textContent = "Copiar link"; }, 1200);
-        } catch (fallbackError) {
-          console.warn("Falha ao copiar link de coleta", error, fallbackError);
-        }
-      }
+  const contactButton = document.getElementById('contact-responsible');
+  if (contactButton) {
+    contactButton.addEventListener('click', function () {
+      document.getElementById('missing-responsible-whatsapp').classList.remove('d-none');
     });
-  })();
+  }
 </script>
 {% endblock %}

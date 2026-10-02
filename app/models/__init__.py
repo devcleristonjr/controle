@@ -1,7 +1,7 @@
 from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
-from app.models.coleta_registro import ColetaRegistro
 from app.models.estoque_material import EstoqueMaterial
 from app.models.fechamento_diario_estoque import FechamentoDiarioEstoque
+from app.models.historico_diario import HistoricoDiario
 from app.models.material import Material
 from app.models.movimentacao_estoque import MovimentacaoEstoque
 from app.models.municipio import Municipio
@@ -13,9 +13,9 @@ from app.models.usuario import Usuario
 
 __all__ = [
 	"AlocacaoPontoMaterial",
-	"ColetaRegistro",
 	"EstoqueMaterial",
 	"FechamentoDiarioEstoque",
+	"HistoricoDiario",
 	"Material",
 	"MovimentacaoEstoque",
 	"Municipio",
