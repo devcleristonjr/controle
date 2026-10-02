@@ -36,13 +36,33 @@
       </div>
     </header>
 
-    <section class="map-filter-panel" aria-label="Filtros do mapa">
+    <button
+      id="map-filters-show"
+      class="map-filter-toggle map-filter-toggle-show"
+      type="button"
+      aria-controls="map-filter-panel"
+      aria-expanded="false"
+      hidden
+    ><i class="bi bi-funnel-fill" aria-hidden="true"></i>Mostrar filtros</button>
+
+    <section id="map-filter-panel" class="map-filter-panel" aria-label="Filtros do mapa">
       <div class="map-panel-heading">
         <div>
           <span class="map-panel-kicker">VISUALIZAÇÃO</span>
           <h2>Filtros do mapa</h2>
         </div>
-        <button id="map-clear-filters-top" class="map-clear-link" type="button">Limpar</button>
+        <div class="map-panel-heading-actions">
+          <button id="map-clear-filters-top" class="map-clear-link" type="button">Limpar</button>
+          <button
+            id="map-filters-hide"
+            class="map-filter-toggle map-filter-toggle-hide"
+            type="button"
+            aria-controls="map-filter-panel"
+            aria-expanded="true"
+            aria-label="Ocultar filtros do mapa"
+            title="Ocultar filtros"
+          ><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        </div>
       </div>
 
       <div class="map-filter-grid">
@@ -149,5 +169,5 @@
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-<script src="{{ url_for('static', filename='js/mapa.js', v='20260928-monocode1') }}"></script>
+<script src="{{ url_for('static', filename='js/mapa.js', v='20261002-map-mobile1') }}"></script>
 {% endblock %}

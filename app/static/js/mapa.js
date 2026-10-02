@@ -76,13 +76,15 @@
   function createPointIcon(point) {
     const values = getPointValues(point);
     const status = getStatus(point);
+    const quantity = formatNumber(values.totalInUse);
+    const quantityClass = quantity.length > 4 ? ' map-point-quantity-compact' : '';
     return L.divIcon({
       className: 'map-point-icon-wrapper',
       html: '<div class="map-point-marker ' + status.className + '" title="' + escapeHtml(status.label) + '">' +
         '<span class="map-point-pulse"></span>' +
-        '<span class="map-point-pin"><span class="map-point-quantity">' + formatNumber(values.totalInUse) + '</span></span>' +
+        '<span class="map-point-pin"><span class="map-point-quantity' + quantityClass + '">' + quantity + '</span></span>' +
         '</div>',
-      iconSize: [58, 70], iconAnchor: [29, 58], popupAnchor: [0, -58], tooltipAnchor: [0, -52],
+      iconSize: [64, 76], iconAnchor: [32, 64], popupAnchor: [0, -64], tooltipAnchor: [0, -58],
     });
   }
 
@@ -302,6 +304,20 @@
   if (button) button.addEventListener('click', () => refreshMap(true));
   const clearButton = document.getElementById('map-clear-filters');
   const clearTopButton = document.getElementById('map-clear-filters-top');
+  const filterPanel = document.getElementById('map-filter-panel');
+  const showFiltersButton = document.getElementById('map-filters-show');
+  const hideFiltersButton = document.getElementById('map-filters-hide');
+  const workspace = document.querySelector('.map-page-monocode .map-workspace');
+  function setFiltersVisible(visible) {
+    if (!filterPanel || !showFiltersButton || !hideFiltersButton || !workspace) return;
+    workspace.classList.toggle('filters-hidden', !visible);
+    showFiltersButton.hidden = visible;
+    showFiltersButton.setAttribute('aria-expanded', String(visible));
+    hideFiltersButton.hidden = !visible;
+    hideFiltersButton.setAttribute('aria-expanded', String(visible));
+  }
+  if (showFiltersButton) showFiltersButton.addEventListener('click', () => setFiltersVisible(true));
+  if (hideFiltersButton) hideFiltersButton.addEventListener('click', () => setFiltersVisible(false));
   if (clearButton) clearButton.addEventListener('click', clearFilters);
   if (clearTopButton) clearTopButton.addEventListener('click', clearFilters);
   refreshMap(true);
