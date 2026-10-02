@@ -9,38 +9,43 @@
         <form method="post" enctype="multipart/form-data" novalidate>
           {{ form.hidden_tag() }}
           <div class="row g-3">
+            <div class="col-12">
+              <button type="button" id="btn-localizacao" class="btn btn-primary w-100 py-2 fw-semibold">
+                📍 Registrar minha localização atual
+              </button>
+              <div id="status-localizacao" class="small mt-2 text-muted">Localização atual não registrada.</div>
+            </div>
+
             <div class="col-md-6">
               {{ form.municipio_id.label(class_='form-label') }}
               {{ form.municipio_id(class_='form-select', id='municipio-select') }}
               {% for error in form.municipio_id.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
               <div class="form-text mt-2" id="territorio-auto">Território: escolha um município.</div>
             </div>
+
             <div class="col-md-12">
-              {{ form.coordenadas.label(class_='form-label') }}
-              <div class="d-flex flex-column flex-md-row gap-2">
-                <div class="flex-grow-1">
-                  {{ form.coordenadas(class_='form-control', placeholder='12°55\'39.9"S 38°23\'14.8"W', id='coordenadas-input') }}
-                </div>
-                <button type="button" id="btn-localizacao" class="btn btn-outline-primary text-nowrap">
-                  📍 Registrar minha localização atual
-                </button>
+              <label class="form-label" for="localizacao-smart-input">Localização</label>
+              <input type="text" class="form-control" id="localizacao-smart-input"
+                     placeholder="Buscar endereço, coordenadas ou colar link do Maps">
+              <div class="form-text">
+                Cole um link do Google Maps (inclusive os compartilhados pelo WhatsApp), digite coordenadas
+                (decimais ou DMS, ex.: 12°55'39.9"S 38°23'14.8"W) ou escreva um endereço para buscar.
               </div>
-              <div class="form-text">Use o botão para obter sua localização atual. O sistema preencherá automaticamente as coordenadas, o município e, quando disponível, o endereço.</div>
-              <div id="status-localizacao" class="small mt-2 text-muted">Localização atual não registrada.</div>
+              <div id="status-smart-input" class="small mt-1 text-muted"></div>
+              {{ form.coordenadas(id='coordenadas-input', type='hidden') }}
             </div>
+
             <div class="col-md-12">
               {{ form.endereco.label(class_='form-label') }}
-              {{ form.endereco(class_='form-control') }}
+              {{ form.endereco(class_='form-control', readonly=true, placeholder='Preenchido automaticamente') }}
+              <div class="form-text">Preenchido automaticamente a partir da localização informada acima.</div>
             </div>
-            <div class="col-md-6">
-              {{ form.latitude.label(class_='form-label') }}
-              {{ form.latitude(class_='form-control', placeholder="12°55'39.9\"S") }}
-              <div class="form-text">Aceita decimal ou DMS, como 12°55'39.9"S.</div>
-            </div>
-            <div class="col-md-6">
-              {{ form.longitude.label(class_='form-label') }}
-              {{ form.longitude(class_='form-control', placeholder="38°23'14.8\"W") }}
-              <div class="form-text">Aceita decimal ou DMS, como 38°23'14.8"W.</div>
+            <div class="col-md-12">
+              <label class="form-label" for="coordenadas-display">Coordenadas (Latitude, Longitude)</label>
+              <input type="text" class="form-control" id="coordenadas-display" readonly
+                     placeholder="Preenchido automaticamente">
+              {{ form.latitude(type='hidden') }}
+              {{ form.longitude(type='hidden') }}
             </div>
             <div class="col-12 mt-4">
               <h2 class="h6 fw-bold mb-0">Responsáveis</h2>
@@ -75,6 +80,7 @@
     </button>
   </div>
   <div class="small text-muted mt-2" data-photo-name>Nenhuma foto selecionada.</div>
+  <div id="status-foto-exif" class="small mt-1"></div>
   <div class="visually-hidden">{{ form.foto(class_='form-control', accept='image/*', id='foto-upload') }}</div>
   <input type="file" accept="image/*" capture="environment" class="visually-hidden" data-photo-camera-input>
 </div>
@@ -125,11 +131,11 @@
 </div>
 {% endblock %}
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/exif_gps.js', v='20260925') }}"></script>
+<script src="{{ url_for('static', filename='js/location_input.js', v='20260925') }}"></script>
 <script>
   const territorioText = document.getElementById('territorio-auto');
   const municipioSelect = document.getElementById('municipio-select');
-  const territorioMap = {{ municipios|map(attribute='territorio.nome')|list|tojson }};
-  const municipioMap = {{ municipios|map(attribute='id')|list|tojson }};
   const municipioOptions = [];
   {% for municipio in municipios %}
     municipioOptions.push({ id: {{ municipio.id }}, nome: '{{ municipio.territorio.nome }}' });
@@ -150,10 +156,86 @@
 
   const btnLocalizacao = document.getElementById('btn-localizacao');
   const statusLocalizacao = document.getElementById('status-localizacao');
+  const smartInput = document.getElementById('localizacao-smart-input');
+  const statusSmartInput = document.getElementById('status-smart-input');
   const coordenadasInput = document.getElementById('coordenadas-input');
   const latitudeInput = document.getElementById('{{ form.latitude.id }}');
   const longitudeInput = document.getElementById('{{ form.longitude.id }}');
+  const coordenadasDisplay = document.getElementById('coordenadas-display');
   const enderecoInput = document.getElementById('{{ form.endereco.id }}');
+  const fotoInput = document.getElementById('foto-upload');
+  const statusFotoExif = document.getElementById('status-foto-exif');
+
+  // Ao editar um ponto existente, os campos ocultos já vêm com lat/long salvos: refletir no campo de confirmação.
+  if (coordenadasDisplay && latitudeInput.value && longitudeInput.value) {
+    coordenadasDisplay.value = latitudeInput.value + ', ' + longitudeInput.value;
+  }
+
+  function setMunicipioByName(nome) {
+    if (!nome || !municipioSelect) return false;
+    const option = Array.from(municipioSelect.options).find(
+      item => item.textContent.trim().toLowerCase().startsWith(nome.trim().toLowerCase())
+    );
+    if (option) {
+      municipioSelect.value = option.value;
+      updateTerritorioLabel();
+      return true;
+    }
+    return false;
+  }
+
+  /** Grava a coordenada (sempre em graus decimais) nos campos de confirmação. */
+  function setCoordinateFields(latitude, longitude) {
+    const latText = Number(latitude).toFixed(6);
+    const lonText = Number(longitude).toFixed(6);
+    latitudeInput.value = latText;
+    longitudeInput.value = lonText;
+    coordenadasInput.value = latText + ', ' + lonText;
+    if (coordenadasDisplay) coordenadasDisplay.value = latText + ', ' + lonText;
+  }
+
+  /** Busca endereço/município via reverse geocoding do servidor, com fallback direto ao Nominatim. */
+  async function fillAddressFromCoordinates(latitude, longitude) {
+    try {
+      const response = await fetch(
+        '{{ url_for("estoques.geolocalizacao") }}?latitude=' +
+        encodeURIComponent(latitude) + '&longitude=' +
+        encodeURIComponent(longitude),
+        { headers: { 'Accept': 'application/json' } }
+      );
+      const data = await response.json();
+
+      if (data.endereco && enderecoInput) enderecoInput.value = data.endereco;
+      if (data.municipio_id) {
+        municipioSelect.value = String(data.municipio_id);
+        updateTerritorioLabel();
+      }
+
+      if (!data.endereco || !data.municipio_id) {
+        try {
+          const reverseResponse = await fetch(
+            'https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=' +
+            encodeURIComponent(latitude) + '&lon=' + encodeURIComponent(longitude),
+            { headers: { 'Accept': 'application/json' } }
+          );
+          if (reverseResponse.ok) {
+            const reverseData = await reverseResponse.json();
+            const address = reverseData.address || {};
+            const municipioNome = address.city || address.town || address.municipality || address.village || '';
+            if (reverseData.display_name && enderecoInput) enderecoInput.value = reverseData.display_name;
+            if (municipioNome) setMunicipioByName(municipioNome);
+            data.endereco = reverseData.display_name || data.endereco;
+          }
+        } catch (fallbackError) {
+          console.warn('Geocodificação reversa direta indisponível', fallbackError);
+        }
+      }
+
+      return Boolean(data.endereco);
+    } catch (error) {
+      return false;
+    }
+  }
 
   if (btnLocalizacao) {
     btnLocalizacao.addEventListener('click', function () {
@@ -169,74 +251,15 @@
 
       navigator.geolocation.getCurrentPosition(
         async function (position) {
-          const latitude = position.coords.latitude.toFixed(6);
-          const longitude = position.coords.longitude.toFixed(6);
+          setCoordinateFields(position.coords.latitude, position.coords.longitude);
+          smartInput.value = latitudeInput.value + ', ' + longitudeInput.value;
 
-          latitudeInput.value = latitude;
-          longitudeInput.value = longitude;
-          coordenadasInput.value = latitude + ', ' + longitude;
-
-          try {
-            const response = await fetch(
-              '{{ url_for("estoques.geolocalizacao") }}?latitude=' +
-              encodeURIComponent(latitude) + '&longitude=' +
-              encodeURIComponent(longitude),
-              { headers: { 'Accept': 'application/json' } }
-            );
-            const data = await response.json();
-
-            if (data.endereco && enderecoInput) {
-              enderecoInput.value = data.endereco;
-            }
-
-            if (data.municipio_id) {
-              municipioSelect.value = String(data.municipio_id);
-              updateTerritorioLabel();
-            }
-
-            // Fallback direto no navegador: no Render, o servidor pode não conseguir
-            // acessar o serviço externo de geocodificação.
-            if (!data.endereco || !data.municipio_id) {
-              try {
-                const reverseResponse = await fetch(
-                  'https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=' +
-                  encodeURIComponent(latitude) + '&lon=' + encodeURIComponent(longitude),
-                  { headers: { 'Accept': 'application/json' } }
-                );
-                if (reverseResponse.ok) {
-                  const reverseData = await reverseResponse.json();
-                  const address = reverseData.address || {};
-                  const municipioNome = address.city || address.town || address.municipality || address.village || '';
-                  if (reverseData.display_name && enderecoInput) {
-                    enderecoInput.value = reverseData.display_name;
-                  }
-                  if (municipioNome && municipioSelect) {
-                    const option = Array.from(municipioSelect.options).find(
-                      item => item.textContent.trim().toLowerCase().startsWith(municipioNome.trim().toLowerCase())
-                    );
-                    if (option) {
-                      municipioSelect.value = option.value;
-                      updateTerritorioLabel();
-                      data.municipio_id = option.value;
-                    }
-                  }
-                  data.endereco = reverseData.display_name || data.endereco;
-                }
-              } catch (fallbackError) {
-                console.warn('Geocodificação reversa direta indisponível', fallbackError);
-              }
-            }
-
-            statusLocalizacao.className = 'small mt-2 ' + (data.endereco ? 'text-success' : 'text-warning');
-            statusLocalizacao.textContent = data.endereco
-              ? 'Localização registrada e endereço preenchido automaticamente.'
-              : 'Localização registrada. Confira o município e o endereço.';
-          } catch (error) {
-            statusLocalizacao.className = 'small mt-2 text-warning';
-            statusLocalizacao.textContent = 'Localização registrada. Não foi possível preencher o endereço automaticamente.';
-          } finally {
-            btnLocalizacao.disabled = false;
-          }
+          const enderecoEncontrado = await fillAddressFromCoordinates(latitudeInput.value, longitudeInput.value);
+          statusLocalizacao.className = 'small mt-2 ' + (enderecoEncontrado ? 'text-success' : 'text-warning');
+          statusLocalizacao.textContent = enderecoEncontrado
+            ? 'Localização registrada e endereço preenchido automaticamente.'
+            : 'Localização registrada. Confira o município e o endereço.';
+          btnLocalizacao.disabled = false;
         },
         function (error) {
           btnLocalizacao.disabled = false;
@@ -248,11 +271,126 @@
         },
         {
           enableHighAccuracy: true,
-          timeout: 15000,
+          timeout: 10000,
           maximumAge: 0
         }
       );
     });
+  }
+
+  // --- Campo único de localização (coordenadas, link do Maps ou endereço) ---
+  function setSmartStatus(text, variant) {
+    statusSmartInput.className = 'small mt-1 text-' + (variant || 'muted');
+    statusSmartInput.textContent = text;
+  }
+
+  async function handleCoordinatesResult(latitude, longitude, origemTexto) {
+    setCoordinateFields(latitude, longitude);
+    setSmartStatus('Coordenadas reconhecidas. Buscando endereço...', 'muted');
+    const encontrado = await fillAddressFromCoordinates(latitude, longitude);
+    setSmartStatus(
+      encontrado ? 'Localização preenchida a partir de: ' + origemTexto : 'Coordenadas aplicadas. Confira o endereço.',
+      encontrado ? 'success' : 'warning'
+    );
+  }
+
+  async function handleShortLink(url) {
+    setSmartStatus('Resolvendo link do Maps...', 'muted');
+    try {
+      const response = await fetch(
+        '{{ url_for("estoques.resolver_link_maps") }}?url=' + encodeURIComponent(url),
+        { headers: { 'Accept': 'application/json' } }
+      );
+      const data = await response.json();
+      const resolved = (data && data.url) || url;
+      const parsed = window.LocationInput.parseGoogleMapsUrl(resolved);
+      if (parsed) {
+        await handleCoordinatesResult(parsed.latitude, parsed.longitude, 'link do Maps');
+        return;
+      }
+    } catch (error) {
+      console.warn('Não foi possível resolver o link do Maps.', error);
+    }
+    setSmartStatus('Não foi possível extrair coordenadas desse link. Tente colar as coordenadas diretamente.', 'danger');
+  }
+
+  async function handleAddressSearch(texto) {
+    setSmartStatus('Buscando endereço "' + texto + '"...', 'muted');
+    try {
+      const response = await fetch(
+        '{{ url_for("estoques.buscar_endereco") }}?texto=' + encodeURIComponent(texto),
+        { headers: { 'Accept': 'application/json' } }
+      );
+      const data = await response.json();
+      if (data.ok) {
+        setCoordinateFields(data.latitude, data.longitude);
+        if (data.endereco && enderecoInput) enderecoInput.value = data.endereco;
+        setSmartStatus('Endereço encontrado e localização preenchida.', 'success');
+        return;
+      }
+    } catch (error) {
+      console.warn('Falha ao buscar endereço.', error);
+    }
+    setSmartStatus('Endereço não encontrado. Tente ser mais específico ou use coordenadas.', 'danger');
+  }
+
+  function processSmartInput() {
+    const value = smartInput.value.trim();
+    if (!value) return;
+    const parsed = window.LocationInput.parseSmartLocationInput(value);
+    if (parsed.kind === 'coordinates') {
+      handleCoordinatesResult(parsed.latitude, parsed.longitude, 'coordenadas informadas');
+    } else if (parsed.kind === 'short_link') {
+      handleShortLink(parsed.raw);
+    } else if (parsed.kind === 'address') {
+      handleAddressSearch(parsed.raw);
+    }
+  }
+
+  if (smartInput) {
+    let debounceTimer = null;
+    smartInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        clearTimeout(debounceTimer);
+        processSmartInput();
+      }
+    });
+    smartInput.addEventListener('paste', function () {
+      clearTimeout(debounceTimer);
+      // Aguarda o valor colado ficar disponível no input antes de processar.
+      setTimeout(processSmartInput, 0);
+    });
+    smartInput.addEventListener('blur', function () {
+      clearTimeout(debounceTimer);
+      processSmartInput();
+    });
+  }
+
+  // --- Leitura automática de GPS a partir dos metadados EXIF da foto ---
+  async function handleFotoChange() {
+    if (!fotoInput.files || !fotoInput.files[0]) return;
+    statusFotoExif.className = 'small mt-1 text-muted';
+    statusFotoExif.textContent = 'Lendo metadados da foto...';
+
+    const gps = await window.ExifGps.extractGpsFromImageFile(fotoInput.files[0]);
+    if (!gps) {
+      statusFotoExif.textContent = 'A foto não possui coordenadas GPS nos metadados.';
+      return;
+    }
+
+    setCoordinateFields(gps.latitude, gps.longitude);
+    smartInput.value = latitudeInput.value + ', ' + longitudeInput.value;
+    statusFotoExif.className = 'small mt-1 text-success';
+    statusFotoExif.textContent = '📷 GPS encontrado na foto! Preenchendo localização automaticamente...';
+    const encontrado = await fillAddressFromCoordinates(gps.latitude, gps.longitude);
+    statusFotoExif.textContent = encontrado
+      ? '📷 Localização preenchida automaticamente a partir do GPS da foto.'
+      : '📷 Coordenadas da foto aplicadas. Confira o endereço.';
+  }
+
+  if (fotoInput) {
+    fotoInput.addEventListener('change', handleFotoChange);
   }
 
   document.querySelectorAll('.material-checkbox').forEach(function (checkbox) {
@@ -269,3 +407,4 @@
 </script>
 <script src="{{ url_for('static', filename='js/photo_chooser.js', v='20260925-camera-gallery') }}"></script>
 {% endblock %}
+

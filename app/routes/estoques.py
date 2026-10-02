@@ -4,7 +4,6 @@ from decimal import Decimal, InvalidOperation
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from sqlalchemy import func
 
 from app.extensions import db
 from app.forms import (
@@ -29,6 +28,7 @@ from app.services import (
     get_legacy_transition_audit,
     migrate_legacy_stock_to_allocation,
     get_point_operational_snapshot,
+    get_points_materials_summary,
     remove_material_from_point,
     register_allocation_occurrence,
     register_allocation_replenishment,
@@ -37,8 +37,10 @@ from app.utils import (
     build_whatsapp_url,
     digits_only,
     geocode_address_coordinates,
+    geocode_free_text,
     normalize_whatsapp_number,
     parse_coordinate_pair,
+    resolve_shortened_maps_url,
     save_uploaded_image,
     generate_point_name,
     reverse_geocode_coordinates,
@@ -96,24 +98,54 @@ def geolocalizacao():
     })
 
 
+@estoques_bp.get("/buscar-endereco")
+@login_required
+@role_required("ADMIN", "OPERADOR")
+def buscar_endereco():
+    """Geocodifica um endereço/texto livre digitado no campo único de localização."""
+    from flask import jsonify
+
+    texto = (request.args.get("texto") or "").strip()
+    if not texto:
+        return jsonify({"ok": False, "message": "Informe um endereço para buscar."}), 400
+
+    resultado = geocode_free_text(texto)
+    if resultado["latitude"] is None or resultado["longitude"] is None:
+        return jsonify({"ok": False, "message": "Endereço não encontrado."})
+
+    return jsonify({
+        "ok": True,
+        "latitude": str(resultado["latitude"]),
+        "longitude": str(resultado["longitude"]),
+        "endereco": resultado["endereco"],
+    })
+
+
+@estoques_bp.get("/resolver-link-maps")
+@login_required
+@role_required("ADMIN", "OPERADOR")
+def resolver_link_maps():
+    """Segue o redirecionamento de links curtos do Google Maps (ex.: compartilhados via WhatsApp)."""
+    from flask import jsonify
+
+    url = (request.args.get("url") or "").strip()
+    if not url:
+        return jsonify({"ok": False, "message": "Informe um link para resolver."}), 400
+
+    url_final = resolve_shortened_maps_url(url)
+    return jsonify({"ok": True, "url": url_final})
+
+
 @estoques_bp.get("/")
 @login_required
 def index():
-    banner_totals_query = (
-        db.session.query(
-            EstoqueMaterial.ponto_estoque_id,
-            func.coalesce(func.sum(EstoqueMaterial.quantidade), 0),
-        )
-        .join(EstoqueMaterial.material)
-        .filter(Material.nome.ilike("%banner%"))
-        .group_by(EstoqueMaterial.ponto_estoque_id)
-        .all()
-    )
-    banner_totals = dict(banner_totals_query)
     pontos = (
         PontoEstoque.query.join(PontoEstoque.municipio).filter(Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).join(Municipio.territorio).order_by(PontoEstoque.nome.asc()).all()
     )
-    return render_template("estoques/index.html", pontos=pontos, banner_totals=banner_totals)
+    # Busca os materiais de todos os pontos em duas consultas agregadas (em vez
+    # de uma consulta por ponto), evitando o problema de N+1 queries na listagem.
+    materiais_por_ponto = get_points_materials_summary([ponto.id for ponto in pontos])
+    return render_template("estoques/index.html", pontos=pontos, materiais_por_ponto=materiais_por_ponto)
 
 
 @estoques_bp.route("/novo", methods=["GET", "POST"])

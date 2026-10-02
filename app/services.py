@@ -1173,6 +1173,69 @@ def get_point_operational_snapshot(point: PontoEstoque) -> dict:
         "totals": totals,
     }
 
+def get_points_materials_summary(point_ids: list[int]) -> dict[int, list[dict]]:
+    """Return, per point id, the aggregated materials allocated to it.
+
+    Mirrors the merge logic of ``get_point_operational_snapshot`` (operational
+    allocations take precedence, legacy stock fills in materials not yet
+    migrated) but resolves every point in two grouped queries instead of one
+    pair of queries per point, avoiding N+1 queries on listing pages.
+    """
+    if not point_ids:
+        return {}
+
+    materials_by_point: dict[int, dict[int, dict]] = {point_id: {} for point_id in point_ids}
+
+    allocation_rows = (
+        db.session.query(
+            AlocacaoPontoMaterial.ponto_estoque_id,
+            AlocacaoPontoMaterial.material_id,
+            Material.nome,
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_alocada), 0),
+        )
+        .join(AlocacaoPontoMaterial.material)
+        .filter(
+            AlocacaoPontoMaterial.ponto_estoque_id.in_(point_ids),
+            AlocacaoPontoMaterial.ativo.is_(True),
+        )
+        .group_by(AlocacaoPontoMaterial.ponto_estoque_id, AlocacaoPontoMaterial.material_id, Material.nome)
+        .all()
+    )
+    for ponto_id, material_id, nome, total in allocation_rows:
+        materials_by_point.setdefault(ponto_id, {})[material_id] = {
+            "material_id": material_id,
+            "material": nome,
+            "quantidade": Decimal(total or 0),
+        }
+
+    legacy_rows = (
+        db.session.query(
+            EstoqueMaterial.ponto_estoque_id,
+            EstoqueMaterial.material_id,
+            Material.nome,
+            func.coalesce(func.sum(EstoqueMaterial.quantidade), 0),
+        )
+        .join(EstoqueMaterial.material)
+        .filter(EstoqueMaterial.ponto_estoque_id.in_(point_ids))
+        .group_by(EstoqueMaterial.ponto_estoque_id, EstoqueMaterial.material_id, Material.nome)
+        .all()
+    )
+    for ponto_id, material_id, nome, total in legacy_rows:
+        materials = materials_by_point.setdefault(ponto_id, {})
+        if material_id in materials:
+            continue
+        materials[material_id] = {
+            "material_id": material_id,
+            "material": nome,
+            "quantidade": Decimal(total or 0),
+        }
+
+    return {
+        ponto_id: sorted(materials.values(), key=lambda item: item["material"])
+        for ponto_id, materials in materials_by_point.items()
+    }
+
+
 def get_allocation_monitoring_rows(filters: dict | None = None) -> list[dict]:
     """Return monitoring rows from the operational model, with legacy-only fallback."""
     filters = filters or {}

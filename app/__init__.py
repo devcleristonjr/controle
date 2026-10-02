@@ -4,6 +4,9 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+load_dotenv()
+
 from flask import Flask, render_template
 from sqlalchemy import inspect, text
 from sqlalchemy.exc import OperationalError
@@ -27,9 +30,6 @@ from app.routes.materiais import materiais_bp
 from app.commands import register_commands
 from app.timezone import formatar_datahora_bahia
 from config import get_config
-
-
-load_dotenv()
 
 
 @login_manager.user_loader

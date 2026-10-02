@@ -60,10 +60,20 @@
             <span class="small text-muted d-block">Responsável</span>
             <strong>{{ ponto.responsavel_nome or 'Não informado' }}</strong>
           </div>
-          <div class="text-end">
-            <span class="small text-muted d-block">Banners</span>
-            <strong class="fs-5">{{ '%.0f'|format(banner_totals.get(ponto.id, 0)) }}</strong>
-          </div>
+        </div>
+
+        <div class="point-card-materials mb-3">
+          <span class="small text-muted d-block mb-1">Materiais</span>
+          {% set materiais = materiais_por_ponto.get(ponto.id, []) %}
+          {% if materiais %}
+            <ul class="list-unstyled mb-0 small">
+              {% for material in materiais %}
+                <li><i class="bi bi-dot"></i>{{ material.material }} — {{ '%.0f'|format(material.quantidade) }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <span class="small text-muted">Nenhum material alocado.</span>
+          {% endif %}
         </div>
 
         <div class="small text-muted mb-3">

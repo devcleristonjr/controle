@@ -174,6 +174,62 @@ def reverse_geocode_coordinates(latitude: str | Decimal | float, longitude: str 
     }
 
 
+def geocode_free_text(query: str) -> dict:
+    """Geocodifica um texto livre (endereço digitado pelo usuário) sem exigir município."""
+    texto = (query or "").strip()
+    if not texto:
+        return {"latitude": None, "longitude": None, "endereco": ""}
+
+    consulta = texto if "brasil" in texto.lower() or "brazil" in texto.lower() else f"{texto}, Brasil"
+    params = urlencode({"q": consulta, "format": "jsonv2", "limit": 1, "countrycodes": "br", "addressdetails": 1})
+    url = f"https://nominatim.openstreetmap.org/search?{params}"
+    request = Request(
+        url,
+        headers={
+            "User-Agent": "estoque-bahia/1.0 (contato@localhost)",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urlopen(request, timeout=5) as response:
+            payload = response.read().decode("utf-8")
+        data = json.loads(payload)
+    except Exception:
+        return {"latitude": None, "longitude": None, "endereco": ""}
+
+    if not data:
+        return {"latitude": None, "longitude": None, "endereco": ""}
+
+    latitude = parse_coordinate_to_decimal(data[0].get("lat"))
+    longitude = parse_coordinate_to_decimal(data[0].get("lon"))
+    return {
+        "latitude": latitude,
+        "longitude": longitude,
+        "endereco": data[0].get("display_name") or texto,
+    }
+
+
+def resolve_shortened_maps_url(url: str) -> str:
+    """Segue redirecionamentos (ex.: links curtos do Google Maps compartilhados via WhatsApp)
+    e retorna a URL final, de onde as coordenadas podem ser extraídas."""
+    texto = (url or "").strip()
+    if not texto:
+        return ""
+
+    request = Request(
+        texto,
+        headers={
+            "User-Agent": "Mozilla/5.0 (estoque-bahia link resolver)",
+            "Accept": "text/html",
+        },
+    )
+    try:
+        with urlopen(request, timeout=5) as response:
+            return response.geturl() or texto
+    except Exception:
+        return texto
+
+
 def geocode_address_coordinates(endereco: str | None, municipio: str | None) -> tuple[Decimal | None, Decimal | None]:
     if not municipio:
         return (None, None)
