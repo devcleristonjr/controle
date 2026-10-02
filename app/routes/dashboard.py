@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from flask import Blueprint, render_template, request
 from flask_login import login_required
+from sqlalchemy.orm import lazyload
 
 from app.models.material import Material
 from app.models.municipio import Municipio
@@ -14,14 +15,15 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 def _allowed_territorios():
     """Retorna somente os territórios ligados aos quatro municípios permitidos."""
-    municipios = (
-        Municipio.query
+    return (
+        Territorio.query
+        .join(Municipio, Municipio.territorio_id == Territorio.id)
         .filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES))
-        .join(Municipio.territorio)
+        .options(lazyload("*"))
+        .distinct()
+        .order_by(Territorio.nome.asc())
         .all()
     )
-    territorios = {municipio.territorio.id: municipio.territorio for municipio in municipios}
-    return sorted(territorios.values(), key=lambda item: item.nome.casefold())
 
 
 @dashboard_bp.get("/")
@@ -42,8 +44,19 @@ def index():
     filters["period_end"] = request.args.get("period_end")
     metrics = get_dashboard_metrics(filters)
     territorios = _allowed_territorios()
-    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
-    materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
+    municipios = (
+        Municipio.query
+        .filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES))
+        .options(lazyload("*"))
+        .order_by(Municipio.nome.asc())
+        .all()
+    )
+    materiais = (
+        Material.query.filter_by(ativo=True)
+        .options(lazyload("*"))
+        .order_by(Material.nome.asc())
+        .all()
+    )
     return render_template(
         "dashboard/index.html",
         metrics=metrics,
@@ -58,8 +71,19 @@ def index():
 @login_required
 def mapa():
     territorios = _allowed_territorios()
-    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
-    materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
+    municipios = (
+        Municipio.query
+        .filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES))
+        .options(lazyload("*"))
+        .order_by(Municipio.nome.asc())
+        .all()
+    )
+    materiais = (
+        Material.query.filter_by(ativo=True)
+        .options(lazyload("*"))
+        .order_by(Material.nome.asc())
+        .all()
+    )
     return render_template(
         "mapa/index.html",
         territorios=territorios,
@@ -87,9 +111,25 @@ def monitoramento():
     filters["period_start"] = request.args.get("period_start")
     filters["period_end"] = request.args.get("period_end")
     rows = get_allocation_monitoring_rows(filters)
-    territorios = Territorio.query.filter_by(ativo=True).order_by(Territorio.nome.asc()).all()
-    municipios = Municipio.query.filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES)).order_by(Municipio.nome.asc()).all()
-    materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
+    territorios = (
+        Territorio.query.filter_by(ativo=True)
+        .options(lazyload("*"))
+        .order_by(Territorio.nome.asc())
+        .all()
+    )
+    municipios = (
+        Municipio.query
+        .filter(Municipio.ativo.is_(True), Municipio.nome.in_(ALLOWED_MUNICIPIO_NAMES))
+        .options(lazyload("*"))
+        .order_by(Municipio.nome.asc())
+        .all()
+    )
+    materiais = (
+        Material.query.filter_by(ativo=True)
+        .options(lazyload("*"))
+        .order_by(Material.nome.asc())
+        .all()
+    )
     totals = {
         "alocada": sum((row["alocada"] for row in rows), 0),
         "em_uso": sum((row["em_uso"] for row in rows), 0),

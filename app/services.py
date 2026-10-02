@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, or_
+from sqlalchemy.orm import lazyload
 
 from app.extensions import db
 from app.models.alocacao_ponto_material import AlocacaoPontoMaterial
@@ -776,24 +777,131 @@ def _aggregate_allocation_totals(filters: dict, point_ids: list[int] | None = No
     }
 
 
-def _material_dashboard_cards() -> list[dict]:
-    materiais = Material.query.filter_by(ativo=True).order_by(Material.nome.asc()).all()
-    snapshots = {material.id: get_material_allocation_snapshot(material.id) for material in materiais}
+def _material_dashboard_cards(allocated_by_material: dict[int, Decimal]) -> list[dict]:
+    materiais = (
+        db.session.query(
+            Material.id,
+            Material.nome,
+            Material.unidade,
+            Material.quantidade_total,
+        )
+        .filter(Material.ativo.is_(True))
+        .order_by(Material.nome.asc())
+        .all()
+    )
     cards = []
-    for material in materiais:
-        snapshot = snapshots.get(material.id, {})
+    for material_id, nome, unidade, total_value in materiais:
+        total = Decimal(total_value or 0)
+        allocated = allocated_by_material.get(material_id, Decimal("0"))
         cards.append(
             {
-                "material_id": material.id,
-                "nome": material.nome,
-                "unidade": material.unidade or "-",
-                "total": snapshot.get("total", Decimal("0")),
-                "allocated": snapshot.get("allocated", Decimal("0")),
-                "available": snapshot.get("available", Decimal("0")),
-                "is_inconsistent": snapshot.get("is_inconsistent", False),
+                "material_id": material_id,
+                "nome": nome,
+                "unidade": unidade or "-",
+                "total": total,
+                "allocated": allocated,
+                "available": total - allocated,
+                "is_inconsistent": allocated > total,
             }
         )
     return cards
+
+
+def _effective_allocated_by_material() -> dict[int, Decimal]:
+    operational_totals = (
+        db.session.query(
+            AlocacaoPontoMaterial.material_id,
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_em_uso), 0),
+        )
+        .filter(AlocacaoPontoMaterial.ativo.is_(True))
+        .group_by(AlocacaoPontoMaterial.material_id)
+        .all()
+    )
+    allocated = {
+        material_id: Decimal(quantity or 0)
+        for material_id, quantity in operational_totals
+    }
+
+    has_operational_allocation = (
+        db.session.query(AlocacaoPontoMaterial.id)
+        .filter(
+            AlocacaoPontoMaterial.ponto_estoque_id == EstoqueMaterial.ponto_estoque_id,
+            AlocacaoPontoMaterial.material_id == EstoqueMaterial.material_id,
+            AlocacaoPontoMaterial.ativo.is_(True),
+        )
+        .correlate(EstoqueMaterial)
+        .exists()
+    )
+    legacy_totals = (
+        db.session.query(
+            EstoqueMaterial.material_id,
+            func.coalesce(func.sum(EstoqueMaterial.quantidade), 0),
+        )
+        .filter(~has_operational_allocation)
+        .group_by(EstoqueMaterial.material_id)
+        .all()
+    )
+    for material_id, quantity in legacy_totals:
+        allocated[material_id] = allocated.get(material_id, Decimal("0")) + Decimal(quantity or 0)
+    return allocated
+
+
+def _dashboard_point_material_totals(point_ids: list[int]) -> dict[int, dict[int, dict[str, Decimal]]]:
+    totals: dict[int, dict[int, dict[str, Decimal]]] = {point_id: {} for point_id in point_ids}
+    if not point_ids:
+        return totals
+
+    allocation_rows = (
+        db.session.query(
+            AlocacaoPontoMaterial.ponto_estoque_id,
+            AlocacaoPontoMaterial.material_id,
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_alocada), 0),
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_em_uso), 0),
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_danificada_total), 0),
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_perdida_total), 0),
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_retirada_total), 0),
+            func.coalesce(func.sum(AlocacaoPontoMaterial.quantidade_reposicao_pendente), 0),
+        )
+        .filter(
+            AlocacaoPontoMaterial.ponto_estoque_id.in_(point_ids),
+            AlocacaoPontoMaterial.ativo.is_(True),
+        )
+        .group_by(AlocacaoPontoMaterial.ponto_estoque_id, AlocacaoPontoMaterial.material_id)
+        .all()
+    )
+    for point_id, material_id, allocated, in_use, damaged, lost, removed, replenishment in allocation_rows:
+        totals[point_id][material_id] = {
+            "allocated": Decimal(allocated or 0),
+            "in_use": Decimal(in_use or 0),
+            "damaged": Decimal(damaged or 0),
+            "lost": Decimal(lost or 0),
+            "removed": Decimal(removed or 0),
+            "replenishment_pending": Decimal(replenishment or 0),
+        }
+
+    legacy_rows = (
+        db.session.query(
+            EstoqueMaterial.ponto_estoque_id,
+            EstoqueMaterial.material_id,
+            func.coalesce(func.sum(EstoqueMaterial.quantidade), 0),
+        )
+        .filter(EstoqueMaterial.ponto_estoque_id.in_(point_ids))
+        .group_by(EstoqueMaterial.ponto_estoque_id, EstoqueMaterial.material_id)
+        .all()
+    )
+    for point_id, material_id, quantity in legacy_rows:
+        if material_id in totals[point_id]:
+            continue
+        legacy_quantity = Decimal(quantity or 0)
+        totals[point_id][material_id] = {
+            "allocated": legacy_quantity,
+            "in_use": legacy_quantity,
+            "damaged": Decimal("0"),
+            "lost": Decimal("0"),
+            "removed": Decimal("0"),
+            "replenishment_pending": Decimal("0"),
+        }
+    return totals
 
 
 def get_dashboard_metrics(filters: dict | None = None) -> dict:
@@ -817,11 +925,12 @@ def get_dashboard_metrics(filters: dict | None = None) -> dict:
         )
 
     active_points = base_points.filter(PontoEstoque.ativo.is_(True))
-    points = active_points.order_by(PontoEstoque.nome.asc()).all()
+    points = active_points.options(lazyload("*")).order_by(PontoEstoque.nome.asc()).all()
     point_ids = [point.id for point in points]
 
     stock_total = _sum_total_stock(filters.get("material_id"))
-    material_cards = _material_dashboard_cards()
+    allocated_by_material = _effective_allocated_by_material()
+    material_cards = _material_dashboard_cards(allocated_by_material)
 
     if not points:
         return {
@@ -850,8 +959,15 @@ def get_dashboard_metrics(filters: dict | None = None) -> dict:
         }
 
     municipality_ids = {point.municipio_id for point in points}
-    territory_ids = {point.municipio.territorio_id for point in points}
+    territory_ids = set(
+        db.session.query(Municipio.territorio_id)
+        .filter(Municipio.id.in_(municipality_ids))
+        .distinct()
+        .all()
+    )
+    territory_ids = {territory_id for (territory_id,) in territory_ids}
 
+    point_material_totals = _dashboard_point_material_totals(point_ids)
     total_materiais_ids = set()
     total_stock_allocated = Decimal("0")
     total_in_use = Decimal("0")
@@ -862,24 +978,29 @@ def get_dashboard_metrics(filters: dict | None = None) -> dict:
     point_stock_rows = []
 
     for point in points:
-        snapshot = get_point_operational_snapshot(point)
-        point_materials = snapshot["materials"]
-        if filters.get("material_id"):
-            point_materials = [
-                item for item in point_materials if item["material_id"] == filters["material_id"]
-            ]
-        point_allocated = sum((Decimal(item["allocated"]) for item in point_materials), Decimal("0"))
-        point_in_use = sum((Decimal(item["in_use"]) for item in point_materials), Decimal("0"))
+        point_materials = point_material_totals[point.id]
+        if material_id := filters.get("material_id"):
+            point_materials = {
+                key: value for key, value in point_materials.items() if key == material_id
+            }
+        point_allocated = sum(
+            (item["allocated"] for item in point_materials.values()), Decimal("0")
+        )
+        point_in_use = sum(
+            (item["in_use"] for item in point_materials.values()), Decimal("0")
+        )
         point_replenishment = sum(
-            (Decimal(item["replenishment_pending"]) for item in point_materials), Decimal("0")
+            (item["replenishment_pending"] for item in point_materials.values()), Decimal("0")
         )
         total_stock_allocated += point_allocated
         total_in_use += point_in_use
-        total_damaged += sum((Decimal(item["damaged"]) for item in point_materials), Decimal("0"))
-        total_lost += sum((Decimal(item["lost"]) for item in point_materials), Decimal("0"))
-        total_removed += sum((Decimal(item["removed"]) for item in point_materials), Decimal("0"))
+        total_damaged += sum(
+            (item["damaged"] for item in point_materials.values()), Decimal("0")
+        )
+        total_lost += sum((item["lost"] for item in point_materials.values()), Decimal("0"))
+        total_removed += sum((item["removed"] for item in point_materials.values()), Decimal("0"))
         total_replenishment_needed += point_replenishment
-        total_materiais_ids.update(item["material_id"] for item in point_materials)
+        total_materiais_ids.update(point_materials)
         point_stock_rows.append(
             {
                 "point": point,
@@ -899,10 +1020,14 @@ def get_dashboard_metrics(filters: dict | None = None) -> dict:
     )[:5]
 
     if filters.get("material_id"):
-        stock_allocated = _sum_effective_allocated_stock(filters["material_id"])
+        stock_allocated = allocated_by_material.get(filters["material_id"], Decimal("0"))
     else:
+        active_material_ids = {
+            material_id
+            for (material_id,) in db.session.query(Material.id).filter(Material.ativo.is_(True)).all()
+        }
         stock_allocated = sum(
-            (_sum_effective_allocated_stock(material.id) for material in Material.query.filter_by(ativo=True).all()),
+            (allocated_by_material.get(material_id, Decimal("0")) for material_id in active_material_ids),
             Decimal("0"),
         )
 
